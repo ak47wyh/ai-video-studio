@@ -117,3 +117,48 @@ export interface PlatformMeta {
   /** 默认文本模型 */
   textModel?: string;
 }
+
+// ==========================================
+// 模型注册表（M3.3 模型 ID 走 PlatformRouter）
+// ==========================================
+
+/**
+ * 文本模型用途分类。
+ * 不同业务场景使用不同档位的模型：
+ * - chat: Agent 对话 / 用户交互（需强推理能力）
+ * - recommendation: BGM 推荐 / 内容分类（中等档位）
+ * - translation: 文学→镜头描述翻译（中等档位，重速度）
+ * - alignment: 字幕时间轴对齐（轻量档位，重速度）
+ * - splitter: 故事拆分（中等档位）
+ */
+export type TextModelCategory =
+  | 'chat'
+  | 'recommendation'
+  | 'translation'
+  | 'alignment'
+  | 'splitter';
+
+/**
+ * 模型注册表端口。
+ *
+ * 取代 Service 层硬编码的模型 ID（EVOLUTION_DESIGN.md §7.3）：
+ *   - BGMRecommendationService 硬编码 'MiniMax-M2.5'
+ *   - SubtitleService 硬编码 'MiniMax-M2.5-highspeed'
+ *   - AgentService 硬编码 'MiniMax-M3'
+ *   - PromptContextBuilder 硬编码 'MiniMax-M2.5-highspeed'
+ *
+ * 实现方根据当前 activePlatform 的 PlatformMeta 返回对应模型 ID，
+ * 使切换平台后所有 Service 自动使用新平台的模型。
+ *
+ * 实现示例：
+ * - PlatformModelRegistry（基于 platformCapabilities + IApiConfigStore）
+ * - StaticModelRegistry（测试用，固定返回某个模型）
+ */
+export interface IModelRegistry {
+  /** 按用途解析文本模型 ID */
+  resolveTextModel(category: TextModelCategory): string;
+  /** 解析当前平台的图片模型 */
+  resolveImageModel(): string;
+  /** 解析当前平台的默认视频模型 */
+  resolveVideoModel(): string;
+}

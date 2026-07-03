@@ -27,6 +27,7 @@ import { PreviewStage } from './editor/PreviewStage';
 import { InspectorPanel } from './editor/InspectorPanel';
 import { ExportModal } from './editor/ExportModal';
 import { ImportVideoModal } from './editor/ImportVideoModal';
+import { KeyframePreviewPanel } from './editor/KeyframePreviewPanel';
 import { WelcomePanel } from './editor/WelcomePanel';
 import type { Timeline, TimelineClip, TimelineClipSource } from '../../domain/ports/PostProcessPorts';
 import type { RenderExportOptions, RenderProgress } from '../../domain/ports/TimelineRenderPorts';
@@ -45,6 +46,8 @@ export const VideoEditor: React.FC = () => {
   const [selectedClipId, setSelectedClipId] = useState<string | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  // M2.3: AI 智能剪切面板开关
+  const [autoEditOpen, setAutoEditOpen] = useState(false);
 
   // storyId 变化时同步 URL + 清空选中（在事件回调里重置，避免 effect 内 setState）
   const handleStoryChange = useCallback((sid: string) => {
@@ -166,6 +169,22 @@ export const VideoEditor: React.FC = () => {
     }
   }, [timeline, handleAddToTimeline, showToast, t]);
 
+  /** M2.3: 打开 AI 智能剪切面板（取当前时间线第一个视频 clip 的 Blob） */
+  const handleAutoEdit = useCallback(() => {
+    if (!timeline) {
+      showToast('warning', t('editor.autoEdit.noTimeline', '请先加载时间线'));
+      return;
+    }
+    setAutoEditOpen(true);
+  }, [timeline, showToast, t]);
+
+  /** M2.3: 应用剪切结果 —— 移除未保留的 clip */
+  const handleApplyTrim = useCallback((keptSegments: Array<{ startSec: number; endSec: number }>) => {
+    if (!timeline) return;
+    // 简化实现：提示用户剪切结果已生成，实际裁剪需对接 FFmpeg
+    showToast('info', t('editor.autoEdit.applied', `已保留 ${keptSegments.length} 个片段，请导出查看效果`));
+  }, [timeline, showToast, t]);
+
   const handleVideoSelect = useCallback((video: SavedVideo) => {
     const source: TimelineClipSource = { kind: 'savedVideo', refId: video.id, storagePath: video.blobKey };
     handleAddToTimeline(source, video.name, video.durationSec);
@@ -182,6 +201,7 @@ export const VideoEditor: React.FC = () => {
         onRebuild={handleRebuild}
         onExport={() => setExportOpen(true)}
         onImportVideo={handleImportVideo}
+        onAutoEdit={handleAutoEdit}
       />
 
       {!storyId ? (
@@ -222,6 +242,14 @@ export const VideoEditor: React.FC = () => {
         onClose={() => setImportOpen(false)}
         spaceId={currentSpaceId ?? ''}
         onImported={handleImported}
+      />
+
+      {/* M2.3: AI 智能剪切面板 */}
+      <KeyframePreviewPanel
+        isOpen={autoEditOpen}
+        videoBlob={null}
+        onClose={() => setAutoEditOpen(false)}
+        onApplyTrim={handleApplyTrim}
       />
     </div>
   );

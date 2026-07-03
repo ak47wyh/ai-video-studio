@@ -6,6 +6,7 @@
 import { StorySpaceRepositoryAdapter, CharacterRepositoryAdapter, StoryRepositoryAdapter, StorySegmentRepositoryAdapter, BackgroundRepositoryAdapter, VideoTaskRepositoryAdapter, FinalCutRepositoryAdapter } from './adapters/outbound/repositories/IndexedDBAdapters';
 import { SnapshotRepositoryAdapter } from './adapters/outbound/repositories/SnapshotRepositoryAdapter';
 import { TimelineRepositoryAdapter } from './adapters/outbound/repositories/TimelineRepositoryAdapter';
+import { PipelineTaskRepositoryAdapter } from './adapters/outbound/repositories/PipelineTaskRepositoryAdapter';
 
 // ==================== 基础设施层（外部API适配器） ====================
 import { MiniMaxVideoAdapter } from './adapters/outbound/api/MiniMaxVideoAdapter';
@@ -26,6 +27,8 @@ import { MockStoryBreakdownAdapter } from './adapters/outbound/api/MockStoryBrea
 
 // ==================== API 配置 Port 适配器 ====================
 import { apiConfigStoreAdapter } from './adapters/outbound/config/ApiConfigStoreAdapter';
+import { PlatformModelRegistry } from './adapters/outbound/config/PlatformModelRegistry';
+import { InMemoryCostMeter } from './adapters/outbound/InMemoryCostMeter';
 
 // ==================== 领域服务层 ====================
 import { StoryService } from './domain/services/StoryService';
@@ -49,6 +52,8 @@ import { CinematographyService } from './domain/services/CinematographyService';
 import { BGMRecommendationService } from './domain/services/BGMRecommendationService';
 import { TimelineRenderService } from './domain/services/TimelineRenderService';
 import { TimelineService } from './domain/services/TimelineService';
+import { PromptContextBuilder } from './domain/services/PromptContextBuilder';
+import { ToolRegistry } from './domain/services/ToolRegistry';
 
 // ==================== 平台路由 ====================
 import { platformRouter } from './domain/services/PlatformRouter';
@@ -85,6 +90,8 @@ export const videoTaskRepo = new VideoTaskRepositoryAdapter();
 export const finalCutRepo = new FinalCutRepositoryAdapter();
 export const snapshotRepo = new SnapshotRepositoryAdapter();
 export const timelineRepo = new TimelineRepositoryAdapter();
+// M3.1: Pipeline 任务仓储（持久化到 IndexedDB）
+export const pipelineTaskRepo = new PipelineTaskRepositoryAdapter();
 
 // ========================================
 // 文件存储层（OPFS / IndexedDB）
@@ -223,14 +230,45 @@ export const timelineService = new TimelineService({
   videoTaskRepo,
 });
 
+// ========================================
+// M3.3 模型注册表 + M3.4 成本计量（EVOLUTION_DESIGN.md §7.3 §7.4）
+// 必须先于所有业务服务实例化（subtitleService/cinematographyService 等依赖）
+// ========================================
+export const modelRegistry = new PlatformModelRegistry(
+  apiConfigStoreAdapter,
+  defaultLogger.child({ service: 'ModelRegistry' })
+);
+export const costMeter = new InMemoryCostMeter();
+
 export const subtitleService = new SubtitleService(
   whisperAdapter, platformRouter, apiConfigStoreAdapter,
-  defaultLogger.child({ service: 'SubtitleService' })
+  defaultLogger.child({ service: 'SubtitleService' }),
+  modelRegistry, // M3.3: 注入模型注册表
 );
 
 // ========================================
 // 业务管线服务（全流程编排）
+// Phase 1 改造（EVOLUTION_DESIGN.md §5.1）：注入 PromptContextBuilder / BGM / Music / StoryBreakdown
+// M3.3 改造：注入 modelRegistry 替代硬编码模型 ID
+// 注意：modelRegistry / cinematographyService / bgmRecommendationService 必须先于 promptContextBuilder / pipelineService 实例化
 // ========================================
+export const cinematographyService = new CinematographyService(
+  platformRouter, apiConfigStoreAdapter,
+  defaultLogger.child({ service: 'CinematographyService' }),
+  modelRegistry, // M3.3: 注入模型注册表
+);
+export const bgmRecommendationService = new BGMRecommendationService(
+  platformRouter, apiConfigStoreAdapter,
+  defaultLogger.child({ service: 'BGMRecommendationService' }),
+  modelRegistry, // M3.3: 注入模型注册表
+);
+
+export const promptContextBuilder = new PromptContextBuilder(
+  platformRouter, apiConfigStoreAdapter, cinematographyService,
+  defaultLogger.child({ service: 'PromptContextBuilder' }),
+  modelRegistry, // M3.3: 注入模型注册表
+);
+
 export const pipelineService = new PipelineService({
   storyRepo, segmentRepo, characterRepo, backgroundRepo, videoTaskRepo, finalCutRepo,
   router: platformRouter,
@@ -239,6 +277,13 @@ export const pipelineService = new PipelineService({
   logger,
   eventBus,
   configStore: apiConfigStoreAdapter,
+  // Phase 1 新增依赖
+  storyBreakdownPort: smartStoryBreakdown,
+  promptContextBuilder,
+  bgmRecommendationService,
+  musicService,
+  // M3.1 新增依赖：持久化与恢复
+  pipelineTaskRepo,
 });
 
 // ========================================
@@ -261,20 +306,40 @@ export const fileManagementService = new FileManagementService(fileAdapter);
 
 // ========================================
 // AI 增强服务
+// 注意：agentService 在 ToolRegistry 之后才能注入工具表，故延后注入
+// cinematographyService / bgmRecommendationService 已在"业务管线服务"区块实例化
 // ========================================
 export const agentService = new AgentService(
   platformRouter, apiConfigStoreAdapter,
-  defaultLogger.child({ service: 'AgentService' })
+  defaultLogger.child({ service: 'AgentService' }),
+  modelRegistry, // M3.3: 注入模型注册表
 );
 export const autoEditService = new AutoEditService(ffmpegAdapter);
-export const cinematographyService = new CinematographyService(
-  platformRouter, apiConfigStoreAdapter,
-  defaultLogger.child({ service: 'CinematographyService' })
-);
-export const bgmRecommendationService = new BGMRecommendationService(
-  platformRouter, apiConfigStoreAdapter,
-  defaultLogger.child({ service: 'BGMRecommendationService' })
-);
+
+// ========================================
+// Phase 1 新增：ToolRegistry —— Agent 工具注册表（EVOLUTION_DESIGN.md §5.2.2）
+// 必须在所有业务 Service 实例化之后创建，再注入到 AgentService
+// ========================================
+export const toolRegistry = new ToolRegistry({
+  storyRepo,
+  segmentRepo,
+  characterRepo,
+  backgroundRepo,
+  videoTaskRepo,
+  storyService,
+  imageGenerationService,
+  videoGenerationService,
+  voiceService,
+  musicService,
+  postProcessService,
+  bgmRecommendationService,
+  cinematographyService,
+  promptContextBuilder,
+  logger: defaultLogger.child({ service: 'ToolRegistry' }),
+});
+
+// 注入工具表到 AgentService，激活 ReAct 工具循环
+agentService.setToolRegistry(toolRegistry);
 
 // ==================== 素材库（离线存储） ====================
 import { AssetLibraryService } from './domain/services/AssetLibraryService';

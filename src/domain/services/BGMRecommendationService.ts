@@ -1,5 +1,5 @@
 import type { ITextGenerationPort } from '../ports/OutboundPorts';
-import type { IApiConfigStore } from '../ports/PlatformPorts';
+import type { IApiConfigStore, IModelRegistry } from '../ports/PlatformPorts';
 import type { ILoggerPort } from '../ports/CrossCuttingPorts';
 import type { PlatformRouter } from './PlatformRouter';
 
@@ -47,16 +47,24 @@ const CATEGORY_DESCRIPTIONS: Record<BGMCategory, { emotion: string; tempo: strin
 export class BGMRecommendationService {
   private router: PlatformRouter;
   private configStore: IApiConfigStore;
+  private modelRegistry?: IModelRegistry;
   // @ts-expect-error Logger injected for future use
   private _logger: ILoggerPort;
   constructor(
     router: PlatformRouter,
     configStore: IApiConfigStore,
     logger: ILoggerPort,
+    modelRegistry?: IModelRegistry,
   ) {
     this.router = router;
     this.configStore = configStore;
     this._logger = logger;
+    this.modelRegistry = modelRegistry;
+  }
+
+  /** 解析当前推荐任务应使用的模型 ID（M3.3：走 PlatformRouter） */
+  private resolveRecommendationModel(): string {
+    return this.modelRegistry?.resolveTextModel('recommendation') ?? 'MiniMax-M2.5';
   }
 
   /** 获取当前配置对应的文本生成适配器 */
@@ -70,7 +78,7 @@ export class BGMRecommendationService {
    */
   async recommend(segmentContent: string, characterNames: string[] = []): Promise<BGMRecommendation> {
     const result = await this.getTextPort().chatCompletion({
-      model: 'MiniMax-M2.5',
+      model: this.resolveRecommendationModel(),
       messages: [
         {
           role: 'system',

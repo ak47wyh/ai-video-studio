@@ -1,5 +1,5 @@
 import type { ITextGenerationPort } from '../ports/OutboundPorts';
-import type { IApiConfigStore } from '../ports/PlatformPorts';
+import type { IApiConfigStore, IModelRegistry } from '../ports/PlatformPorts';
 import type { ILoggerPort } from '../ports/CrossCuttingPorts';
 import type { StorySegment } from '../entities/models';
 import type { PlatformRouter } from './PlatformRouter';
@@ -62,16 +62,29 @@ const MOVEMENT_DESCRIPTIONS: Record<CameraMovement, string> = {
 export class CinematographyService {
   private router: PlatformRouter;
   private configStore: IApiConfigStore;
+  private modelRegistry?: IModelRegistry;
   // @ts-expect-error Logger injected for future use
   private _logger: ILoggerPort;
   constructor(
     router: PlatformRouter,
     configStore: IApiConfigStore,
     logger: ILoggerPort,
+    modelRegistry?: IModelRegistry,
   ) {
     this.router = router;
     this.configStore = configStore;
     this._logger = logger;
+    this.modelRegistry = modelRegistry;
+  }
+
+  /** 解析当前镜头建议任务应使用的模型 ID（M3.3：走 PlatformRouter） */
+  private resolveShotModel(): string {
+    return this.modelRegistry?.resolveTextModel('recommendation') ?? 'MiniMax-M2.5';
+  }
+
+  /** 解析当前镜头翻译任务应使用的模型 ID（M3.3：走 PlatformRouter） */
+  private resolveTranslateModel(): string {
+    return this.modelRegistry?.resolveTextModel('translation') ?? 'MiniMax-M2.5-highspeed';
   }
 
   /** 获取当前配置对应的文本生成适配器 */
@@ -85,7 +98,7 @@ export class CinematographyService {
    */
   async suggestShots(segment: StorySegment, characterNames: string[]): Promise<ShotSuggestion[]> {
     const result = await this.getTextPort().chatCompletion({
-      model: 'MiniMax-M2.5',
+      model: this.resolveShotModel(),
       messages: [
         {
           role: 'system',
@@ -133,7 +146,7 @@ export class CinematographyService {
    */
   async enhancePromptWithShot(basePrompt: string, shot: ShotSuggestion): Promise<string> {
     const result = await this.getTextPort().chatCompletion({
-      model: 'MiniMax-M2.5-highspeed',
+      model: this.resolveTranslateModel(),
       messages: [
         {
           role: 'system',

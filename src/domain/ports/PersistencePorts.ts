@@ -12,6 +12,7 @@
 
 import type { Timeline } from './PostProcessPorts';
 export type { Timeline } from './PostProcessPorts';
+import type { PipelineTask } from '../entities/models';
 
 // ==========================================
 // 空间快照实体（由 SnapshotService 定义，此处只引用类型）
@@ -70,5 +71,29 @@ export interface ITimelineRepository {
   save(timeline: Timeline): Promise<void>;
   findById(id: string): Promise<Timeline | null>;
   findByStoryId(storyId: string): Promise<Timeline[]>;
+  delete(id: string): Promise<void>;
+}
+
+// ==========================================
+// Pipeline 任务仓储（M3.1 持久化与恢复）
+// ==========================================
+
+/**
+ * Pipeline 任务仓储端口。
+ *
+ * 用于持久化 PipelineTask，解决"刷新即丢"问题（EVOLUTION_DESIGN.md §7.1）。
+ * PipelineService 在 createTask / setStage / markComplete / markFailed 时写库；
+ * 启动时 restoreActiveTasks() 从库加载 status='running' 的任务并恢复。
+ *
+ * 实现示例：
+ * - DexiePipelineTaskRepository（推荐，已建有 pipelineTasks 表）
+ * - InMemoryPipelineTaskRepository（测试用）
+ */
+export interface IPipelineTaskRepository {
+  save(task: PipelineTask): Promise<void>;
+  findById(id: string): Promise<PipelineTask | null>;
+  findByStoryId(storyId: string): Promise<PipelineTask[]>;
+  /** 查询所有运行中（status='running'）的任务，用于启动恢复 */
+  findActive(): Promise<PipelineTask[]>;
   delete(id: string): Promise<void>;
 }

@@ -141,7 +141,17 @@ export interface FinalCut {
   thumbnailStoragePath?: string;
   /** 最终成片 OPFS 存储路径（Phase 2-C 持久化，videoBlob 庞大时可消除 Dexie 压力） */
   videoStoragePath?: string;
+  // ===== M2.4 统一成片路径（EVOLUTION_DESIGN.md §6.4）=====
+  /** 成片来源（区分 pipeline / timeline / manual 三种成片路径） */
+  source?: FinalCutSource;
+  /** 来源时间线 ID（source='timeline' 时有值） */
+  timelineId?: string;
+  /** 来源平台（记录成片由哪个 AI 平台生成，便于成本统计） */
+  sourcePlatform?: string;
 }
+
+/** 成片来源类型 */
+export type FinalCutSource = 'pipeline' | 'timeline' | 'manual';
 
 // --- Asset Library (v8) ---
 

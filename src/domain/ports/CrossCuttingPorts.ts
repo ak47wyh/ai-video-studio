@@ -170,3 +170,78 @@ export interface INotificationPort {
 export interface IConfirmPort {
   ask(input: ConfirmInput): Promise<boolean>;
 }
+
+// ==========================================
+// 成本计量（M3.4 成本可视化）
+// ==========================================
+
+import type { TokenUsageInfo } from '../entities/models';
+
+/**
+ * 单条成本记录。
+ * 每次 AI 调用（文本/图片/视频/语音/音乐）产生一条记录。
+ */
+export interface CostRecord {
+  /** 唯一 ID */
+  id: string;
+  /** 平台 ID（minimax / volcengine / ...） */
+  platform: string;
+  /** 模型 ID */
+  model: string;
+  /** 调用类型（text / image / video / voice / music） */
+  callType: 'text' | 'image' | 'video' | 'voice' | 'music';
+  /** Token 用量（仅 text 类型有值） */
+  usage?: TokenUsageInfo;
+  /** 调用时间戳 */
+  timestamp: number;
+  /** 关联的空间 ID（可选，用于按空间统计） */
+  spaceId?: string;
+  /** 关联的故事 ID（可选，用于按故事统计） */
+  storyId?: string;
+  /** 关联的 Pipeline 任务 ID（可选，用于按任务统计） */
+  pipelineTaskId?: string;
+}
+
+/**
+ * 成本汇总。
+ */
+export interface CostSummary {
+  /** 总调用次数 */
+  totalCalls: number;
+  /** 总 Token 数（仅文本调用） */
+  totalTokens: number;
+  /** 输入 Token 数 */
+  totalInputTokens: number;
+  /** 输出 Token 数 */
+  totalOutputTokens: number;
+  /** 按平台分组统计 */
+  byPlatform: Record<string, { calls: number; tokens: number }>;
+  /** 按模型分组统计 */
+  byModel: Record<string, { calls: number; tokens: number }>;
+  /** 按调用类型分组统计 */
+  byCallType: Record<string, { calls: number; tokens: number }>;
+  /** 时间范围（首末调用时间戳） */
+  period: { start: number; end: number };
+}
+
+/**
+ * 成本计量端口。
+ *
+ * 用于聚合所有 AI 调用的 Token 用量，提供成本可视化（EVOLUTION_DESIGN.md §7.4）：
+ *   - Pipeline 启动前预估总成本
+ *   - Pipeline 运行中实时累计
+ *   - Dashboard 成本看板
+ *
+ * 默认实现：InMemoryCostMeter（内存，重启清空）。
+ * 未来可扩展：DexieCostMeter（持久化到 IndexedDB）。
+ */
+export interface ICostMeter {
+  /** 记录一次 AI 调用的 Token 用量 */
+  record(record: Omit<CostRecord, 'id' | 'timestamp'>): void;
+  /** 获取汇总（可选按空间/故事/任务过滤） */
+  getSummary(filter?: { spaceId?: string; storyId?: string; pipelineTaskId?: string }): CostSummary;
+  /** 获取原始记录列表（分页） */
+  getRecords(filter?: { spaceId?: string; storyId?: string; pipelineTaskId?: string }, limit?: number): CostRecord[];
+  /** 清空记录 */
+  clear(): void;
+}

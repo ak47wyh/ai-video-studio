@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
-import type { PipelineTask, PipelineStatus, PipelineStep, StorySegment, VideoTask, Character, FinalCut } from '../entities/models';
+import type { PipelineTask, PipelineStatus, PipelineStep, StorySegment, VideoTask, Character, Background, FinalCut } from '../entities/models';
 import type {
   IVideoTaskRepository,
   IStoryRepository,
@@ -10,17 +10,23 @@ import type {
   IImageGeneratorPort,
   IVideoGeneratorPort,
   IVoicePort,
+  IStoryBreakdownPort,
   VideoGenerationMode,
   VideoModel,
   VideoResolution
 } from '../ports/OutboundPorts';
 import type { IFileStoragePort } from '../ports/FileStoragePorts';
+import type { IPipelineTaskRepository } from '../ports/PersistencePorts';
 import type { IApiConfigStore } from '../ports/PlatformPorts';
 import type { ILoggerPort, IEventBus } from '../ports/CrossCuttingPorts';
 import type { PostProcessService } from './PostProcessService';
 import { createTrackedObjectUrl } from '../../utils/objectUrlRegistry';
 import type { SubtitleService } from './SubtitleService';
 import type { PlatformRouter } from './PlatformRouter';
+import type { PromptContextBuilder } from './PromptContextBuilder';
+import type { MusicService } from './MusicService';
+import type { BGMRecommendationService } from './BGMRecommendationService';
+import { PromisePool } from './PromisePool';
 
 export type { PipelineTask, PipelineStatus, PipelineStep };
 
@@ -52,6 +58,18 @@ interface PipelineDeps {
   eventBus?: IEventBus;
   /** Phase 2 反转：注入 IApiConfigStore，替代 ApiConfigStore 单例 */
   configStore: IApiConfigStore;
+  // ===== Phase 1 业务闭环新增依赖（EVOLUTION_DESIGN.md §5.1）=====
+  /** 故事智能拆分（替代朴素 text.split 切分） */
+  storyBreakdownPort?: IStoryBreakdownPort;
+  /** 视频生成 Prompt 上下文构建器（替代 seg.content.slice 作 prompt） */
+  promptContextBuilder?: PromptContextBuilder;
+  /** BGM 推荐服务（阶段 4 真实生成 BGM） */
+  bgmRecommendationService?: BGMRecommendationService;
+  /** 音乐生成服务（阶段 4 真实生成 BGM） */
+  musicService?: MusicService;
+  // ===== M3.1 持久化与恢复（EVOLUTION_DESIGN.md §7.1）=====
+  /** Pipeline 任务仓储（持久化到 IndexedDB，解决刷新即丢） */
+  pipelineTaskRepo?: IPipelineTaskRepository;
 }
 
 const POLL_INTERVAL_MS = 5000;
@@ -120,6 +138,90 @@ export class PipelineService {
   private notify(task: PipelineTask): void {
     this.tasks.set(task.id, { ...task });
     this.subscribers.get(task.id)?.forEach(cb => cb(task));
+    // M3.1 持久化：所有状态变更统一写库（fire-and-forget，不阻塞主流程）
+    this.persistTask(task);
+  }
+
+  /** 持久化 PipelineTask 到 IndexedDB（静默失败，不影响主流程） */
+  private persistTask(task: PipelineTask): void {
+    if (!this.deps.pipelineTaskRepo) return;
+    this.deps.pipelineTaskRepo.save(task).catch(e => {
+      this.logger.warn('persist PipelineTask failed', {
+        service: 'PipelineService',
+        method: 'persistTask',
+        taskId: task.id,
+        error: e instanceof Error ? e.message : String(e),
+      });
+    });
+  }
+
+  /**
+   * M3.1 恢复运行中的 Pipeline 任务
+   *
+   * 启动时调用，从 IndexedDB 加载所有未完成的任务。
+   * 恢复策略：
+   *   - 视频任务还在跑 → 由 VideoGenerationService.resumeActivePolling() 独立恢复
+   *   - Pipeline 处于中间阶段 → 标记为 failed（无法准确恢复执行点），提供"重试"按钮
+   *   - 已 complete / failed 的任务 → 仅加载到内存，供历史查询
+   *
+   * @returns 恢复的任务列表（含需要用户处理的失败任务）
+   */
+  async restoreActiveTasks(): Promise<PipelineTask[]> {
+    if (!this.deps.pipelineTaskRepo) {
+      this.logger.info('pipelineTaskRepo not injected, skip restore', {
+        service: 'PipelineService',
+        method: 'restoreActiveTasks',
+      });
+      return [];
+    }
+
+    const activeTasks = await this.deps.pipelineTaskRepo.findActive();
+    if (activeTasks.length === 0) {
+      this.logger.info('no active Pipeline tasks to restore', {
+        service: 'PipelineService',
+        method: 'restoreActiveTasks',
+      });
+      return [];
+    }
+
+    const restored: PipelineTask[] = [];
+    for (const task of activeTasks) {
+      // 加载到内存
+      this.tasks.set(task.id, { ...task });
+      restored.push(task);
+
+      // 处于中间阶段的任务无法准确恢复执行点，标记为 failed 供用户重试
+      if (task.status !== 'idle' && task.status !== 'complete') {
+        const errorMsg = `页面刷新中断，任务恢复失败（原阶段: ${task.status}）`;
+        task.error = errorMsg;
+        task.currentStep = '需要用户手动重试';
+        // 标记当前阶段为 failed
+        const currentStep = task.steps.find(s => s.name === task.status);
+        if (currentStep) {
+          currentStep.status = 'failed';
+          currentStep.error = errorMsg;
+        }
+        task.status = 'failed';
+        this.notify(task);
+
+        this.logger.warn('Pipeline task restored as failed (interrupted by refresh)', {
+          service: 'PipelineService',
+          method: 'restoreActiveTasks',
+          taskId: task.id,
+          storyId: task.storyId,
+          interruptedStage: task.status,
+        });
+      }
+    }
+
+    this.logger.info('Pipeline tasks restored', {
+      service: 'PipelineService',
+      method: 'restoreActiveTasks',
+      totalRestored: restored.length,
+      failedCount: restored.filter(t => t.status === 'failed').length,
+    });
+
+    return restored;
   }
 
   private setStage(task: PipelineTask, stage: PipelineStatus, currentStep: string, progress: number): void {
@@ -268,36 +370,49 @@ export class PipelineService {
       if (!story) throw new Error('Story not found');
 
       // 阶段 1: 拆分 (5%)
+      // Phase 1 改造（EVOLUTION_DESIGN.md §5.1.1）：接入真实 AI 故事拆分
+      // 优先调用 storyBreakdownPort.breakdownStory()，失败时降级到原朴素切分
       this.startStage(task.id, 'splitting', '加载分镜', 2);
       let segments = await this.deps.segmentRepo.findByStoryId(storyId);
       if (segments.length === 0) {
         emitProgress('splitting', 4, 'AI 拆分故事为分镜...');
-        const parts = story.originalText.split(/[。！？\n]/).filter(s => s.trim().length > 5).slice(0, 6);
-        segments = [];
-        for (let i = 0; i < parts.length; i++) {
-          const seg: StorySegment = {
-            id: uuidv4(),
-            storyId,
-            sequenceOrder: i,
-            content: parts[i].trim(),
-            mentionedCharacters: [],
-          };
-          await this.deps.segmentRepo.save(seg);
-          segments.push(seg);
-        }
+        segments = await this.splitStoryWithAI(story, emitProgress);
       }
       this.completeStage(task, 'splitting');
       emitProgress('splitting', 5, `已加载 ${segments.length} 个分镜`);
 
       // 阶段 2: 生成图片 (10% → 20%)
+      // Phase 1 改造（EVOLUTION_DESIGN.md §5.1.3）：接入 PromptContextBuilder
+      // 用结构化上下文替代 seg.content.slice(0, 500) 作 prompt
       this.startStage(task.id, 'generating_images', '生成角色/背景图片', 10);
       let imageCount = 0;
       for (let i = 0; i < segments.length; i++) {
         const seg = segments[i];
         if (!seg.firstFrameImage && seg.content) {
           try {
+            // 优先用 PromptContextBuilder 构建结构化 prompt
+            let imagePrompt = seg.content.slice(0, 500);
+            if (this.deps.promptContextBuilder) {
+              try {
+                const characters = await this.loadSegmentCharacters(seg);
+                const background = await this.loadSegmentBackground(seg);
+                const { context } = await this.deps.promptContextBuilder.build(
+                  seg, characters, background,
+                  { videoStyle: story.title, enableCinematography: false }, // 图片阶段不开镜头建议
+                );
+                imagePrompt = context.prompt;
+              } catch (e) {
+                this.logger.warn('PromptContextBuilder failed, fallback to raw content', {
+                  service: 'PipelineService',
+                  method: 'runFullPipeline',
+                  stage: 'generating_images',
+                  segmentId: seg.id,
+                  error: e instanceof Error ? e.message : String(e),
+                });
+              }
+            }
             const imgResult = await this.getImagePort().generateImage({
-              prompt: seg.content.slice(0, 500),
+              prompt: imagePrompt,
               aspectRatio: '16:9',
               model: 'image-01-live',
             });
@@ -316,6 +431,8 @@ export class PipelineService {
             });
           }
         }
+        const progress = 10 + Math.round((i + 1) / segments.length * 10);
+        emitProgress('generating_images', progress, `已生成 ${i + 1}/${segments.length} 张图片`);
       }
       this.completeStage(task, 'generating_images');
       emitProgress('generating_images', 20, imageCount > 0 ? `已生成 ${imageCount} 张图片` : '图片就绪');
@@ -360,69 +477,174 @@ export class PipelineService {
       }
 
       // 阶段 4: 生成 BGM (45% → 50%)
+      // Phase 1 改造（EVOLUTION_DESIGN.md §5.1.4）：接入真实 BGM 生成
+      // 调用 BGMRecommendationService.recommend + MusicService.generateBGM
       if (includeBGM) {
         this.startStage(task.id, 'generating_bgm', '生成背景音乐', 45);
+        let bgmCount = 0;
+        for (let i = 0; i < segments.length; i++) {
+          const seg = segments[i];
+          // 已有 BGM 的分镜跳过
+          if (seg.bgmAudioUrl || seg.bgmStoragePath) {
+            bgmCount++;
+            continue;
+          }
+          try {
+            if (this.deps.bgmRecommendationService && this.deps.musicService) {
+              const recommendation = await this.deps.bgmRecommendationService.recommend(seg.content);
+              const bgmUrl = await this.deps.musicService.generateBGM(
+                seg.id,
+                recommendation.prompt,
+                {
+                  isInstrumental: recommendation.useInstrumental,
+                  lyrics: undefined, // Pipeline 默认纯音乐
+                },
+              );
+              if (bgmUrl) bgmCount++;
+              this.logger.info('BGM generated for segment', {
+                service: 'PipelineService',
+                method: 'runFullPipeline',
+                stage: 'generating_bgm',
+                segmentId: seg.id,
+                category: recommendation.category,
+                bgmUrl: bgmUrl?.slice(0, 80),
+              });
+            } else {
+              this.logger.warn('BGM services not injected, skip BGM generation', {
+                service: 'PipelineService',
+                method: 'runFullPipeline',
+                stage: 'generating_bgm',
+              });
+            }
+          } catch (e) {
+            this.logger.warn('BGM generation failed', {
+              service: 'PipelineService',
+              method: 'runFullPipeline',
+              stage: 'generating_bgm',
+              segmentId: seg.id,
+              error: e instanceof Error ? e.message : String(e),
+            });
+          }
+          const progress = 45 + Math.round((i + 1) / segments.length * 5);
+          emitProgress('generating_bgm', progress, `BGM 进度 ${i + 1}/${segments.length}`);
+        }
         this.completeStage(task, 'generating_bgm');
-        emitProgress('generating_bgm', 50, 'BGM 完成');
+        emitProgress('generating_bgm', 50, bgmCount > 0 ? `已生成 ${bgmCount} 个 BGM` : 'BGM 完成');
       } else {
         this.completeStage(task, 'generating_bgm');
         emitProgress('generating_bgm', 50, '跳过 BGM');
       }
 
       // 阶段 5: 提交视频任务（事件驱动 + 兜底轮询）
+      // Phase 1 改造（EVOLUTION_DESIGN.md §5.1.3 + M3.2）：接入 PromptContextBuilder + 并发池
       this.startStage(task.id, 'generating_videos', '生成视频', 55);
       const videoTasks: VideoTask[] = [];
       const externalTaskIds: string[] = [];
       const activePlatform = this.deps.configStore.load().activePlatform;
       this.pendingVideoTasks.set(task.id, new Set(externalTaskIds));
 
-      for (let i = 0; i < segments.length; i++) {
-        const seg = segments[i];
-        try {
-          const externalTaskId = await this.getVideoPort().submitVideoTask({
-            mode: options.videoMode || 't2v',
-            model: options.videoModel,
-            prompt: seg.content,
-            duration: options.videoDuration || 6,
-            resolution: options.videoResolution || '768P',
-            promptOptimizer: options.promptOptimizer !== false,
-          });
-          const taskEntity: VideoTask = {
-            id: uuidv4(),
-            segmentId: seg.id,
-            targetPlatform: 'MINIMAX',
-            status: 'PENDING',
-            externalTaskId,
-            mode: options.videoMode || 't2v',
-            model: options.videoModel,
-            resolution: options.videoResolution || '768P',
-            duration: options.videoDuration || 6,
-            promptOptimizer: options.promptOptimizer !== false,
-            createdAt: Date.now(),
-            updatedAt: Date.now(),
-          };
-          await this.deps.videoTaskRepo.save(taskEntity);
-          videoTasks.push(taskEntity);
-          externalTaskIds.push(externalTaskId);
+      // 预构建每个分镜的视频 prompt（含镜头建议）
+      const segPromptResults = await PromisePool.run(
+        segments,
+        async (seg: StorySegment, _index: number) => {
+          // 优先用 PromptContextBuilder 构建结构化 prompt
+          if (this.deps.promptContextBuilder) {
+            try {
+              const characters = await this.loadSegmentCharacters(seg);
+              const background = await this.loadSegmentBackground(seg);
+              const { context } = await this.deps.promptContextBuilder.build(
+                seg, characters, background,
+                {
+                  mode: options.videoMode,
+                  model: options.videoModel,
+                  resolution: options.videoResolution,
+                  duration: options.videoDuration,
+                  promptOptimizer: options.promptOptimizer,
+                  videoStyle: story.title,
+                  enableCinematography: true, // 视频阶段开启镜头建议
+                },
+              );
+              return { seg, prompt: context.prompt, buildInfo: 'builder' as const };
+            } catch (e) {
+              this.logger.warn('PromptContextBuilder failed for video, fallback to raw content', {
+                service: 'PipelineService',
+                method: 'runFullPipeline',
+                stage: 'generating_videos',
+                segmentId: seg.id,
+                error: e instanceof Error ? e.message : String(e),
+              });
+            }
+          }
+          return { seg, prompt: seg.content, buildInfo: 'raw' as const };
+        },
+        (done, total) => {
+          const progress = 55 + Math.round((done / total) * 5);
+          emitProgress('generating_videos', progress, `构建视频 prompt ${done}/${total}`);
+        },
+        { concurrency: 3 },
+      );
 
-          // ★ 事件驱动：emit 提交事件（外部可订阅以触发轮询或状态同步）
-          this.eventBus?.emit('video.task.submitted', {
-            type: 'video.task.submitted' as const,
-            taskId: externalTaskId,
-            spaceId: seg.storyId,
-            platform: activePlatform as string,
-          });
-        } catch (e) {
-          this.logger.warn('video submit failed', {
-            service: 'PipelineService',
-            method: 'runFullPipeline',
-            stage: 'generating_videos',
-            segmentId: seg.id,
-            error: e instanceof Error ? e.message : String(e),
-          });
+      // 提交视频任务（并发池，控制平台 QPS）
+      const submitResults = await PromisePool.run(
+        segPromptResults.filter((r): r is { seg: StorySegment; prompt: string; buildInfo: string } => r.status === 'ok' && !!r.value)
+                         .map(r => r.value!),
+        async (item: { seg: StorySegment; prompt: string; buildInfo: string }, _index: number) => {
+          try {
+            const externalTaskId = await this.getVideoPort().submitVideoTask({
+              mode: options.videoMode || 't2v',
+              model: options.videoModel,
+              prompt: item.prompt,
+              firstFrameImage: item.seg.firstFrameImage,
+              duration: options.videoDuration || 6,
+              resolution: options.videoResolution || '768P',
+              promptOptimizer: options.promptOptimizer !== false,
+            });
+            const taskEntity: VideoTask = {
+              id: uuidv4(),
+              segmentId: item.seg.id,
+              targetPlatform: 'MINIMAX',
+              status: 'PENDING',
+              externalTaskId,
+              mode: options.videoMode || 't2v',
+              model: options.videoModel,
+              resolution: options.videoResolution || '768P',
+              duration: options.videoDuration || 6,
+              promptOptimizer: options.promptOptimizer !== false,
+              firstFrameImage: item.seg.firstFrameImage,
+              createdAt: Date.now(),
+              updatedAt: Date.now(),
+            };
+            await this.deps.videoTaskRepo.save(taskEntity);
+            this.eventBus?.emit('video.task.submitted', {
+              type: 'video.task.submitted' as const,
+              taskId: externalTaskId,
+              spaceId: item.seg.storyId,
+              platform: activePlatform as string,
+            });
+            return { taskEntity, externalTaskId };
+          } catch (e) {
+            this.logger.warn('video submit failed', {
+              service: 'PipelineService',
+              method: 'runFullPipeline',
+              stage: 'generating_videos',
+              segmentId: item.seg.id,
+              error: e instanceof Error ? e.message : String(e),
+            });
+            throw e;
+          }
+        },
+        (done, total) => {
+          const progress = 60 + Math.round((done / total) * 5);
+          emitProgress('generating_videos', progress, `已提交 ${done}/${total} 个视频任务`);
+        },
+        { concurrency: options.concurrency ?? 3 },
+      );
+
+      for (const r of submitResults) {
+        if (r.status === 'ok' && r.value) {
+          videoTasks.push(r.value.taskEntity);
+          externalTaskIds.push(r.value.externalTaskId);
         }
-        const progress = 55 + Math.round((i + 1) / segments.length * 10);
-        emitProgress('generating_videos', progress, `已提交 ${i + 1}/${segments.length} 个视频任务`);
       }
 
       // 更新待处理任务集合
@@ -437,18 +659,43 @@ export class PipelineService {
       emitProgress('generating_videos', 80, '视频生成完成');
 
       // 阶段 6: 后期处理 (85%)
+      // Phase 1 改造（EVOLUTION_DESIGN.md §5.1.6）：调用真实 assembleFinalVideo
       this.startStage(task.id, 'post_processing', '后期合成', 82);
+      let finalCut: FinalCut | null = null;
+      try {
+        finalCut = await this.assembleFinalVideo(storyId, {}, (p, msg) => {
+          const progress = 82 + Math.round(p * 0.08);
+          emitProgress('post_processing', progress, msg);
+        });
+        this.logger.info('assembleFinalVideo done', {
+          service: 'PipelineService',
+          method: 'runFullPipeline',
+          stage: 'post_processing',
+          finalCutId: finalCut.id,
+          duration: finalCut.duration,
+          hasSubtitles: finalCut.hasSubtitles,
+        });
+      } catch (e) {
+        this.logger.error('assembleFinalVideo failed', e, {
+          service: 'PipelineService',
+          method: 'runFullPipeline',
+          stage: 'post_processing',
+        });
+        throw e;
+      }
       this.completeStage(task, 'post_processing');
-      emitProgress('post_processing', 85, '后期完成');
+      emitProgress('post_processing', 90, '后期完成');
 
-      // 阶段 7: 字幕 (90%)
+      // 阶段 7: 字幕 (92%)
+      // 说明：assembleFinalVideo 内部已包含字幕生成与烧录逻辑
+      // 此处仅作为独立阶段状态标记，便于 UI 进度展示
       if (includeSubtitles) {
-        this.startStage(task.id, 'generating_srt', '生成字幕', 88);
+        this.startStage(task.id, 'generating_srt', '生成字幕', 91);
         this.completeStage(task, 'generating_srt');
-        emitProgress('generating_srt', 90, '字幕就绪');
+        emitProgress('generating_srt', 92, '字幕就绪');
       } else {
         this.completeStage(task, 'generating_srt');
-        emitProgress('generating_srt', 90, '跳过字幕');
+        emitProgress('generating_srt', 92, '跳过字幕');
       }
 
       // 阶段 8: 字幕烧录 (95%)
@@ -456,7 +703,21 @@ export class PipelineService {
       emitProgress('burning_subtitles', 95, '字幕烧录完成');
 
       // 阶段 9: 完成
-      this.markComplete(task.id, `pipeline-${task.id}-complete`);
+      // Phase 1 改造（EVOLUTION_DESIGN.md §5.1.8）：使用真实成片 URL
+      if (finalCut) {
+        const finalUrl = finalCut.videoStoragePath
+          ?? (finalCut.videoBlob ? createTrackedObjectUrl(finalCut.videoBlob) : undefined)
+          ?? finalCut.thumbnailUrl;
+        this.markComplete(task.id, finalUrl ?? `pipeline-${task.id}-complete`);
+        // 把 finalCutId 关联到 PipelineTask（便于 ExportCenter 反查）
+        const t = this.tasks.get(task.id);
+        if (t) {
+          (t as PipelineTask & { finalCutId?: string }).finalCutId = finalCut.id;
+          this.notify(t);
+        }
+      } else {
+        this.markComplete(task.id, `pipeline-${task.id}-complete`);
+      }
 
       return this.tasks.get(task.id)!;
     } catch (e: unknown) {
@@ -707,6 +968,9 @@ export class PipelineService {
       size: finalVideoBlob!.size,
       hasSubtitles,
       createdAt: Date.now(),
+      // M2.4 统一成片路径：标记来源为 pipeline
+      source: 'pipeline',
+      sourcePlatform: this.deps.configStore.getActivePlatform(),
     };
     await this.deps.finalCutRepo.save(finalCut);
 
@@ -741,6 +1005,132 @@ export class PipelineService {
       if (ch?.voiceId) return ch;
     }
     return null;
+  }
+
+  /**
+   * Phase 1 新增：AI 智能拆分故事（替代朴素 text.split 切分）
+   * 优先调用 storyBreakdownPort.breakdownStory()
+   * 失败时降级到原朴素切分（保持向后兼容）
+   */
+  private async splitStoryWithAI(
+    story: { id: string; originalText: string; spaceId: string; title: string },
+    emitProgress: (stage: PipelineStatus, percent: number, msg: string) => void,
+  ): Promise<StorySegment[]> {
+    // 优先尝试 AI 拆分
+    if (this.deps.storyBreakdownPort) {
+      try {
+        emitProgress('splitting', 3, 'AI 分析故事结构与角色...');
+        const breakdown = await this.deps.storyBreakdownPort.breakdownStory(story.originalText);
+
+        // 自动创建/复用角色与背景，并保存分镜
+        const segments: StorySegment[] = [];
+        const existingCharacters = await this.deps.characterRepo.findBySpaceId(story.spaceId);
+        const existingBackgrounds = await this.deps.backgroundRepo.findBySpaceId(story.spaceId);
+
+        const charNameToId = new Map<string, string>(existingCharacters.map(c => [c.name, c.id]));
+        const bgNameToId = new Map<string, string>(existingBackgrounds.map(b => [b.name, b.id]));
+
+        // 创建缺失的角色
+        for (const charDraft of breakdown.characters) {
+          if (!charNameToId.has(charDraft.name)) {
+            const newChar: Character = {
+              id: uuidv4(),
+              spaceId: story.spaceId,
+              name: charDraft.name,
+              appearancePrompt: charDraft.appearancePrompt,
+              personalityPrompt: charDraft.personalityPrompt,
+              characterBackground: charDraft.characterBackground,
+              createdAt: Date.now(),
+            };
+            await this.deps.characterRepo.save(newChar);
+            charNameToId.set(newChar.name, newChar.id);
+          }
+        }
+
+        // 创建缺失的背景
+        for (const bgDraft of breakdown.backgrounds) {
+          if (!bgNameToId.has(bgDraft.name)) {
+            const newBg: Background = {
+              id: uuidv4(),
+              spaceId: story.spaceId,
+              name: bgDraft.name,
+              environmentPrompt: bgDraft.environmentPrompt,
+              createdAt: Date.now(),
+            };
+            await this.deps.backgroundRepo.save(newBg);
+            bgNameToId.set(newBg.name, newBg.id);
+          }
+        }
+
+        // 创建分镜，绑定角色与背景
+        for (let i = 0; i < breakdown.segments.length; i++) {
+          const draft = breakdown.segments[i];
+          const mentionedCharIds = (draft.mentionedCharacterNames || [])
+            .map(name => charNameToId.get(name))
+            .filter((id): id is string => !!id);
+          const selectedBgId = bgNameToId.get(draft.suggestedBackgroundName);
+          const seg: StorySegment = {
+            id: uuidv4(),
+            storyId: story.id,
+            sequenceOrder: i,
+            content: draft.content,
+            mentionedCharacters: mentionedCharIds,
+            selectedBackgroundId: selectedBgId,
+          };
+          await this.deps.segmentRepo.save(seg);
+          segments.push(seg);
+        }
+
+        emitProgress('splitting', 5, `AI 拆分完成：${segments.length} 段，${breakdown.characters.length} 角色，${breakdown.backgrounds.length} 场景`);
+        return segments;
+      } catch (e) {
+        this.logger.warn('AI story breakdown failed, fallback to naive split', {
+          service: 'PipelineService',
+          method: 'splitStoryWithAI',
+          error: e instanceof Error ? e.message : String(e),
+        });
+      }
+    }
+
+    // 降级：朴素文本切分（保持与原实现一致的兼容行为）
+    this.logger.info('fallback to naive text split', {
+      service: 'PipelineService',
+      method: 'splitStoryWithAI',
+    });
+    const parts = story.originalText
+      .split(/[。！？\n]/)
+      .filter(s => s.trim().length > 5)
+      .slice(0, 8); // Phase 1 调整：从 6 段放宽到 8 段
+    const segments: StorySegment[] = [];
+    for (let i = 0; i < parts.length; i++) {
+      const seg: StorySegment = {
+        id: uuidv4(),
+        storyId: story.id,
+        sequenceOrder: i,
+        content: parts[i].trim(),
+        mentionedCharacters: [],
+      };
+      await this.deps.segmentRepo.save(seg);
+      segments.push(seg);
+    }
+    return segments;
+  }
+
+  /** 加载分镜涉及的角色列表 */
+  private async loadSegmentCharacters(seg: StorySegment): Promise<Character[]> {
+    const characters: Character[] = [];
+    for (const charId of seg.mentionedCharacters || []) {
+      const ch = await this.deps.characterRepo.findById(charId);
+      if (ch) characters.push(ch);
+    }
+    return characters;
+  }
+
+  /** 加载分镜选定的背景 */
+  private async loadSegmentBackground(seg: StorySegment): Promise<Background | undefined> {
+    if (!seg.selectedBackgroundId) return undefined;
+    const bg = await this.deps.backgroundRepo.findById(seg.selectedBackgroundId);
+    return bg ?? undefined;
   }
 
   private async pollVideoTasks(

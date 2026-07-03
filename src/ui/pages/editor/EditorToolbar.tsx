@@ -8,7 +8,7 @@
  */
 
 import React from 'react';
-import { Save, RefreshCw, Download, Loader2, Check, Upload } from 'lucide-react';
+import { Save, RefreshCw, Download, Loader2, Check, Upload, Scissors } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { Story } from '../../../domain/entities/models';
 
@@ -21,10 +21,12 @@ interface EditorToolbarProps {
   onRebuild: () => void;
   onExport: () => void;
   onImportVideo: () => void;
+  /** M2.3: AI 智能剪切回调 */
+  onAutoEdit?: () => void;
 }
 
 export const EditorToolbar: React.FC<EditorToolbarProps> = ({
-  stories, storyId, onStoryChange, saving, onSave, onRebuild, onExport, onImportVideo,
+  stories, storyId, onStoryChange, saving, onSave, onRebuild, onExport, onImportVideo, onAutoEdit,
 }) => {
   const { t } = useTranslation();
 
@@ -82,6 +84,19 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
         <Upload size={14} />
         {t('editor.media.import.title', '导入视频')}
       </button>
+
+      {/* M2.3: AI 智能剪切按钮 */}
+      {onAutoEdit && (
+        <button
+          className="btn btn-secondary"
+          onClick={onAutoEdit}
+          disabled={!storyId}
+          title={t('editor.autoEdit.title', 'AI 智能剪切')}
+        >
+          <Scissors size={14} />
+          {t('editor.autoEdit.title', 'AI 智能剪切')}
+        </button>
+      )}
 
       <button className="btn btn-primary" onClick={onExport} disabled={!storyId}>
         <Download size={14} />

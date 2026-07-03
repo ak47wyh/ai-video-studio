@@ -1,6 +1,6 @@
 import type { IWhisperPort } from '../ports/PostProcessPorts';
 import type { ITextGenerationPort } from '../ports/OutboundPorts';
-import type { IApiConfigStore } from '../ports/PlatformPorts';
+import type { IApiConfigStore, IModelRegistry } from '../ports/PlatformPorts';
 import type { ILoggerPort } from '../ports/CrossCuttingPorts';
 import type { StorySegment } from '../entities/models';
 import type { PlatformRouter } from './PlatformRouter';
@@ -26,6 +26,7 @@ export class SubtitleService {
   private whisperPort: IWhisperPort;
   private router: PlatformRouter;
   private configStore: IApiConfigStore;
+  private modelRegistry?: IModelRegistry;
   // @ts-expect-error Logger injected for future use
   private _logger: ILoggerPort;
 
@@ -34,11 +35,18 @@ export class SubtitleService {
     router: PlatformRouter,
     configStore: IApiConfigStore,
     logger: ILoggerPort,
+    modelRegistry?: IModelRegistry,
   ) {
     this.whisperPort = whisperPort;
     this.router = router;
     this.configStore = configStore;
     this._logger = logger;
+    this.modelRegistry = modelRegistry;
+  }
+
+  /** 解析当前对齐任务应使用的模型 ID（M3.3：走 PlatformRouter） */
+  private resolveAlignmentModel(): string {
+    return this.modelRegistry?.resolveTextModel('alignment') ?? 'MiniMax-M2.5-highspeed';
   }
 
   /** 获取当前配置对应的文本生成适配器 */
@@ -87,7 +95,7 @@ export class SubtitleService {
       .join('\n');
 
     const result = await this.getTextPort().chatCompletion({
-      model: 'MiniMax-M2.5-highspeed',
+      model: this.resolveAlignmentModel(),
       messages: [
         {
           role: 'system',
@@ -216,7 +224,7 @@ Output JSON array of objects: { "segmentIndex": number, "startMs": number, "endM
     const numbered = entries.map((e, i) => `[${i}] ${e.text}`).join('\n');
 
     const result = await this.getTextPort().chatCompletion({
-      model: 'MiniMax-M2.5-highspeed',
+      model: this.resolveAlignmentModel(),
       messages: [
         {
           role: 'system',
