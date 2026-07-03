@@ -8,7 +8,7 @@ import type { ILoggerPort } from '../../../../domain/ports/CrossCuttingPorts';
  * 视频地址解析 - 占位实现
  *
  * 平台分享链接（抖音 / B站等）解析需要后端服务支持（涉及跨域请求与服务端解析）。
- * 当前 ai-vido-web 为纯前端项目，此实现直接抛错。
+ * 当前 ai-video-studio 为纯前端项目，此实现直接抛错。
  *
  * 未来接入后端时，仅需在 dependencies.ts 中替换为真实实现即可。
  */

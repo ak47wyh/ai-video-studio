@@ -203,7 +203,7 @@ src/
 
 ## 5. Domain Entities
 
-File: [models.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/domain/entities/models.ts)
+File: [models.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/domain/entities/models.ts)
 
 ### Core Entities
 
@@ -244,7 +244,7 @@ File: [models.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/sr
 
 ### OutboundPorts.ts
 
-File: [OutboundPorts.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/domain/ports/OutboundPorts.ts)
+File: [OutboundPorts.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/domain/ports/OutboundPorts.ts)
 
 Defines all outbound port interfaces, which are the contracts for the domain layer to interact with external systems:
 
@@ -276,7 +276,7 @@ Defines all outbound port interfaces, which are the contracts for the domain lay
 
 ### PostProcessPorts.ts
 
-File: [PostProcessPorts.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/domain/ports/PostProcessPorts.ts)
+File: [PostProcessPorts.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/domain/ports/PostProcessPorts.ts)
 
 | Interface | Key Methods | Description |
 |-----------|-------------|-------------|
@@ -285,7 +285,7 @@ File: [PostProcessPorts.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-v
 
 ### AssetLibraryPorts.ts
 
-File: [AssetLibraryPorts.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/domain/ports/AssetLibraryPorts.ts)
+File: [AssetLibraryPorts.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/domain/ports/AssetLibraryPorts.ts)
 
 | Interface | Methods | Description |
 |-----------|---------|-------------|
@@ -301,7 +301,7 @@ File: [AssetLibraryPorts.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-
 
 #### StoryService
 
-File: [StoryService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/domain/services/StoryService.ts)
+File: [StoryService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/domain/services/StoryService.ts)
 
 **Dependencies**: `IStoryRepository`, `IStorySegmentRepository`, `ICharacterRepository`, `IBackgroundRepository`, `ITextSplitterPort`, `IStoryBreakdownPort`, `IVideoTaskRepository`
 
@@ -321,7 +321,7 @@ File: [StoryService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-
 
 #### ImageGenerationService
 
-File: [ImageGenerationService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/domain/services/ImageGenerationService.ts)
+File: [ImageGenerationService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/domain/services/ImageGenerationService.ts)
 
 **Dependencies**: `IImageGeneratorPort`, `ICharacterRepository`, `IBackgroundRepository`
 
@@ -332,7 +332,7 @@ File: [ImageGenerationService.ts](file:///Users/ak47wyh/Downloads/work/kt_projec
 
 #### TextGenerationService
 
-File: [TextGenerationService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/domain/services/TextGenerationService.ts)
+File: [TextGenerationService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/domain/services/TextGenerationService.ts)
 
 **Dependencies**: `ITextGenerationPort`
 
@@ -342,7 +342,7 @@ File: [TextGenerationService.ts](file:///Users/ak47wyh/Downloads/work/kt_project
 
 #### TextLabService
 
-File: [TextLabService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/domain/services/TextLabService.ts)
+File: [TextLabService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/domain/services/TextLabService.ts)
 
 **Dependencies**: `ITextGenerationPort`
 
@@ -355,7 +355,7 @@ File: [TextLabService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vid
 
 #### VideoGenerationService
 
-File: [VideoGenerationService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/domain/services/VideoGenerationService.ts)
+File: [VideoGenerationService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/domain/services/VideoGenerationService.ts)
 
 **Dependencies**: `IVideoTaskRepository`, `IStorySegmentRepository`, `ICharacterRepository`, `IBackgroundRepository`, `IVideoGeneratorPort`
 
@@ -373,7 +373,7 @@ File: [VideoGenerationService.ts](file:///Users/ak47wyh/Downloads/work/kt_projec
 
 #### VideoLabService
 
-File: [VideoLabService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/domain/services/VideoLabService.ts)
+File: [VideoLabService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/domain/services/VideoLabService.ts)
 
 **Dependencies**: `IVideoGeneratorPort`
 
@@ -384,7 +384,7 @@ File: [VideoLabService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vi
 
 #### VoiceService
 
-File: [VoiceService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/domain/services/VoiceService.ts)
+File: [VoiceService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/domain/services/VoiceService.ts)
 
 **Dependencies**: `IVoicePort`, `ICharacterRepository`
 
@@ -396,7 +396,7 @@ File: [VoiceService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-
 
 #### MusicService
 
-File: [MusicService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/domain/services/MusicService.ts)
+File: [MusicService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/domain/services/MusicService.ts)
 
 **Dependencies**: `IMusicPort`, `IStorySegmentRepository`
 
@@ -408,7 +408,7 @@ File: [MusicService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-
 
 #### MusicLabService
 
-File: [MusicLabService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/domain/services/MusicLabService.ts)
+File: [MusicLabService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/domain/services/MusicLabService.ts)
 
 **Dependencies**: `IMusicPort`
 
@@ -421,7 +421,7 @@ File: [MusicLabService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vi
 
 #### PostProcessService
 
-File: [PostProcessService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/domain/services/PostProcessService.ts)
+File: [PostProcessService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/domain/services/PostProcessService.ts)
 
 **Dependencies**: `IFFmpegPort`, `IWhisperPort`
 
@@ -436,7 +436,7 @@ File: [PostProcessService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai
 
 #### SubtitleService
 
-File: [SubtitleService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/domain/services/SubtitleService.ts)
+File: [SubtitleService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/domain/services/SubtitleService.ts)
 
 **Dependencies**: `IWhisperPort`, `ITextGenerationPort`
 
@@ -449,7 +449,7 @@ File: [SubtitleService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vi
 
 #### PipelineService
 
-File: [PipelineService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/domain/services/PipelineService.ts)
+File: [PipelineService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/domain/services/PipelineService.ts)
 
 **Dependencies**: `IStoryRepository`, `IStorySegmentRepository`, `ICharacterRepository`, `IBackgroundRepository`, `IVideoTaskRepository`, `IFinalCutRepository`, `ITextGenerationPort`, `IImageGeneratorPort`, `IVideoGeneratorPort`, `IVoicePort`, `IMusicPort`, `PostProcessService`, `SubtitleService`
 
@@ -478,7 +478,7 @@ splitting → generating_images → generating_audio → generating_bgm
 
 #### AgentService
 
-File: [AgentService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/domain/services/AgentService.ts)
+File: [AgentService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/domain/services/AgentService.ts)
 
 **Dependencies**: `ITextGenerationPort`
 
@@ -491,7 +491,7 @@ Built-in system prompt defines 13 tool capabilities (create characters/backgroun
 
 #### CinematographyService
 
-File: [CinematographyService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/domain/services/CinematographyService.ts)
+File: [CinematographyService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/domain/services/CinematographyService.ts)
 
 **Dependencies**: `ITextGenerationPort`
 
@@ -502,7 +502,7 @@ File: [CinematographyService.ts](file:///Users/ak47wyh/Downloads/work/kt_project
 
 #### BGMRecommendationService
 
-File: [BGMRecommendationService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/domain/services/BGMRecommendationService.ts)
+File: [BGMRecommendationService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/domain/services/BGMRecommendationService.ts)
 
 **Dependencies**: `ITextGenerationPort`
 
@@ -513,7 +513,7 @@ File: [BGMRecommendationService.ts](file:///Users/ak47wyh/Downloads/work/kt_proj
 
 #### AutoEditService
 
-File: [AutoEditService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/domain/services/AutoEditService.ts)
+File: [AutoEditService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/domain/services/AutoEditService.ts)
 
 **Dependencies**: `IFFmpegPort`
 
@@ -527,7 +527,7 @@ File: [AutoEditService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vi
 
 #### StorySpaceService
 
-File: [StorySpaceService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/domain/services/StorySpaceService.ts)
+File: [StorySpaceService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/domain/services/StorySpaceService.ts)
 
 **Dependencies**: `IStorySpaceRepository`, `ICharacterRepository`, `IBackgroundRepository`, `IStoryRepository`, `IStorySegmentRepository`, `IVideoTaskRepository`
 
@@ -539,7 +539,7 @@ File: [StorySpaceService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-
 
 #### ModelManagementService
 
-File: [ModelManagementService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/domain/services/ModelManagementService.ts)
+File: [ModelManagementService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/domain/services/ModelManagementService.ts)
 
 **Dependencies**: `IModelManagementPort`
 
@@ -550,7 +550,7 @@ File: [ModelManagementService.ts](file:///Users/ak47wyh/Downloads/work/kt_projec
 
 #### FileManagementService
 
-File: [FileManagementService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/domain/services/FileManagementService.ts)
+File: [FileManagementService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/domain/services/FileManagementService.ts)
 
 **Dependencies**: `IFileManagementPort`
 
@@ -561,7 +561,7 @@ File: [FileManagementService.ts](file:///Users/ak47wyh/Downloads/work/kt_project
 
 #### AssetLibraryService
 
-File: [AssetLibraryService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/domain/services/AssetLibraryService.ts)
+File: [AssetLibraryService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/domain/services/AssetLibraryService.ts)
 
 **Dependencies**: `ISavedImageRepository`, `ISavedVoiceRepository`, `ISavedPromptRepository`
 
@@ -573,7 +573,7 @@ File: [AssetLibraryService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/a
 
 #### SnapshotService
 
-File: [SnapshotService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/domain/services/SnapshotService.ts)
+File: [SnapshotService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/domain/services/SnapshotService.ts)
 
 **Dependencies**: `IStorySegmentRepository`
 
@@ -630,7 +630,7 @@ File: [SnapshotService.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vi
 
 #### ApiConfigStore
 
-File: [ApiConfigStore.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/adapters/outbound/config/ApiConfigStore.ts)
+File: [ApiConfigStore.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/adapters/outbound/config/ApiConfigStore.ts)
 
 `localStorage`-based API configuration management:
 
@@ -653,7 +653,7 @@ interface ApiConfig {
 
 ## 9. Dependency Injection Container (Dependencies)
 
-File: [dependencies.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/dependencies.ts)
+File: [dependencies.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/dependencies.ts)
 
 This is the application's assembly layer, responsible for instantiating all adapters and services and injecting dependencies:
 
@@ -699,7 +699,7 @@ This is the application's assembly layer, responsible for instantiating all adap
 
 #### MainLayout
 
-File: [MainLayout.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/layouts/MainLayout.tsx)
+File: [MainLayout.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/layouts/MainLayout.tsx)
 
 Main layout component, including:
 - **Collapsible Sidebar**: Logo, space switcher, creation flow indicator, navigation groups
@@ -712,57 +712,57 @@ Main layout component, including:
 
 | Context | File | Description |
 |---------|------|-------------|
-| `SpaceContext` | [SpaceContext.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/contexts/SpaceContext.tsx) | Current creative space state, provides `currentSpaceId` / `setCurrentSpaceId` |
-| `ToastContext` | [ToastContext.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/contexts/ToastContext.tsx) | Global message notifications, provides `showToast(type, message)` |
-| `ConfirmContext` | [ConfirmContext.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/contexts/ConfirmContext.tsx) | Confirmation dialog, provides `confirm(message)` |
+| `SpaceContext` | [SpaceContext.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/contexts/SpaceContext.tsx) | Current creative space state, provides `currentSpaceId` / `setCurrentSpaceId` |
+| `ToastContext` | [ToastContext.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/contexts/ToastContext.tsx) | Global message notifications, provides `showToast(type, message)` |
+| `ConfirmContext` | [ConfirmContext.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/contexts/ConfirmContext.tsx) | Confirmation dialog, provides `confirm(message)` |
 
 ### 10.3 Custom Hooks
 
 | Hook | File | Description |
 |------|------|-------------|
-| `useWorkbenchState` | [useWorkbenchState.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/hooks/useWorkbenchState.ts) | Workbench global state management |
-| `useSpaceScopedQuery` | [useSpaceScopedQuery.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/hooks/useSpaceScopedQuery.ts) | Space-scoped data query |
-| `useVideoTaskPolling` | [useVideoTaskPolling.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/hooks/useVideoTaskPolling.ts) | Video task polling |
-| `usePolling` | [usePolling.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/hooks/usePolling.ts) | Generic polling hook |
-| `useSavedAssets` | [useSavedAssets.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/hooks/useSavedAssets.ts) | Saved assets query |
-| `useAssetPicker` | [useAssetPicker.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/hooks/useAssetPicker.ts) | Asset picker |
-| `useNetworkStatus` | [useNetworkStatus.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/hooks/useNetworkStatus.ts) | Network status detection |
-| `useSharedForm` | [useSharedForm.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/hooks/useSharedForm.ts) | Shared form state |
-| `useStreamingAudioPlayer` | [useStreamingAudioPlayer.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/hooks/useStreamingAudioPlayer.ts) | Streaming audio playback |
+| `useWorkbenchState` | [useWorkbenchState.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/hooks/useWorkbenchState.ts) | Workbench global state management |
+| `useSpaceScopedQuery` | [useSpaceScopedQuery.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/hooks/useSpaceScopedQuery.ts) | Space-scoped data query |
+| `useVideoTaskPolling` | [useVideoTaskPolling.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/hooks/useVideoTaskPolling.ts) | Video task polling |
+| `usePolling` | [usePolling.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/hooks/usePolling.ts) | Generic polling hook |
+| `useSavedAssets` | [useSavedAssets.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/hooks/useSavedAssets.ts) | Saved assets query |
+| `useAssetPicker` | [useAssetPicker.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/hooks/useAssetPicker.ts) | Asset picker |
+| `useNetworkStatus` | [useNetworkStatus.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/hooks/useNetworkStatus.ts) | Network status detection |
+| `useSharedForm` | [useSharedForm.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/hooks/useSharedForm.ts) | Shared form state |
+| `useStreamingAudioPlayer` | [useStreamingAudioPlayer.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/hooks/useStreamingAudioPlayer.ts) | Streaming audio playback |
 
 ### 10.4 Common Components
 
 | Component | File | Description |
 |-----------|------|-------------|
-| `AgentChatPanel` | [AgentChatPanel.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/components/AgentChatPanel.tsx) | AI assistant chat panel, supports streaming responses |
-| `PipelinePanel` | [PipelinePanel.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/components/PipelinePanel.tsx) | Pipeline flow panel, shows progress for each stage |
-| `StoryListPanel` | [StoryListPanel.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/components/StoryListPanel.tsx) | Story list panel |
-| `SegmentCard` | [SegmentCard.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/components/SegmentCard.tsx) | Segment card, displays segment metadata and preview |
-| `TimelineEditor` | [TimelineEditor.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/components/TimelineEditor.tsx) | Timeline editor, drag-and-drop video clip arrangement |
-| `VideoTaskCard` | [VideoTaskCard.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/components/VideoTaskCard.tsx) | Video task card |
-| `VideoCompare` | [VideoCompare.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/components/VideoCompare.tsx) | Video comparison component |
-| `BGMPanel` | [BGMPanel.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/components/BGMPanel.tsx) | BGM selection panel |
-| `BreakdownPreview` | [BreakdownPreview.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/components/BreakdownPreview.tsx) | One-click breakdown preview |
-| `CameraDirectivePanel` | [CameraDirectivePanel.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/components/CameraDirectivePanel.tsx) | Camera directive panel |
-| `PostProductionPanel` | [PostProductionPanel.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/components/PostProductionPanel.tsx) | Post-production panel |
-| `ImageGallery` | [ImageGallery.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/components/ImageGallery.tsx) | Image gallery |
-| `ImageUploadField` | [ImageUploadField.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/components/ImageUploadField.tsx) | Image upload field |
-| `ImageAdvancedSettings` | [ImageAdvancedSettings.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/components/ImageAdvancedSettings.tsx) | Image advanced settings |
-| `AudioPreviewPlayer` | [AudioPreviewPlayer.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/components/AudioPreviewPlayer.tsx) | Audio preview player |
-| `AudioUploadField` | [AudioUploadField.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/components/AudioUploadField.tsx) | Audio upload field |
-| `LyricsDisplay` | [LyricsDisplay.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/components/LyricsDisplay.tsx) | Lyrics display |
-| `AssetPicker` | [AssetPicker.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/components/AssetPicker.tsx) | Asset picker |
-| `ThinkingBlock` | [ThinkingBlock.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/components/ThinkingBlock.tsx) | AI thinking process display |
-| `TokenUsageBar` | [TokenUsageBar.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/components/TokenUsageBar.tsx) | Token usage display |
-| `NetworkStatus` | [NetworkStatus.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/components/NetworkStatus.tsx) | Network status indicator |
-| `LanguageSwitcher` | [LanguageSwitcher.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/components/LanguageSwitcher.tsx) | Language switcher |
-| `ErrorBoundary` | [ErrorBoundary.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/components/ErrorBoundary.tsx) | Error boundary |
+| `AgentChatPanel` | [AgentChatPanel.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/components/AgentChatPanel.tsx) | AI assistant chat panel, supports streaming responses |
+| `PipelinePanel` | [PipelinePanel.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/components/PipelinePanel.tsx) | Pipeline flow panel, shows progress for each stage |
+| `StoryListPanel` | [StoryListPanel.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/components/StoryListPanel.tsx) | Story list panel |
+| `SegmentCard` | [SegmentCard.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/components/SegmentCard.tsx) | Segment card, displays segment metadata and preview |
+| `TimelineEditor` | [TimelineEditor.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/components/TimelineEditor.tsx) | Timeline editor, drag-and-drop video clip arrangement |
+| `VideoTaskCard` | [VideoTaskCard.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/components/VideoTaskCard.tsx) | Video task card |
+| `VideoCompare` | [VideoCompare.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/components/VideoCompare.tsx) | Video comparison component |
+| `BGMPanel` | [BGMPanel.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/components/BGMPanel.tsx) | BGM selection panel |
+| `BreakdownPreview` | [BreakdownPreview.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/components/BreakdownPreview.tsx) | One-click breakdown preview |
+| `CameraDirectivePanel` | [CameraDirectivePanel.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/components/CameraDirectivePanel.tsx) | Camera directive panel |
+| `PostProductionPanel` | [PostProductionPanel.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/components/PostProductionPanel.tsx) | Post-production panel |
+| `ImageGallery` | [ImageGallery.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/components/ImageGallery.tsx) | Image gallery |
+| `ImageUploadField` | [ImageUploadField.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/components/ImageUploadField.tsx) | Image upload field |
+| `ImageAdvancedSettings` | [ImageAdvancedSettings.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/components/ImageAdvancedSettings.tsx) | Image advanced settings |
+| `AudioPreviewPlayer` | [AudioPreviewPlayer.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/components/AudioPreviewPlayer.tsx) | Audio preview player |
+| `AudioUploadField` | [AudioUploadField.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/components/AudioUploadField.tsx) | Audio upload field |
+| `LyricsDisplay` | [LyricsDisplay.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/components/LyricsDisplay.tsx) | Lyrics display |
+| `AssetPicker` | [AssetPicker.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/components/AssetPicker.tsx) | Asset picker |
+| `ThinkingBlock` | [ThinkingBlock.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/components/ThinkingBlock.tsx) | AI thinking process display |
+| `TokenUsageBar` | [TokenUsageBar.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/components/TokenUsageBar.tsx) | Token usage display |
+| `NetworkStatus` | [NetworkStatus.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/components/NetworkStatus.tsx) | Network status indicator |
+| `LanguageSwitcher` | [LanguageSwitcher.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/components/LanguageSwitcher.tsx) | Language switcher |
+| `ErrorBoundary` | [ErrorBoundary.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/components/ErrorBoundary.tsx) | Error boundary |
 
 ---
 
 ## 11. Routes & Pages
 
-File: [App.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/App.tsx)
+File: [App.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/App.tsx)
 
 ### Route Table
 
@@ -785,24 +785,24 @@ File: [App.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/
 
 | Page | File | Core Features |
 |------|------|---------------|
-| `Dashboard` | [Dashboard.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/pages/Dashboard.tsx) | Project overview, statistics, quick access |
-| `CharacterManagement` | [CharacterManagement.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/pages/CharacterManagement.tsx) | Character create/edit/delete, appearance/personality description, reference image, voice binding |
-| `BackgroundManagement` | [BackgroundManagement.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/pages/BackgroundManagement.tsx) | Scene create/edit/delete, environment description, reference image |
-| `StoryWorkbench` | [StoryWorkbench.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/pages/StoryWorkbench.tsx) | Story input, AI split/breakdown, segment editing, video generation, pipeline orchestration |
-| `ExportCenter` | [ExportCenter.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/pages/ExportCenter.tsx) | Final production list, download, preview |
-| `ImageLab` | [ImageLab.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/pages/ImageLab.tsx) | Standalone image generation, advanced parameter settings |
-| `VideoLab` | [VideoLab.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/pages/VideoLab.tsx) | Standalone video generation, multi-mode selection |
-| `VoiceLab` | [VoiceLab.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/pages/VoiceLab.tsx) | Voice cloning/design/synthesis, streaming playback |
-| `MusicLab` | [MusicLab.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/pages/MusicLab.tsx) | Music generation, lyrics creation, cover songs |
-| `TextLab` | [TextLab.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/pages/TextLab.tsx) | Text enhancement/polishing |
-| `StorySpaceManagement` | [StorySpaceManagement.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/pages/StorySpaceManagement.tsx) | Space create/switch/delete |
-| `Settings` | [Settings.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/pages/Settings.tsx) | API Key / Group ID configuration |
+| `Dashboard` | [Dashboard.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/pages/Dashboard.tsx) | Project overview, statistics, quick access |
+| `CharacterManagement` | [CharacterManagement.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/pages/CharacterManagement.tsx) | Character create/edit/delete, appearance/personality description, reference image, voice binding |
+| `BackgroundManagement` | [BackgroundManagement.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/pages/BackgroundManagement.tsx) | Scene create/edit/delete, environment description, reference image |
+| `StoryWorkbench` | [StoryWorkbench.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/pages/StoryWorkbench.tsx) | Story input, AI split/breakdown, segment editing, video generation, pipeline orchestration |
+| `ExportCenter` | [ExportCenter.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/pages/ExportCenter.tsx) | Final production list, download, preview |
+| `ImageLab` | [ImageLab.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/pages/ImageLab.tsx) | Standalone image generation, advanced parameter settings |
+| `VideoLab` | [VideoLab.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/pages/VideoLab.tsx) | Standalone video generation, multi-mode selection |
+| `VoiceLab` | [VoiceLab.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/pages/VoiceLab.tsx) | Voice cloning/design/synthesis, streaming playback |
+| `MusicLab` | [MusicLab.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/pages/MusicLab.tsx) | Music generation, lyrics creation, cover songs |
+| `TextLab` | [TextLab.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/pages/TextLab.tsx) | Text enhancement/polishing |
+| `StorySpaceManagement` | [StorySpaceManagement.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/pages/StorySpaceManagement.tsx) | Space create/switch/delete |
+| `Settings` | [Settings.tsx](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/pages/Settings.tsx) | API Key / Group ID configuration |
 
 ---
 
 ## 12. Internationalization (i18n)
 
-File: [i18n.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/i18n.ts)
+File: [i18n.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/i18n.ts)
 
 ### Supported Languages
 
@@ -830,7 +830,7 @@ File: [i18n.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/
 
 ## 13. Data Persistence (IndexedDB)
 
-File: [DexieDatabase.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/adapters/outbound/repositories/DexieDatabase.ts)
+File: [DexieDatabase.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/adapters/outbound/repositories/DexieDatabase.ts)
 
 ### Database: `AiVideoDatabase`
 
@@ -873,22 +873,22 @@ File: [DexieDatabase.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido
 
 | File | Description |
 |------|-------------|
-| [offlineCache.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/utils/offlineCache.ts) | Offline cache management, supports data caching and recovery during poor network conditions |
-| [cacheMonitor.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/utils/cacheMonitor.ts) | Cache hit rate statistics and status monitoring |
-| [retryUtils.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/utils/retryUtils.ts) | Configurable retry mechanism (count/delay strategy) |
+| [offlineCache.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/utils/offlineCache.ts) | Offline cache management, supports data caching and recovery during poor network conditions |
+| [cacheMonitor.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/utils/cacheMonitor.ts) | Cache hit rate statistics and status monitoring |
+| [retryUtils.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/utils/retryUtils.ts) | Configurable retry mechanism (count/delay strategy) |
 
 ### UI Utilities (src/ui/utils/)
 
 | File | Description |
 |------|-------------|
-| [errorUtils.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/utils/errorUtils.ts) | Error message extraction and formatting |
-| [imageUtils.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/ui/utils/imageUtils.ts) | Image processing utilities (compression/cropping/format conversion) |
+| [errorUtils.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/utils/errorUtils.ts) | Error message extraction and formatting |
+| [imageUtils.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/ui/utils/imageUtils.ts) | Image processing utilities (compression/cropping/format conversion) |
 
 ### Static Data
 
 | File | Description |
 |------|-------------|
-| [systemVoices.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/src/domain/data/systemVoices.ts) | Built-in system voice list data |
+| [systemVoices.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/src/domain/data/systemVoices.ts) | Built-in system voice list data |
 
 ---
 
@@ -1008,7 +1008,7 @@ npm run lint
 
 ### Vite Proxy Configuration
 
-File: [vite.config.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-vido-web/vite.config.ts)
+File: [vite.config.ts](file:///Users/ak47wyh/Downloads/work/kt_project/ai-video-studio/vite.config.ts)
 
 ```typescript
 server: {

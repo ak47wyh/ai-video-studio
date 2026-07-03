@@ -4,10 +4,10 @@ import { filesStoragePlugin } from './vite/filesStoragePlugin'
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: '/ai-vido-web/',
+  base: '/ai-video-studio/',
   // dev server 启动后自动打开浏览器到 base 路径
   server: {
-    open: '/ai-vido-web/',
+    open: '/ai-video-studio/',
   },
   plugins: [
     react(),

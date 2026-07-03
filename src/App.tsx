@@ -79,7 +79,7 @@ function App() {
   return (
     <ErrorBoundary>
       <ThemeProvider>
-        <BrowserRouter basename="/ai-vido-web">
+        <BrowserRouter basename="/ai-video-studio">
           <SpaceProvider>
             <ToastProvider>
               <ConfirmProvider>

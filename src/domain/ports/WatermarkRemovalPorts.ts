@@ -123,7 +123,7 @@ export interface ResolvedVideoSource {
  *
  * 用于将平台分享链接（抖音 / B站等）解析为可下载的无水印直链。
  * 该端口需要后端服务支持（涉及跨域请求与服务端解析）。
- * 当前 ai-vido-web 为纯前端项目，默认实现为 NotImplementedVideoAddressResolver，
+ * 当前 ai-video-studio 为纯前端项目，默认实现为 NotImplementedVideoAddressResolver，
  * 未来接入后端时仅需替换适配器实现。
  */
 export interface IVideoAddressResolverPort {

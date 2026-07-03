@@ -166,11 +166,11 @@
 
 | 层 | 职责 | 关键文件 |
 |----|------|----------|
-| **UI 层** | React 页面 / 组件 / Hooks / Context | [App.tsx](file:///d:/projects/ai-vido-web/src/App.tsx)、[ui/](file:///d:/projects/ai-vido-web/src/ui/) |
-| **DI 容器** | 组装所有依赖 | [dependencies.ts](file:///d:/projects/ai-vido-web/src/dependencies.ts) |
-| **Domain 服务** | 业务逻辑（25 个服务） | [domain/services/](file:///d:/projects/ai-vido-web/src/domain/services/) |
-| **Domain 端口** | 接口契约（15 个端口文件） | [domain/ports/](file:///d:/projects/ai-vido-web/src/domain/ports/) |
-| **Adapters** | 外部系统实现 | [adapters/outbound/](file:///d:/projects/ai-vido-web/src/adapters/outbound/) |
+| **UI 层** | React 页面 / 组件 / Hooks / Context | [App.tsx](file:///d:/projects/ai-video-studio/src/App.tsx)、[ui/](file:///d:/projects/ai-video-studio/src/ui/) |
+| **DI 容器** | 组装所有依赖 | [dependencies.ts](file:///d:/projects/ai-video-studio/src/dependencies.ts) |
+| **Domain 服务** | 业务逻辑（25 个服务） | [domain/services/](file:///d:/projects/ai-video-studio/src/domain/services/) |
+| **Domain 端口** | 接口契约（15 个端口文件） | [domain/ports/](file:///d:/projects/ai-video-studio/src/domain/ports/) |
+| **Adapters** | 外部系统实现 | [adapters/outbound/](file:///d:/projects/ai-video-studio/src/adapters/outbound/) |
 
 ---
 
@@ -334,9 +334,9 @@ scripts/                            # 跨平台启动脚本
 
 ## 5. 领域实体层 (Domain Entities)
 
-文件：[models.ts](file:///d:/projects/ai-vido-web/src/domain/entities/models.ts)
+文件：[models.ts](file:///d:/projects/ai-video-studio/src/domain/entities/models.ts)
 
-> 注：Timeline 相关实体定义在 [PostProcessPorts.ts](file:///d:/projects/ai-vido-web/src/domain/ports/PostProcessPorts.ts)，SpaceSnapshot 定义在 [PersistencePorts.ts](file:///d:/projects/ai-vido-web/src/domain/ports/PersistencePorts.ts)，按所属端口就近定义。
+> 注：Timeline 相关实体定义在 [PostProcessPorts.ts](file:///d:/projects/ai-video-studio/src/domain/ports/PostProcessPorts.ts)，SpaceSnapshot 定义在 [PersistencePorts.ts](file:///d:/projects/ai-video-studio/src/domain/ports/PersistencePorts.ts)，按所属端口就近定义。
 
 ### 5.1 核心故事实体
 
@@ -412,7 +412,7 @@ scripts/                            # 跨平台启动脚本
 
 ### 6.1 OutboundPorts.ts（核心出站端口）
 
-文件：[OutboundPorts.ts](file:///d:/projects/ai-vido-web/src/domain/ports/OutboundPorts.ts)
+文件：[OutboundPorts.ts](file:///d:/projects/ai-video-studio/src/domain/ports/OutboundPorts.ts)
 
 #### 仓储接口
 
@@ -444,7 +444,7 @@ scripts/                            # 跨平台启动脚本
 
 ### 6.2 VolcenginePorts.ts（火山/Coze 专属端口）
 
-文件：[VolcenginePorts.ts](file:///d:/projects/ai-vido-web/src/domain/ports/VolcenginePorts.ts)
+文件：[VolcenginePorts.ts](file:///d:/projects/ai-video-studio/src/domain/ports/VolcenginePorts.ts)
 
 | 接口 | 方法 | 说明 |
 |------|------|------|
@@ -456,7 +456,7 @@ scripts/                            # 跨平台启动脚本
 
 ### 6.3 PostProcessPorts.ts（FFmpeg/Whisper + Timeline 实体）
 
-文件：[PostProcessPorts.ts](file:///d:/projects/ai-vido-web/src/domain/ports/PostProcessPorts.ts)
+文件：[PostProcessPorts.ts](file:///d:/projects/ai-video-studio/src/domain/ports/PostProcessPorts.ts)
 
 | 接口 | 关键方法 | 说明 |
 |------|----------|------|
@@ -468,7 +468,7 @@ scripts/                            # 跨平台启动脚本
 
 ### 6.4 EnhancementPorts.ts（清晰度提升端口）
 
-文件：[EnhancementPorts.ts](file:///d:/projects/ai-vido-web/src/domain/ports/EnhancementPorts.ts)
+文件：[EnhancementPorts.ts](file:///d:/projects/ai-video-studio/src/domain/ports/EnhancementPorts.ts)
 
 | 接口 | 方法 | 说明 |
 |------|------|------|
@@ -480,7 +480,7 @@ scripts/                            # 跨平台启动脚本
 
 ### 6.5 WatermarkRemovalPorts.ts（去水印端口）
 
-文件：[WatermarkRemovalPorts.ts](file:///d:/projects/ai-vido-web/src/domain/ports/WatermarkRemovalPorts.ts)
+文件：[WatermarkRemovalPorts.ts](file:///d:/projects/ai-video-studio/src/domain/ports/WatermarkRemovalPorts.ts)
 
 | 接口 | 方法 | 说明 |
 |------|------|------|
@@ -494,7 +494,7 @@ scripts/                            # 跨平台启动脚本
 
 ### 6.6 FileStoragePorts.ts（文件存储端口）
 
-文件：[FileStoragePorts.ts](file:///d:/projects/ai-vido-web/src/domain/ports/FileStoragePorts.ts)
+文件：[FileStoragePorts.ts](file:///d:/projects/ai-video-studio/src/domain/ports/FileStoragePorts.ts)
 
 | 接口 | 关键方法 | 说明 |
 |------|----------|------|
@@ -505,7 +505,7 @@ scripts/                            # 跨平台启动脚本
 
 ### 6.7 CrossCuttingPorts.ts（横切关注点端口）
 
-文件：[CrossCuttingPorts.ts](file:///d:/projects/ai-vido-web/src/domain/ports/CrossCuttingPorts.ts)
+文件：[CrossCuttingPorts.ts](file:///d:/projects/ai-video-studio/src/domain/ports/CrossCuttingPorts.ts)
 
 > 这是支撑用户规则"所有接口出入参数都通过日志打印出来"的核心设施。
 
@@ -522,7 +522,7 @@ scripts/                            # 跨平台启动脚本
 
 ### 6.8 LoggingPorts.ts（日志端口）
 
-文件：[LoggingPorts.ts](file:///d:/projects/ai-vido-web/src/domain/ports/LoggingPorts.ts)
+文件：[LoggingPorts.ts](file:///d:/projects/ai-video-studio/src/domain/ports/LoggingPorts.ts)
 
 | 接口 | 方法 | 说明 |
 |------|------|------|
@@ -531,7 +531,7 @@ scripts/                            # 跨平台启动脚本
 
 ### 6.9 UiPorts.ts（UI 状态端口）
 
-文件：[UiPorts.ts](file:///d:/projects/ai-vido-web/src/domain/ports/UiPorts.ts)
+文件：[UiPorts.ts](file:///d:/projects/ai-video-studio/src/domain/ports/UiPorts.ts)
 
 | 接口 | 方法 | 说明 |
 |------|------|------|
@@ -541,7 +541,7 @@ scripts/                            # 跨平台启动脚本
 
 ### 6.10 PlatformPorts.ts（平台能力端口）
 
-文件：[PlatformPorts.ts](file:///d:/projects/ai-vido-web/src/domain/ports/PlatformPorts.ts)
+文件：[PlatformPorts.ts](file:///d:/projects/ai-video-studio/src/domain/ports/PlatformPorts.ts)
 
 | 接口 | 方法 | 说明 |
 |------|------|------|
@@ -555,11 +555,11 @@ scripts/                            # 跨平台启动脚本
 
 | 文件 | 端口 | 说明 |
 |------|------|------|
-| [DomainServicePorts.ts](file:///d:/projects/ai-vido-web/src/domain/ports/DomainServicePorts.ts) | `IAgentPort`, `IBGMRecommendationPort`, `ICinematographyPort`, `IAutoEditPort`, `IPostProcessPort`, `ISubtitlePort`, `IAssetExportPort` | 业务编排端口 |
-| [PersistencePorts.ts](file:///d:/projects/ai-vido-web/src/domain/ports/PersistencePorts.ts) | `ISnapshotRepository`, `ITimelineRepository` | 快照/时间线仓储端口 |
-| [TimelineRenderPorts.ts](file:///d:/projects/ai-vido-web/src/domain/ports/TimelineRenderPorts.ts) | `ITimelineRenderPort`（`render`, `probeDuration`） | 时间线渲染端口 |
-| [AssetLibraryPorts.ts](file:///d:/projects/ai-vido-web/src/domain/ports/AssetLibraryPorts.ts) | `ISavedImageRepository`, `ISavedVoiceRepository`, `ISavedPromptRepository`, `ISavedVideoRepository` | 素材库仓储端口 |
-| [ModelCachePort.ts](file:///d:/projects/ai-vido-web/src/domain/ports/ModelCachePort.ts) | `IModelCachePort<T>`（`read`, `write`, `clear`, `ttlMs`, `cacheKey`） | 模型缓存端口 |
+| [DomainServicePorts.ts](file:///d:/projects/ai-video-studio/src/domain/ports/DomainServicePorts.ts) | `IAgentPort`, `IBGMRecommendationPort`, `ICinematographyPort`, `IAutoEditPort`, `IPostProcessPort`, `ISubtitlePort`, `IAssetExportPort` | 业务编排端口 |
+| [PersistencePorts.ts](file:///d:/projects/ai-video-studio/src/domain/ports/PersistencePorts.ts) | `ISnapshotRepository`, `ITimelineRepository` | 快照/时间线仓储端口 |
+| [TimelineRenderPorts.ts](file:///d:/projects/ai-video-studio/src/domain/ports/TimelineRenderPorts.ts) | `ITimelineRenderPort`（`render`, `probeDuration`） | 时间线渲染端口 |
+| [AssetLibraryPorts.ts](file:///d:/projects/ai-video-studio/src/domain/ports/AssetLibraryPorts.ts) | `ISavedImageRepository`, `ISavedVoiceRepository`, `ISavedPromptRepository`, `ISavedVideoRepository` | 素材库仓储端口 |
+| [ModelCachePort.ts](file:///d:/projects/ai-video-studio/src/domain/ports/ModelCachePort.ts) | `IModelCachePort<T>`（`read`, `write`, `clear`, `ttlMs`, `cacheKey`） | 模型缓存端口 |
 
 ---
 
@@ -567,7 +567,7 @@ scripts/                            # 跨平台启动脚本
 
 ### 7.1 PlatformRouter（多平台路由核心）
 
-文件：[PlatformRouter.ts](file:///d:/projects/ai-vido-web/src/domain/services/PlatformRouter.ts)
+文件：[PlatformRouter.ts](file:///d:/projects/ai-video-studio/src/domain/services/PlatformRouter.ts)
 
 **职责**：根据当前激活平台（`IApiConfigStore.getActivePlatform()`）和能力路由到对应平台适配器，是整个多平台架构的核心枢纽。
 
@@ -611,7 +611,7 @@ scripts/                            # 跨平台启动脚本
 
 ### 7.2 platformCapabilities（平台能力矩阵）
 
-文件：[platformCapabilities.ts](file:///d:/projects/ai-vido-web/src/domain/services/platformCapabilities.ts)
+文件：[platformCapabilities.ts](file:///d:/projects/ai-video-studio/src/domain/services/platformCapabilities.ts)
 
 **用途**：平台能力矩阵单一数据源。导出 `PLATFORM_METADATA` 全量表（8 平台的 id/name/brand/icon/accentColor/description/externalLink/capabilities/videoModels/imageModel/textModel）、`hasCapability(platform, capability)`、`getCapabilitySummary(platform)`、`getVideoCapablePlatforms()`。
 
@@ -630,7 +630,7 @@ scripts/                            # 跨平台启动脚本
 
 ### 7.3 platformSelector（纯函数选择器）
 
-文件：[platformSelector.ts](file:///d:/projects/ai-vido-web/src/domain/services/platformSelector.ts)
+文件：[platformSelector.ts](file:///d:/projects/ai-video-studio/src/domain/services/platformSelector.ts)
 
 导出 `selectAdapterKey(platform, capability): AdapterKey`、`withFallback(platform, supported)`（默认降级 minimax）、`SUPPORTED_MATRIX`（O(1) 查询）、`isSupported(platform, capability)`。可纯函数测试。
 
@@ -638,7 +638,7 @@ scripts/                            # 跨平台启动脚本
 
 #### StoryService
 
-文件：[StoryService.ts](file:///d:/projects/ai-vido-web/src/domain/services/StoryService.ts)
+文件：[StoryService.ts](file:///d:/projects/ai-video-studio/src/domain/services/StoryService.ts)
 
 **依赖**：`IStoryRepository`, `IStorySegmentRepository`, `ICharacterRepository`, `IBackgroundRepository`, `ITextSplitterPort`, `IStoryBreakdownPort`, `IVideoTaskRepository`
 
@@ -655,7 +655,7 @@ scripts/                            # 跨平台启动脚本
 
 #### ImageGenerationService
 
-文件：[ImageGenerationService.ts](file:///d:/projects/ai-vido-web/src/domain/services/ImageGenerationService.ts)
+文件：[ImageGenerationService.ts](file:///d:/projects/ai-video-studio/src/domain/services/ImageGenerationService.ts)
 
 **依赖**：`ICharacterRepository`, `IBackgroundRepository`, `PlatformRouter`, `IApiConfigStore`, `IFileStoragePort`（lazy）, `ILoggerPort`
 
@@ -667,7 +667,7 @@ scripts/                            # 跨平台启动脚本
 
 #### TextGenerationService / TextLabService
 
-文件：[TextGenerationService.ts](file:///d:/projects/ai-vido-web/src/domain/services/TextGenerationService.ts) / [TextLabService.ts](file:///d:/projects/ai-vido-web/src/domain/services/TextLabService.ts)
+文件：[TextGenerationService.ts](file:///d:/projects/ai-video-studio/src/domain/services/TextGenerationService.ts) / [TextLabService.ts](file:///d:/projects/ai-video-studio/src/domain/services/TextLabService.ts)
 
 | 服务 | 方法 | 说明 |
 |------|------|------|
@@ -678,7 +678,7 @@ scripts/                            # 跨平台启动脚本
 
 #### VideoGenerationService
 
-文件：[VideoGenerationService.ts](file:///d:/projects/ai-vido-web/src/domain/services/VideoGenerationService.ts)
+文件：[VideoGenerationService.ts](file:///d:/projects/ai-video-studio/src/domain/services/VideoGenerationService.ts)
 
 **依赖**：`IVideoTaskRepository`, `IStorySegmentRepository`, `ICharacterRepository`, `IBackgroundRepository`, `PlatformRouter`, `IFileStoragePort`（lazy）, `IApiConfigStore`, `ILoggerPort`
 
@@ -696,16 +696,16 @@ scripts/                            # 跨平台启动脚本
 
 | 服务 | 文件 | 关键方法 |
 |------|------|----------|
-| `VideoLabService` | [VideoLabService.ts](file:///d:/projects/ai-vido-web/src/domain/services/VideoLabService.ts) | `submitTask`, `submitAgentTask`, `queryTask`, `downloadVideo`, `startPolling`（5s 轮询） |
-| `VoiceService` | [VoiceService.ts](file:///d:/projects/ai-vido-web/src/domain/services/VoiceService.ts) | `cloneVoiceForCharacter`, `generateNarrationAudio`（智能路由同步/异步）, `synthesizeStream`, `designVoice`, `generateAndPersistNarration`（OPFS 持久化）, `batchGenerateNarration` |
-| `MusicService` | [MusicService.ts](file:///d:/projects/ai-vido-web/src/domain/services/MusicService.ts) | `generateBGM`, `generateCoverBGM`（两步流程）, `generateLyrics`, `bindBGMToSegment`（OPFS 持久化） |
-| `MusicLabService` | [MusicLabService.ts](file:///d:/projects/ai-vido-web/src/domain/services/MusicLabService.ts) | `generateMusic`（hex→Blob→OPFS）, `generateLyrics`, `generateCover`, `restoreFromStorage` |
+| `VideoLabService` | [VideoLabService.ts](file:///d:/projects/ai-video-studio/src/domain/services/VideoLabService.ts) | `submitTask`, `submitAgentTask`, `queryTask`, `downloadVideo`, `startPolling`（5s 轮询） |
+| `VoiceService` | [VoiceService.ts](file:///d:/projects/ai-video-studio/src/domain/services/VoiceService.ts) | `cloneVoiceForCharacter`, `generateNarrationAudio`（智能路由同步/异步）, `synthesizeStream`, `designVoice`, `generateAndPersistNarration`（OPFS 持久化）, `batchGenerateNarration` |
+| `MusicService` | [MusicService.ts](file:///d:/projects/ai-video-studio/src/domain/services/MusicService.ts) | `generateBGM`, `generateCoverBGM`（两步流程）, `generateLyrics`, `bindBGMToSegment`（OPFS 持久化） |
+| `MusicLabService` | [MusicLabService.ts](file:///d:/projects/ai-video-studio/src/domain/services/MusicLabService.ts) | `generateMusic`（hex→Blob→OPFS）, `generateLyrics`, `generateCover`, `restoreFromStorage` |
 
 ### 7.6 后期处理服务
 
 #### PostProcessService
 
-文件：[PostProcessService.ts](file:///d:/projects/ai-vido-web/src/domain/services/PostProcessService.ts)
+文件：[PostProcessService.ts](file:///d:/projects/ai-video-studio/src/domain/services/PostProcessService.ts)
 
 **依赖**：`IFFmpegPort`, `IWhisperPort`
 
@@ -713,7 +713,7 @@ scripts/                            # 跨平台启动脚本
 
 #### SubtitleService
 
-文件：[SubtitleService.ts](file:///d:/projects/ai-vido-web/src/domain/services/SubtitleService.ts)
+文件：[SubtitleService.ts](file:///d:/projects/ai-video-studio/src/domain/services/SubtitleService.ts)
 
 **依赖**：`IWhisperPort`, `PlatformRouter`, `IApiConfigStore`, `ILoggerPort`
 
@@ -726,7 +726,7 @@ scripts/                            # 跨平台启动脚本
 
 ### 7.7 管线服务（Pipeline）
 
-文件：[PipelineService.ts](file:///d:/projects/ai-vido-web/src/domain/services/PipelineService.ts)
+文件：[PipelineService.ts](file:///d:/projects/ai-video-studio/src/domain/services/PipelineService.ts)
 
 **依赖**：`IStoryRepository`, `IStorySegmentRepository`, `ICharacterRepository`, `IBackgroundRepository`, `IVideoTaskRepository`, `IFinalCutRepository`, `PlatformRouter`, `PostProcessService`, `SubtitleService`, `IFileStoragePort`（lazy）, `ILoggerPort`, `IEventBus`, `IApiConfigStore`
 
@@ -753,7 +753,7 @@ splitting → generating_images → generating_audio → generating_bgm
 
 #### TimelineService（编排）
 
-文件：[TimelineService.ts](file:///d:/projects/ai-vido-web/src/domain/services/TimelineService.ts)
+文件：[TimelineService.ts](file:///d:/projects/ai-video-studio/src/domain/services/TimelineService.ts)
 
 **依赖**：`ITimelineRepository`, `IStoryRepository`, `IStorySegmentRepository`, `IVideoTaskRepository`
 
@@ -767,7 +767,7 @@ splitting → generating_images → generating_audio → generating_bgm
 
 #### TimelineRenderService（渲染）
 
-文件：[TimelineRenderService.ts](file:///d:/projects/ai-vido-web/src/domain/services/TimelineRenderService.ts)
+文件：[TimelineRenderService.ts](file:///d:/projects/ai-video-studio/src/domain/services/TimelineRenderService.ts)
 
 **依赖**：`IFFmpegPort`, `IFileStoragePort`（lazy）, `IVideoTaskRepository`, `IFinalCutRepository`, `ISavedVideoRepository`, `ISavedVoiceRepository`, `ILoggerPort`
 
@@ -782,26 +782,26 @@ splitting → generating_images → generating_audio → generating_bgm
 
 | 服务 | 文件 | 关键方法 |
 |------|------|----------|
-| `StorySpaceService` | [StorySpaceService.ts](file:///d:/projects/ai-vido-web/src/domain/services/StorySpaceService.ts) | `createSpace`, `deleteSpace`（级联删除）, `copyAllToSpace`, `getSpaceStats` |
-| `ModelManagementService` | [ModelManagementService.ts](file:///d:/projects/ai-vido-web/src/domain/services/ModelManagementService.ts) | `getModels`（缓存优先）, `refreshModels`, `getTextModels`, `getStaticVideoModels`（仅 MiniMax） |
-| `FileManagementService` | [FileManagementService.ts](file:///d:/projects/ai-vido-web/src/domain/services/FileManagementService.ts) | `listFiles`, `deleteFile`（远程文件管理，仅 MiniMax） |
-| `AssetLibraryService` | [AssetLibraryService.ts](file:///d:/projects/ai-vido-web/src/domain/services/AssetLibraryService.ts) | `saveImageFromUrl`（支持 data URI 规避 CORS）, `saveImageFromBlob`, `saveVideoFromBlob`, `saveVoiceFromUrl`, `savePrompt`, `compressImages`（replace/saveAsNew），路径约定 `images/{id}` / `audio/{id}` / `video/{id}.{ext}` |
-| `SnapshotService` | [SnapshotService.ts](file:///d:/projects/ai-vido-web/src/domain/services/SnapshotService.ts) | `createSnapshot`, `autoSnapshot`（删除/重置前安全网）, `getSnapshots`, `renameSnapshot`（maxPerSpace=50） |
+| `StorySpaceService` | [StorySpaceService.ts](file:///d:/projects/ai-video-studio/src/domain/services/StorySpaceService.ts) | `createSpace`, `deleteSpace`（级联删除）, `copyAllToSpace`, `getSpaceStats` |
+| `ModelManagementService` | [ModelManagementService.ts](file:///d:/projects/ai-video-studio/src/domain/services/ModelManagementService.ts) | `getModels`（缓存优先）, `refreshModels`, `getTextModels`, `getStaticVideoModels`（仅 MiniMax） |
+| `FileManagementService` | [FileManagementService.ts](file:///d:/projects/ai-video-studio/src/domain/services/FileManagementService.ts) | `listFiles`, `deleteFile`（远程文件管理，仅 MiniMax） |
+| `AssetLibraryService` | [AssetLibraryService.ts](file:///d:/projects/ai-video-studio/src/domain/services/AssetLibraryService.ts) | `saveImageFromUrl`（支持 data URI 规避 CORS）, `saveImageFromBlob`, `saveVideoFromBlob`, `saveVoiceFromUrl`, `savePrompt`, `compressImages`（replace/saveAsNew），路径约定 `images/{id}` / `audio/{id}` / `video/{id}.{ext}` |
+| `SnapshotService` | [SnapshotService.ts](file:///d:/projects/ai-video-studio/src/domain/services/SnapshotService.ts) | `createSnapshot`, `autoSnapshot`（删除/重置前安全网）, `getSnapshots`, `renameSnapshot`（maxPerSpace=50） |
 
 ### 7.10 AI 增强服务
 
 | 服务 | 文件 | 关键方法 |
 |------|------|----------|
-| `AgentService` | [AgentService.ts](file:///d:/projects/ai-vido-web/src/domain/services/AgentService.ts) | `chat(messages)`, `suggestActionPlan(userMessage)`（13 工具能力） |
-| `CinematographyService` | [CinematographyService.ts](file:///d:/projects/ai-vido-web/src/domain/services/CinematographyService.ts) | `suggestShots`, `planStoryboard`, `enhancePromptWithShot`（9 种镜头类型 + 9 种运镜） |
-| `BGMRecommendationService` | [BGMRecommendationService.ts](file:///d:/projects/ai-vido-web/src/domain/services/BGMRecommendationService.ts) | `recommend`, `recommendSequence`（保持情绪连贯）, `buildPrompt`（12 类 BGM） |
-| `AutoEditService` | [AutoEditService.ts](file:///d:/projects/ai-vido-web/src/domain/services/AutoEditService.ts) | `detectKeyframes`（抽帧+Hamming 距离场景切换）, `suggestCuts`, `autoTrim` |
+| `AgentService` | [AgentService.ts](file:///d:/projects/ai-video-studio/src/domain/services/AgentService.ts) | `chat(messages)`, `suggestActionPlan(userMessage)`（13 工具能力） |
+| `CinematographyService` | [CinematographyService.ts](file:///d:/projects/ai-video-studio/src/domain/services/CinematographyService.ts) | `suggestShots`, `planStoryboard`, `enhancePromptWithShot`（9 种镜头类型 + 9 种运镜） |
+| `BGMRecommendationService` | [BGMRecommendationService.ts](file:///d:/projects/ai-video-studio/src/domain/services/BGMRecommendationService.ts) | `recommend`, `recommendSequence`（保持情绪连贯）, `buildPrompt`（12 类 BGM） |
+| `AutoEditService` | [AutoEditService.ts](file:///d:/projects/ai-video-studio/src/domain/services/AutoEditService.ts) | `detectKeyframes`（抽帧+Hamming 距离场景切换）, `suggestCuts`, `autoTrim` |
 
 ### 7.11 领域常量与错误
 
 #### textLimits.ts
 
-文件：[textLimits.ts](file:///d:/projects/ai-vido-web/src/domain/constants/textLimits.ts)
+文件：[textLimits.ts](file:///d:/projects/ai-video-studio/src/domain/constants/textLimits.ts)
 
 **设计原则**：
 - `TEXT_LIMITS`（UI 层）：取跨平台最小兼容值，浏览器原生 maxLength 硬限制
@@ -828,13 +828,13 @@ splitting → generating_images → generating_audio → generating_bgm
 
 #### UnsupportedCapabilityError
 
-文件：[UnsupportedCapabilityError.ts](file:///d:/projects/ai-vido-web/src/domain/errors/UnsupportedCapabilityError.ts)
+文件：[UnsupportedCapabilityError.ts](file:///d:/projects/ai-video-studio/src/domain/errors/UnsupportedCapabilityError.ts)
 
 平台不支持指定能力时抛出的错误，携带平台名、能力名 + 可操作建议（推荐支持该能力的其他平台，最多 4 个）。
 
 #### systemVoices.ts
 
-文件：[systemVoices.ts](file:///d:/projects/ai-vido-web/src/domain/data/systemVoices.ts)
+文件：[systemVoices.ts](file:///d:/projects/ai-video-studio/src/domain/data/systemVoices.ts)
 
 MiniMax 系统音色列表（约 80 个），按语言分组（zh/yue/en/ja/ko）。导出 `VOICES_BY_LANGUAGE` 和 `LANGUAGE_LABELS`。
 
@@ -953,7 +953,7 @@ MiniMax 系统音色列表（约 80 个），按语言分组（zh/yue/en/ja/ko�
 
 #### ApiConfigStore + secureStorage
 
-文件：[ApiConfigStore.ts](file:///d:/projects/ai-vido-web/src/adapters/outbound/config/ApiConfigStore.ts) / [secureStorage.ts](file:///d:/projects/ai-vido-web/src/adapters/outbound/config/secureStorage.ts)
+文件：[ApiConfigStore.ts](file:///d:/projects/ai-video-studio/src/adapters/outbound/config/ApiConfigStore.ts) / [secureStorage.ts](file:///d:/projects/ai-video-studio/src/adapters/outbound/config/secureStorage.ts)
 
 **加密机制**：
 - 算法：**AES-GCM 256**（认证加密，防篡改）
@@ -968,13 +968,13 @@ MiniMax 系统音色列表（约 80 个），按语言分组（zh/yue/en/ja/ko�
 
 #### ApiConfigStoreAdapter
 
-文件：[ApiConfigStoreAdapter.ts](file:///d:/projects/ai-vido-web/src/adapters/outbound/config/ApiConfigStoreAdapter.ts)
+文件：[ApiConfigStoreAdapter.ts](file:///d:/projects/ai-video-studio/src/adapters/outbound/config/ApiConfigStoreAdapter.ts)
 
 实现 `IApiConfigStore`，新增订阅能力（`onPlatformChange`/`onConfigChange`）与脱敏能力（`getApiKeyMasked`：前4+******+尾4，长度<12 全返回 12 个星号）。`getToken(platform)`：Kling/Hunyuan 返回 `${accessKey}|||${secretKey}` 复合格式。
 
 #### LogViewerConfigStore
 
-文件：[LogViewerConfigStore.ts](file:///d:/projects/ai-vido-web/src/adapters/outbound/config/LogViewerConfigStore.ts)
+文件：[LogViewerConfigStore.ts](file:///d:/projects/ai-video-studio/src/adapters/outbound/config/LogViewerConfigStore.ts)
 
 `ILogViewerConfigPort` 的 LocalStorage 实现，key: `ai_video_studio_log_viewer_config`。配置：`enabled`（默认 DEV=true/PROD=false）、`maxEntries`（默认 1000）、`defaultOpen`、`defaultLevel`。
 
@@ -1003,7 +1003,7 @@ MiniMax 系统音色列表（约 80 个），按语言分组（zh/yue/en/ja/ko�
 
 #### DexieDatabase（数据库定义 + 迁移历史）
 
-文件：[DexieDatabase.ts](file:///d:/projects/ai-vido-web/src/adapters/outbound/repositories/DexieDatabase.ts)
+文件：[DexieDatabase.ts](file:///d:/projects/ai-video-studio/src/adapters/outbound/repositories/DexieDatabase.ts)
 
 **数据库名**：`AiVideoDatabase`，**当前版本 v12**，**15 张表**：
 
@@ -1055,7 +1055,7 @@ MiniMax 系统音色列表（约 80 个），按语言分组（zh/yue/en/ja/ko�
 
 ### 8.13 文件存储降级链（storage/）
 
-文件：[FileStorageAdapterFactory.ts](file:///d:/projects/ai-vido-web/src/adapters/outbound/storage/FileStorageAdapterFactory.ts)
+文件：[FileStorageAdapterFactory.ts](file:///d:/projects/ai-video-studio/src/adapters/outbound/storage/FileStorageAdapterFactory.ts)
 
 **用户偏好**（来自 `localStorage.ai_vido_storage_preference`，默认 `'local'`）：
 - `'local'`（默认）：`FilesLocalAdapter`（落盘到配置目录）
@@ -1107,7 +1107,7 @@ MiniMax 系统音色列表（约 80 个），按语言分组（zh/yue/en/ja/ko�
 
 #### CanvasInpaintAdapter（6 种算法）
 
-文件：[CanvasInpaintAdapter.ts](file:///d:/projects/ai-vido-web/src/adapters/outbound/api/inpaint/CanvasInpaintAdapter.ts)
+文件：[CanvasInpaintAdapter.ts](file:///d:/projects/ai-video-studio/src/adapters/outbound/api/inpaint/CanvasInpaintAdapter.ts)
 
 | 算法 | 原理 |
 |------|------|
@@ -1135,9 +1135,9 @@ MiniMax 系统音色列表（约 80 个），按语言分组（zh/yue/en/ja/ko�
 
 ### 8.18 Vite 文件存储插件
 
-文件：[filesStoragePlugin.ts](file:///d:/projects/ai-vido-web/vite/filesStoragePlugin.ts)
+文件：[filesStoragePlugin.ts](file:///d:/projects/ai-video-studio/vite/filesStoragePlugin.ts)
 
-**插件名**：`ai-vido-web:files-storage`，`apply: 'serve'`（**仅 dev server，生产构建不注册**）
+**插件名**：`ai-video-studio:files-storage`，`apply: 'serve'`（**仅 dev server，生产构建不注册**）
 
 **提供的路由**：
 
@@ -1158,7 +1158,7 @@ MiniMax 系统音色列表（约 80 个），按语言分组（zh/yue/en/ja/ko�
 
 ## 9. 依赖注入容器 (Dependencies)
 
-文件：[dependencies.ts](file:///d:/projects/ai-vido-web/src/dependencies.ts)
+文件：[dependencies.ts](file:///d:/projects/ai-video-studio/src/dependencies.ts)
 
 这是整个应用的组装层，负责实例化所有适配器和服务，并注入依赖关系。核心结构：
 
@@ -1232,7 +1232,7 @@ MiniMax 系统音色列表（约 80 个），按语言分组（zh/yue/en/ja/ko�
 
 ### 10.1 布局
 
-文件：[MainLayout.tsx](file:///d:/projects/ai-vido-web/src/ui/layouts/MainLayout.tsx)
+文件：[MainLayout.tsx](file:///d:/projects/ai-video-studio/src/ui/layouts/MainLayout.tsx)
 
 主布局组件，**侧边栏 4 个分组导航**：
 
@@ -1254,33 +1254,33 @@ MiniMax 系统音色列表（约 80 个），按语言分组（zh/yue/en/ja/ko�
 
 | Context | 文件 | 说明 |
 |---------|------|------|
-| `SpaceContext` | [SpaceContext.tsx](file:///d:/projects/ai-vido-web/src/ui/contexts/SpaceContext.tsx) | 当前创作空间状态，localStorage 持久化（key: `ai_vido_current_space_id`），首次加载自动创建 'Default Space' |
-| `ToastContext` | [ToastContext.tsx](file:///d:/projects/ai-vido-web/src/ui/contexts/ToastContext.tsx) | 全局消息提示，4 类型（success/error/info/warning），3.5s 自动消失，订阅 `toastEventBus` |
-| `ConfirmContext` | [ConfirmContext.tsx](file:///d:/projects/ai-vido-web/src/ui/contexts/ConfirmContext.tsx) | 确认对话框，`confirm(options): Promise<boolean>`，订阅 `confirmEventBus` |
-| `ThemeContext` | [ThemeContext.tsx](file:///d:/projects/ai-vido-web/src/ui/contexts/ThemeContext.tsx) | 4 主题（dark/light/blue/warm），从 ApiConfigStore 读取初始主题，setTheme 同步写入 |
-| `theme-types.ts` | [theme-types.ts](file:///d:/projects/ai-vido-web/src/ui/contexts/theme-types.ts) | ThemeId/ThemeConfig/THEMES 数组（深邃暗夜/简约日光/静谧蓝海/暖阳赭石） |
+| `SpaceContext` | [SpaceContext.tsx](file:///d:/projects/ai-video-studio/src/ui/contexts/SpaceContext.tsx) | 当前创作空间状态，localStorage 持久化（key: `ai_vido_current_space_id`），首次加载自动创建 'Default Space' |
+| `ToastContext` | [ToastContext.tsx](file:///d:/projects/ai-video-studio/src/ui/contexts/ToastContext.tsx) | 全局消息提示，4 类型（success/error/info/warning），3.5s 自动消失，订阅 `toastEventBus` |
+| `ConfirmContext` | [ConfirmContext.tsx](file:///d:/projects/ai-video-studio/src/ui/contexts/ConfirmContext.tsx) | 确认对话框，`confirm(options): Promise<boolean>`，订阅 `confirmEventBus` |
+| `ThemeContext` | [ThemeContext.tsx](file:///d:/projects/ai-video-studio/src/ui/contexts/ThemeContext.tsx) | 4 主题（dark/light/blue/warm），从 ApiConfigStore 读取初始主题，setTheme 同步写入 |
+| `theme-types.ts` | [theme-types.ts](file:///d:/projects/ai-video-studio/src/ui/contexts/theme-types.ts) | ThemeId/ThemeConfig/THEMES 数组（深邃暗夜/简约日光/静谧蓝海/暖阳赭石） |
 
 ### 10.3 自定义 Hooks（17 个）
 
 | Hook | 文件 | 说明 |
 |------|------|------|
-| `useWorkbenchState` | [useWorkbenchState.ts](file:///d:/projects/ai-vido-web/src/ui/hooks/useWorkbenchState.ts) | StoryWorkbench 状态管理，**3 个领域 reducer**（breakdown/bgm/workbench）整合 30+ useState |
-| `useSpaceScopedQuery` | [useSpaceScopedQuery.ts](file:///d:/projects/ai-vido-web/src/ui/hooks/useSpaceScopedQuery.ts) | 空间作用域查询（替代页面层直调 db），含 useSpaceScopedCharacters/Backgrounds/Stories/PipelineTasks、useStoryScopedSegments、useSegmentScopedVideoTasks |
-| `useTimeline` | [useTimeline.ts](file:///d:/projects/ai-vido-web/src/ui/hooks/useTimeline.ts) | 时间线编排：加载/构建（buildFromStory 自动铺轨）+ 乐观更新 + 防抖保存（800ms）+ 导出（调用 ITimelineRenderPort.render） |
-| `useVideoTaskPolling` | [useVideoTaskPolling.ts](file:///d:/projects/ai-vido-web/src/ui/hooks/useVideoTaskPolling.ts) | 视频任务轮询（5s 间隔，最多 120 次） |
-| `usePolling` | [usePolling.ts](file:///d:/projects/ai-vido-web/src/ui/hooks/usePolling.ts) | 通用轮询 Hook |
-| `useVideoImport` | [useVideoImport.ts](file:///d:/projects/ai-vido-web/src/ui/hooks/useVideoImport.ts) | 视频上传导入：校验→探测元数据→抽帧缩略图（25% 位置）→落盘 |
-| `useLinkImport` | [useLinkImport.ts](file:///d:/projects/ai-vido-web/src/ui/hooks/useLinkImport.ts) | 视频链接导入：解析→下载→探测→抽帧→落盘，支持平台识别（direct/douyin/bilibili 等） |
-| `useBatchImageInpaint` | [useBatchImageInpaint.ts](file:///d:/projects/ai-vido-web/src/ui/hooks/useBatchImageInpaint.ts) | 批量图片去水印：多文件管理 + 统一选区 + 并发数 1/3/5 + 重试 |
-| `useWatermarkRemoval` | [useWatermarkRemoval.ts](file:///d:/projects/ai-vido-web/src/ui/hooks/useWatermarkRemoval.ts) | 去水印处理：3 类型（image/pdf/video）+ **自动重试 + 备选算法链**（FALLBACK_ALGORITHMS） |
-| `useEnhancement` | [useEnhancement.ts](file:///d:/projects/ai-vido-web/src/ui/hooks/useEnhancement.ts) | 清晰度提升：3 类型 + **自动重试（maxRetries=2）** + 备选算法链 |
-| `useSavedAssets` | [useSavedAssets.ts](file:///d:/projects/ai-vido-web/src/ui/hooks/useSavedAssets.ts) | 素材查询（useSavedImages/Voices/Prompts/Videos） |
-| `useAssetPicker` | [useAssetPicker.ts](file:///d:/projects/ai-vido-web/src/ui/hooks/useAssetPicker.ts) | 素材选择器状态管理 |
-| `useStreamingAudioPlayer` | [useStreamingAudioPlayer.ts](file:///d:/projects/ai-vido-web/src/ui/hooks/useStreamingAudioPlayer.ts) | 流式音频播放：MediaSource API + SourceBuffer，降级到 Blob 累积 + Audio |
-| `useNetworkStatus` | [useNetworkStatus.ts](file:///d:/projects/ai-vido-web/src/ui/hooks/useNetworkStatus.ts) | 网络状态监听 |
-| `useObjectUrl` | [useObjectUrl.ts](file:///d:/projects/ai-vido-web/src/ui/hooks/useObjectUrl.ts) | Blob → Object URL 自动管理（useMemo + cleanup revoke） |
-| `useSharedForm` | [useSharedForm.ts](file:///d:/projects/ai-vido-web/src/ui/hooks/useSharedForm.ts) | 共享图片上传逻辑（3 模式：url/upload/generate） |
-| `useLogStore` | [useLogStore.ts](file:///d:/projects/ai-vido-web/src/ui/hooks/useLogStore.ts) | 日志存储：初始 snapshot + subscribe 增量 + 筛选（级别/服务/关键字） |
+| `useWorkbenchState` | [useWorkbenchState.ts](file:///d:/projects/ai-video-studio/src/ui/hooks/useWorkbenchState.ts) | StoryWorkbench 状态管理，**3 个领域 reducer**（breakdown/bgm/workbench）整合 30+ useState |
+| `useSpaceScopedQuery` | [useSpaceScopedQuery.ts](file:///d:/projects/ai-video-studio/src/ui/hooks/useSpaceScopedQuery.ts) | 空间作用域查询（替代页面层直调 db），含 useSpaceScopedCharacters/Backgrounds/Stories/PipelineTasks、useStoryScopedSegments、useSegmentScopedVideoTasks |
+| `useTimeline` | [useTimeline.ts](file:///d:/projects/ai-video-studio/src/ui/hooks/useTimeline.ts) | 时间线编排：加载/构建（buildFromStory 自动铺轨）+ 乐观更新 + 防抖保存（800ms）+ 导出（调用 ITimelineRenderPort.render） |
+| `useVideoTaskPolling` | [useVideoTaskPolling.ts](file:///d:/projects/ai-video-studio/src/ui/hooks/useVideoTaskPolling.ts) | 视频任务轮询（5s 间隔，最多 120 次） |
+| `usePolling` | [usePolling.ts](file:///d:/projects/ai-video-studio/src/ui/hooks/usePolling.ts) | 通用轮询 Hook |
+| `useVideoImport` | [useVideoImport.ts](file:///d:/projects/ai-video-studio/src/ui/hooks/useVideoImport.ts) | 视频上传导入：校验→探测元数据→抽帧缩略图（25% 位置）→落盘 |
+| `useLinkImport` | [useLinkImport.ts](file:///d:/projects/ai-video-studio/src/ui/hooks/useLinkImport.ts) | 视频链接导入：解析→下载→探测→抽帧→落盘，支持平台识别（direct/douyin/bilibili 等） |
+| `useBatchImageInpaint` | [useBatchImageInpaint.ts](file:///d:/projects/ai-video-studio/src/ui/hooks/useBatchImageInpaint.ts) | 批量图片去水印：多文件管理 + 统一选区 + 并发数 1/3/5 + 重试 |
+| `useWatermarkRemoval` | [useWatermarkRemoval.ts](file:///d:/projects/ai-video-studio/src/ui/hooks/useWatermarkRemoval.ts) | 去水印处理：3 类型（image/pdf/video）+ **自动重试 + 备选算法链**（FALLBACK_ALGORITHMS） |
+| `useEnhancement` | [useEnhancement.ts](file:///d:/projects/ai-video-studio/src/ui/hooks/useEnhancement.ts) | 清晰度提升：3 类型 + **自动重试（maxRetries=2）** + 备选算法链 |
+| `useSavedAssets` | [useSavedAssets.ts](file:///d:/projects/ai-video-studio/src/ui/hooks/useSavedAssets.ts) | 素材查询（useSavedImages/Voices/Prompts/Videos） |
+| `useAssetPicker` | [useAssetPicker.ts](file:///d:/projects/ai-video-studio/src/ui/hooks/useAssetPicker.ts) | 素材选择器状态管理 |
+| `useStreamingAudioPlayer` | [useStreamingAudioPlayer.ts](file:///d:/projects/ai-video-studio/src/ui/hooks/useStreamingAudioPlayer.ts) | 流式音频播放：MediaSource API + SourceBuffer，降级到 Blob 累积 + Audio |
+| `useNetworkStatus` | [useNetworkStatus.ts](file:///d:/projects/ai-video-studio/src/ui/hooks/useNetworkStatus.ts) | 网络状态监听 |
+| `useObjectUrl` | [useObjectUrl.ts](file:///d:/projects/ai-video-studio/src/ui/hooks/useObjectUrl.ts) | Blob → Object URL 自动管理（useMemo + cleanup revoke） |
+| `useSharedForm` | [useSharedForm.ts](file:///d:/projects/ai-video-studio/src/ui/hooks/useSharedForm.ts) | 共享图片上传逻辑（3 模式：url/upload/generate） |
+| `useLogStore` | [useLogStore.ts](file:///d:/projects/ai-video-studio/src/ui/hooks/useLogStore.ts) | 日志存储：初始 snapshot + subscribe 增量 + 筛选（级别/服务/关键字） |
 
 ### 10.4 通用组件（47 个文件）
 
@@ -1300,33 +1300,33 @@ MiniMax 系统音色列表（约 80 个），按语言分组（zh/yue/en/ja/ko�
 
 | 组件 | 文件 | 说明 |
 |------|------|------|
-| `AgentChatPanel` | [AgentChatPanel.tsx](file:///d:/projects/ai-vido-web/src/ui/components/AgentChatPanel.tsx) | AI 助手对话面板，4 个快捷操作 |
-| `PipelinePanel` | [PipelinePanel.tsx](file:///d:/projects/ai-vido-web/src/ui/components/PipelinePanel.tsx) | 管线流程面板，10 阶段状态机 |
-| `StoryListPanel` | [StoryListPanel.tsx](file:///d:/projects/ai-vido-web/src/ui/components/StoryListPanel.tsx) | 故事列表 |
-| `SegmentCard` | [SegmentCard.tsx](file:///d:/projects/ai-vido-web/src/ui/components/SegmentCard.tsx) | **React.memo** 分镜卡片 |
-| `TimelineEditor` | [TimelineEditor.tsx](file:///d:/projects/ai-vido-web/src/ui/components/TimelineEditor.tsx) | **React.memo** 时间线编排：3 轨道排序、缩放（20-240 pxPerSecond）、8px 吸附 |
-| `VideoTaskCard` | [VideoTaskCard.tsx](file:///d:/projects/ai-vido-web/src/ui/components/VideoTaskCard.tsx) | **React.memo** 视频任务卡片 |
-| `VideoCompare` | [VideoCompare.tsx](file:///d:/projects/ai-vido-web/src/ui/components/VideoCompare.tsx) | 视频版本对比 |
-| `BGMPanel` | [BGMPanel.tsx](file:///d:/projects/ai-vido-web/src/ui/components/BGMPanel.tsx) | BGM 编辑面板，4 模式 + 5 风格预设 |
-| `BreakdownPreview` | [BreakdownPreview.tsx](file:///d:/projects/ai-vido-web/src/ui/components/BreakdownPreview.tsx) | 一键分解预览 |
-| `CameraDirectivePanel` | [CameraDirectivePanel.tsx](file:///d:/projects/ai-vido-web/src/ui/components/CameraDirectivePanel.tsx) | 运镜指令面板，7 组 15 种指令 |
-| `PostProductionPanel` | [PostProductionPanel.tsx](file:///d:/projects/ai-vido-web/src/ui/components/PostProductionPanel.tsx) | 后期处理面板，6 工具 |
-| `ImageGallery` | [ImageGallery.tsx](file:///d:/projects/ai-vido-web/src/ui/components/ImageGallery.tsx) | 图片画廊 |
+| `AgentChatPanel` | [AgentChatPanel.tsx](file:///d:/projects/ai-video-studio/src/ui/components/AgentChatPanel.tsx) | AI 助手对话面板，4 个快捷操作 |
+| `PipelinePanel` | [PipelinePanel.tsx](file:///d:/projects/ai-video-studio/src/ui/components/PipelinePanel.tsx) | 管线流程面板，10 阶段状态机 |
+| `StoryListPanel` | [StoryListPanel.tsx](file:///d:/projects/ai-video-studio/src/ui/components/StoryListPanel.tsx) | 故事列表 |
+| `SegmentCard` | [SegmentCard.tsx](file:///d:/projects/ai-video-studio/src/ui/components/SegmentCard.tsx) | **React.memo** 分镜卡片 |
+| `TimelineEditor` | [TimelineEditor.tsx](file:///d:/projects/ai-video-studio/src/ui/components/TimelineEditor.tsx) | **React.memo** 时间线编排：3 轨道排序、缩放（20-240 pxPerSecond）、8px 吸附 |
+| `VideoTaskCard` | [VideoTaskCard.tsx](file:///d:/projects/ai-video-studio/src/ui/components/VideoTaskCard.tsx) | **React.memo** 视频任务卡片 |
+| `VideoCompare` | [VideoCompare.tsx](file:///d:/projects/ai-video-studio/src/ui/components/VideoCompare.tsx) | 视频版本对比 |
+| `BGMPanel` | [BGMPanel.tsx](file:///d:/projects/ai-video-studio/src/ui/components/BGMPanel.tsx) | BGM 编辑面板，4 模式 + 5 风格预设 |
+| `BreakdownPreview` | [BreakdownPreview.tsx](file:///d:/projects/ai-video-studio/src/ui/components/BreakdownPreview.tsx) | 一键分解预览 |
+| `CameraDirectivePanel` | [CameraDirectivePanel.tsx](file:///d:/projects/ai-video-studio/src/ui/components/CameraDirectivePanel.tsx) | 运镜指令面板，7 组 15 种指令 |
+| `PostProductionPanel` | [PostProductionPanel.tsx](file:///d:/projects/ai-video-studio/src/ui/components/PostProductionPanel.tsx) | 后期处理面板，6 工具 |
+| `ImageGallery` | [ImageGallery.tsx](file:///d:/projects/ai-video-studio/src/ui/components/ImageGallery.tsx) | 图片画廊 |
 | `ImageUploadField` / `AudioUploadField` / `VideoUploadField` | — | 上传字段组件 |
-| `ImageAdvancedSettings` | [ImageAdvancedSettings.tsx](file:///d:/projects/ai-vido-web/src/ui/components/ImageAdvancedSettings.tsx) | 图片高级设置 |
-| `AudioPreviewPlayer` | [AudioPreviewPlayer.tsx](file:///d:/projects/ai-vido-web/src/ui/components/AudioPreviewPlayer.tsx) | 音频预览（Canvas 波形 + 自动重试 MAX_RETRY=2 + 延迟错误显示 3000ms） |
-| `LyricsDisplay` | [LyricsDisplay.tsx](file:///d:/projects/ai-vido-web/src/ui/components/LyricsDisplay.tsx) | 歌词展示，17 种结构标签高亮 |
-| `AssetPicker` | [AssetPicker.tsx](file:///d:/projects/ai-vido-web/src/ui/components/AssetPicker.tsx) | 素材选择器弹窗，3 类型，图源缺失红色提示卡 |
-| `BatchCompressDialog` | [BatchCompressDialog.tsx](file:///d:/projects/ai-vido-web/src/ui/components/BatchCompressDialog.tsx) | 批量图片压缩对话框 |
-| `ThinkingBlock` | [ThinkingBlock.tsx](file:///d:/projects/ai-vido-web/src/ui/components/ThinkingBlock.tsx) | AI 思考过程展示 |
-| `TokenUsageBar` | [TokenUsageBar.tsx](file:///d:/projects/ai-vido-web/src/ui/components/TokenUsageBar.tsx) | Token 用量展示 |
-| `LanguageSwitcher` | [LanguageSwitcher.tsx](file:///d:/projects/ai-vido-web/src/ui/components/LanguageSwitcher.tsx) | 语言切换器，10 种语言 |
-| `ErrorBoundary` | [ErrorBoundary.tsx](file:///d:/projects/ai-vido-web/src/ui/components/ErrorBoundary.tsx) | 错误边界，2 种 variant（root/route），componentDidCatch 写入 logSink |
-| `PageSkeleton` | [PageSkeleton.tsx](file:///d:/projects/ai-vido-web/src/ui/components/PageSkeleton.tsx) | 路由级骨架屏 |
-| `AsyncState` | [AsyncState.tsx](file:///d:/projects/ai-vido-web/src/ui/components/AsyncState.tsx) | 统一异步状态组件（3 种 loading 子态 + error + empty） |
-| `LabPageLayout` | [LabPageLayout.tsx](file:///d:/projects/ai-vido-web/src/ui/components/LabPageLayout.tsx) | 实验室页面统一布局 |
+| `ImageAdvancedSettings` | [ImageAdvancedSettings.tsx](file:///d:/projects/ai-video-studio/src/ui/components/ImageAdvancedSettings.tsx) | 图片高级设置 |
+| `AudioPreviewPlayer` | [AudioPreviewPlayer.tsx](file:///d:/projects/ai-video-studio/src/ui/components/AudioPreviewPlayer.tsx) | 音频预览（Canvas 波形 + 自动重试 MAX_RETRY=2 + 延迟错误显示 3000ms） |
+| `LyricsDisplay` | [LyricsDisplay.tsx](file:///d:/projects/ai-video-studio/src/ui/components/LyricsDisplay.tsx) | 歌词展示，17 种结构标签高亮 |
+| `AssetPicker` | [AssetPicker.tsx](file:///d:/projects/ai-video-studio/src/ui/components/AssetPicker.tsx) | 素材选择器弹窗，3 类型，图源缺失红色提示卡 |
+| `BatchCompressDialog` | [BatchCompressDialog.tsx](file:///d:/projects/ai-video-studio/src/ui/components/BatchCompressDialog.tsx) | 批量图片压缩对话框 |
+| `ThinkingBlock` | [ThinkingBlock.tsx](file:///d:/projects/ai-video-studio/src/ui/components/ThinkingBlock.tsx) | AI 思考过程展示 |
+| `TokenUsageBar` | [TokenUsageBar.tsx](file:///d:/projects/ai-video-studio/src/ui/components/TokenUsageBar.tsx) | Token 用量展示 |
+| `LanguageSwitcher` | [LanguageSwitcher.tsx](file:///d:/projects/ai-video-studio/src/ui/components/LanguageSwitcher.tsx) | 语言切换器，10 种语言 |
+| `ErrorBoundary` | [ErrorBoundary.tsx](file:///d:/projects/ai-video-studio/src/ui/components/ErrorBoundary.tsx) | 错误边界，2 种 variant（root/route），componentDidCatch 写入 logSink |
+| `PageSkeleton` | [PageSkeleton.tsx](file:///d:/projects/ai-video-studio/src/ui/components/PageSkeleton.tsx) | 路由级骨架屏 |
+| `AsyncState` | [AsyncState.tsx](file:///d:/projects/ai-video-studio/src/ui/components/AsyncState.tsx) | 统一异步状态组件（3 种 loading 子态 + error + empty） |
+| `LabPageLayout` | [LabPageLayout.tsx](file:///d:/projects/ai-video-studio/src/ui/components/LabPageLayout.tsx) | 实验室页面统一布局 |
 | `InputWithCounter` / `TextAreaWithCounter` | — | **软限制模式**：不透传 maxLength，超限时计数器变红 + 提示 |
-| `SavedRecordsPanel` | [SavedRecordsPanel.tsx](file:///d:/projects/ai-vido-web/src/ui/components/SavedRecordsPanel.tsx) | 已保存记录面板 |
+| `SavedRecordsPanel` | [SavedRecordsPanel.tsx](file:///d:/projects/ai-video-studio/src/ui/components/SavedRecordsPanel.tsx) | 已保存记录面板 |
 | enhance/ | `EnhanceCompare`、`EnhanceParts`（EnhanceUploadZone / EnhanceParamSlider / EnhanceProgressBar / EnhanceRetryHint / EnhanceActionButtons / EnhanceAsyncWrapper） | 增强模块零件集合 |
 | settings/ | `FormField`、`PlatformSelect`、`SettingsSection`、`StatusBadge`、`ThemeSelector`、`ValidationButton` | 设置页组件 |
 | watermark/ | `InpaintPreview`、`RegionSelector`（矩形框选 + 自由涂抹） | 去水印组件 |
@@ -1335,7 +1335,7 @@ MiniMax 系统音色列表（约 80 个），按语言分组（zh/yue/en/ja/ko�
 
 ## 11. 路由与页面
 
-文件：[App.tsx](file:///d:/projects/ai-vido-web/src/App.tsx)
+文件：[App.tsx](file:///d:/projects/ai-video-studio/src/App.tsx)
 
 ### 11.1 路由表
 
@@ -1388,19 +1388,19 @@ React.useEffect:
 
 | 页面 | 文件 | 核心功能 |
 |------|------|----------|
-| `Dashboard` | [Dashboard.tsx](file:///d:/projects/ai-vido-web/src/ui/pages/Dashboard.tsx) | 5 步引导卡片 + AI 实验室快捷入口 + 视频任务统计 + 最近故事 |
-| `CharacterManagement` | [CharacterManagement.tsx](file:///d:/projects/ai-vido-web/src/ui/pages/CharacterManagement.tsx) | 角色 CRUD + 图片三模式（URL/上传/AI 生成）+ 音色克隆/设计 + AI 润色 + 跨空间复制 |
-| `StoryWorkbench` | [StoryWorkbench.tsx](file:///d:/projects/ai-vido-web/src/ui/pages/StoryWorkbench.tsx) | **核心工作台**：3 reducer + 故事 CRUD + 分镜拆分 + 一键分解 + 视频批量生成 + 旁白轮询 + BGM + 一键合成 |
-| `VideoEditor` | [VideoEditor.tsx](file:///d:/projects/ai-vido-web/src/ui/pages/VideoEditor.tsx) | 视频剪辑工作台，子组件拆到 editor/ 目录（EditorToolbar/ExportModal/InspectorPanel/MediaPanel/PreviewStage） |
-| `Settings` | [Settings.tsx](file:///d:/projects/ai-vido-web/src/ui/pages/Settings.tsx) | 8 平台配置 + 模型管理 + 文件管理 + 本地存储配置 + 媒体缓存 |
-| `WatermarkLab` | [WatermarkLab.tsx](file:///d:/projects/ai-vido-web/src/ui/pages/WatermarkLab.tsx) | 3 Tab（image/pdf/video）+ 完全浏览器端本地处理 + 6 种算法 + 批量并发 |
-| `EnhanceLab` | [EnhanceLab.tsx](file:///d:/projects/ai-vido-web/src/ui/pages/EnhanceLab.tsx) | 3 Tab（image/pdf/video），子面板拆到 enhance/ 目录 |
+| `Dashboard` | [Dashboard.tsx](file:///d:/projects/ai-video-studio/src/ui/pages/Dashboard.tsx) | 5 步引导卡片 + AI 实验室快捷入口 + 视频任务统计 + 最近故事 |
+| `CharacterManagement` | [CharacterManagement.tsx](file:///d:/projects/ai-video-studio/src/ui/pages/CharacterManagement.tsx) | 角色 CRUD + 图片三模式（URL/上传/AI 生成）+ 音色克隆/设计 + AI 润色 + 跨空间复制 |
+| `StoryWorkbench` | [StoryWorkbench.tsx](file:///d:/projects/ai-video-studio/src/ui/pages/StoryWorkbench.tsx) | **核心工作台**：3 reducer + 故事 CRUD + 分镜拆分 + 一键分解 + 视频批量生成 + 旁白轮询 + BGM + 一键合成 |
+| `VideoEditor` | [VideoEditor.tsx](file:///d:/projects/ai-video-studio/src/ui/pages/VideoEditor.tsx) | 视频剪辑工作台，子组件拆到 editor/ 目录（EditorToolbar/ExportModal/InspectorPanel/MediaPanel/PreviewStage） |
+| `Settings` | [Settings.tsx](file:///d:/projects/ai-video-studio/src/ui/pages/Settings.tsx) | 8 平台配置 + 模型管理 + 文件管理 + 本地存储配置 + 媒体缓存 |
+| `WatermarkLab` | [WatermarkLab.tsx](file:///d:/projects/ai-video-studio/src/ui/pages/WatermarkLab.tsx) | 3 Tab（image/pdf/video）+ 完全浏览器端本地处理 + 6 种算法 + 批量并发 |
+| `EnhanceLab` | [EnhanceLab.tsx](file:///d:/projects/ai-video-studio/src/ui/pages/EnhanceLab.tsx) | 3 Tab（image/pdf/video），子面板拆到 enhance/ 目录 |
 
 ---
 
 ## 12. 国际化 (i18n)
 
-文件：[i18n.ts](file:///d:/projects/ai-vido-web/src/i18n.ts)
+文件：[i18n.ts](file:///d:/projects/ai-video-studio/src/i18n.ts)
 
 ### 支持语言（10 种）
 
@@ -1491,21 +1491,21 @@ React.useEffect:
 
 | 文件 | 说明 |
 |------|------|
-| [offlineCache.ts](file:///d:/projects/ai-vido-web/src/utils/offlineCache.ts) | 旧 IndexedDB 离线缓存（DB: `minimax-offline-cache`，LRU 淘汰 500MB/200 条），`getOrFetch` |
-| [cacheMonitor.ts](file:///d:/projects/ai-vido-web/src/utils/cacheMonitor.ts) | 文本生成缓存命中率监控（localStorage 持久化 + 订阅器模式），`recordTextGenUsage` Helper |
-| [imageCache.ts](file:///d:/projects/ai-vido-web/src/utils/imageCache.ts) | 主线程 CacheStorage 媒体缓存，**`isSWActive()` 始终返回 false**（SW 已按设计约束移除） |
-| [objectUrlRegistry.ts](file:///d:/projects/ai-vido-web/src/utils/objectUrlRegistry.ts) | Object URL 统一追踪注册表：`createTrackedObjectUrl` / `revokeAllTrackedObjectUrls` + beforeunload 兜底释放 |
-| [retryUtils.ts](file:///d:/projects/ai-vido-web/src/utils/retryUtils.ts) | 智能重试：`retryWithBackoff`（指数退避 + jitter + AbortSignal），`isRetryableError`（不可重试：authentication/api_key/forbidden/insufficient_balance；可重试：timeout/5xx/429/network） |
+| [offlineCache.ts](file:///d:/projects/ai-video-studio/src/utils/offlineCache.ts) | 旧 IndexedDB 离线缓存（DB: `minimax-offline-cache`，LRU 淘汰 500MB/200 条），`getOrFetch` |
+| [cacheMonitor.ts](file:///d:/projects/ai-video-studio/src/utils/cacheMonitor.ts) | 文本生成缓存命中率监控（localStorage 持久化 + 订阅器模式），`recordTextGenUsage` Helper |
+| [imageCache.ts](file:///d:/projects/ai-video-studio/src/utils/imageCache.ts) | 主线程 CacheStorage 媒体缓存，**`isSWActive()` 始终返回 false**（SW 已按设计约束移除） |
+| [objectUrlRegistry.ts](file:///d:/projects/ai-video-studio/src/utils/objectUrlRegistry.ts) | Object URL 统一追踪注册表：`createTrackedObjectUrl` / `revokeAllTrackedObjectUrls` + beforeunload 兜底释放 |
+| [retryUtils.ts](file:///d:/projects/ai-video-studio/src/utils/retryUtils.ts) | 智能重试：`retryWithBackoff`（指数退避 + jitter + AbortSignal），`isRetryableError`（不可重试：authentication/api_key/forbidden/insufficient_balance；可重试：timeout/5xx/429/network） |
 
 ### 14.2 UI 工具 (src/ui/utils/)
 
 | 文件 | 说明 |
 |------|------|
-| [errorUtils.ts](file:///d:/projects/ai-vido-web/src/ui/utils/errorUtils.ts) | `getErrorMessage(e, fallback)` 统一错误消息提取 |
-| [imageCompress.ts](file:///d:/projects/ai-vido-web/src/ui/utils/imageCompress.ts) | 主线程 Canvas 图片压缩（近无损策略，PNG 透明图自动保留），**logger.info 打印入参/出参** |
-| [imageUtils.ts](file:///d:/projects/ai-vido-web/src/ui/utils/imageUtils.ts) | `fileToBase64`、`validateImageFile`（JPG/PNG/WebP + 20MB 限制） |
-| [validateTextLimit.ts](file:///d:/projects/ai-vido-web/src/ui/utils/validateTextLimit.ts) | `validateTextLimit` 单字段 + `validateTextLimits` 批量，**不做截断**，超限 toast 提示 |
-| [videoAddress.ts](file:///d:/projects/ai-vido-web/src/ui/utils/videoAddress.ts) | `detectVideoAddressType`（direct/share/local）、`fetchVideoAsFile` |
+| [errorUtils.ts](file:///d:/projects/ai-video-studio/src/ui/utils/errorUtils.ts) | `getErrorMessage(e, fallback)` 统一错误消息提取 |
+| [imageCompress.ts](file:///d:/projects/ai-video-studio/src/ui/utils/imageCompress.ts) | 主线程 Canvas 图片压缩（近无损策略，PNG 透明图自动保留），**logger.info 打印入参/出参** |
+| [imageUtils.ts](file:///d:/projects/ai-video-studio/src/ui/utils/imageUtils.ts) | `fileToBase64`、`validateImageFile`（JPG/PNG/WebP + 20MB 限制） |
+| [validateTextLimit.ts](file:///d:/projects/ai-video-studio/src/ui/utils/validateTextLimit.ts) | `validateTextLimit` 单字段 + `validateTextLimits` 批量，**不做截断**，超限 toast 提示 |
+| [videoAddress.ts](file:///d:/projects/ai-video-studio/src/ui/utils/videoAddress.ts) | `detectVideoAddressType`（direct/share/local）、`fetchVideoAsFile` |
 
 ### 14.3 关键设计模式
 
@@ -1748,7 +1748,7 @@ npm run i18n:check:strict
 
 ### 16.4 开发环境配置
 
-1. 启动开发服务器后，访问控制台输出的 URL（默认 `http://localhost:5173/ai-vido-web/`）
+1. 启动开发服务器后，访问控制台输出的 URL（默认 `http://localhost:5173/ai-video-studio/`）
 2. 进入 **设置页面** (`/settings`) 配置：
    - 选择激活平台（默认 MiniMax）
    - 配置对应平台的 API Key（敏感配置会通过 AES-GCM 加密后存入 localStorage）
@@ -1863,4 +1863,4 @@ npm run test
 
 ---
 
-*本文档为 ai-vido-web 项目的结构化 Code Wiki，涵盖项目整体架构、主要模块职责、关键类与函数说明、依赖关系以及项目运行方式等关键信息。*
+*本文档为 ai-video-studio 项目的结构化 Code Wiki，涵盖项目整体架构、主要模块职责、关键类与函数说明、依赖关系以及项目运行方式等关键信息。*

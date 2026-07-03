@@ -70,7 +70,7 @@ Adapters (8 平台 + 基础设施)            ← MiniMax/Volcengine/Coze/Kling/
 # 安装依赖
 npm install
 
-# 开发模式（http://localhost:5173/ai-vido-web/）
+# 开发模式（http://localhost:5173/ai-video-studio/）
 npm run dev
 
 # 生产构建
@@ -102,7 +102,7 @@ npm run test
 
 ### API 配置
 
-1. 启动后访问 `http://localhost:5173/ai-vido-web/`
+1. 启动后访问 `http://localhost:5173/ai-video-studio/`
 2. 进入 **设置** 页面配置各平台的 API Key（支持 8 平台独立配置，AES-GCM 加密存储）
 3. 可选：导入/导出配置备份
 

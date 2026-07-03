@@ -99,7 +99,7 @@ export function filesStoragePlugin(options: FilesStoragePluginOptions = {}): Plu
     ?? 50 * 1024 * 1024;
 
   return {
-    name: 'ai-vido-web:files-storage',
+    name: 'ai-video-studio:files-storage',
     apply: 'serve', // 仅 dev server，生产构建不注册
     configureServer(server) {
       const viteRoot = server.config.root;

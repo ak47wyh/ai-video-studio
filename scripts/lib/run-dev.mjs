@@ -25,7 +25,7 @@ import { installIfNeeded } from './install-deps.mjs';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, '..', '..');
 const DEFAULT_PORT = 5173;
-const BASE_PATH = '/ai-vido-web/';
+const BASE_PATH = '/ai-video-studio/';
 const PORT_WAIT_TIMEOUT_MS = 30000;
 
 // Vite 子进程引用（用于信号优雅退出）
@@ -110,7 +110,7 @@ async function main() {
   // 通过解析 Vite 输出获取实际监听端口，确保打开浏览器时用正确的 URL。
   // 用 --no-open 禁用 vite 自带的开浏览器逻辑（vite.config.ts 中 server.open 已配置路径，
   // 由本脚本统一通过 openBrowser 打开，避免重复开窗）。
-  // 注意：不能用 --open=false，vite 8 会把 "false" 当作字符串路径，拼成 /ai-vido-web/false。
+  // 注意：不能用 --open=false，vite 8 会把 "false" 当作字符串路径，拼成 /ai-video-studio/false。
   console.log('\n[5/5] 启动开发服务器...');
   console.log('[run-dev] 执行命令: npx vite --port ' + preferredPort + ' --no-open');
   console.log('');
