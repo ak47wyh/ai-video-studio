@@ -108,11 +108,22 @@ main() {
   fi
   ok "npm: $(npm -v)"
 
-  # 步骤 3：调用 Node 核心脚本
-  info "[3/3] 进入核心流程..."
-  echo ""
-  local script_dir
+  # 步骤 3：首次运行安装依赖（仅 node_modules 不存在时执行）
+  info "[3/4] 检查依赖..."
+  local script_dir project_root
   script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  project_root="$(cd "$script_dir/.." && pwd)"
+  if [ ! -d "$project_root/node_modules" ]; then
+    info "首次运行（node_modules 不存在），执行 npm install..."
+    (cd "$project_root" && npm install) || { error "依赖安装失败"; exit 1; }
+    ok "依赖安装完成"
+  else
+    ok "node_modules 已存在，跳过依赖安装"
+  fi
+
+  # 步骤 4：调用 Node 核心脚本
+  info "[4/4] 进入核心流程..."
+  echo ""
   exec node "$script_dir/lib/run-dev.mjs"
 }
 

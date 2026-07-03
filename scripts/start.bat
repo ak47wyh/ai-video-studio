@@ -1,34 +1,34 @@
 @echo off
 REM ==========================================
-REM AI Video Studio Ò»¼üÆô¶¯½Å±¾£¨Windows CMD£©
+REM AI Video Studio Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å±ï¿½ï¿½ï¿½Windows CMDï¿½ï¿½
 REM ==========================================
-REM ÓÃ·¨£ºË«»÷ÔËÐÐ »ò ÔÚ cmd ÖÐÖ´ÐÐ scripts\start.bat
+REM ï¿½Ã·ï¿½ï¿½ï¿½Ë«ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ cmd ï¿½ï¿½Ö´ï¿½ï¿½ scripts\start.bat
 REM
-REM Ö°Ôð£º¼ì²â Node.js ÊÇ·ñ¿ÉÓÃ£¬È»ºóÎ¯ÍÐ¿çÆ½Ì¨ºËÐÄ½Å±¾Æô¶¯·þÎñ¡£
-REM       ²»×ö°æ±¾Ð£ÑéÓëÒÀÀµ°²×°£¨½»¸ø scripts/lib/run-dev.mjs Í³Ò»´¦Àí£©¡£
-REM ×¢Òâ£º±¾ÎÄ¼þ±ØÐëÓÃ GBK ±àÂë±£´æ£¨ÖÐÎÄ Windows Ä¬ÈÏ´úÂëÒ³£©£¬
-REM       ²»ÄÜÓÃ UTF-8£¬·ñÔò cmd »áÂÒÂë¡£
+REM Ö°ï¿½ð£º¼ï¿½ï¿½ Node.js ï¿½Ç·ï¿½ï¿½ï¿½Ã£ï¿½È»ï¿½ï¿½Î¯ï¿½Ð¿ï¿½Æ½Ì¨ï¿½ï¿½ï¿½Ä½Å±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+REM       ï¿½ï¿½ï¿½ï¿½ï¿½æ±¾Ð£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ scripts/lib/run-dev.mjs Í³Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+REM ×¢ï¿½â£ºï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ GBK ï¿½ï¿½ï¿½ë±£ï¿½æ£¨ï¿½ï¿½ï¿½ï¿½ Windows Ä¬ï¿½Ï´ï¿½ï¿½ï¿½Ò³ï¿½ï¿½ï¿½ï¿½
+REM       ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ UTF-8ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ cmd ï¿½ï¿½ï¿½ï¿½ï¿½ë¡£
 REM ==========================================
 
 setlocal
 
 echo.
-echo ¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T
-echo   AI Video Studio ¡ª Ò»¼üÆô¶¯ (Windows)
-echo ¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T
-echo   ¹¤×÷Ä¿Â¼: %cd%
+echo ï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½T
+echo   AI Video Studio ï¿½ï¿½ Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ (Windows)
+echo ï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½Tï¿½T
+echo   ï¿½ï¿½ï¿½ï¿½Ä¿Â¼: %cd%
 echo.
 
-REM ===== ²½Öè 1£º¼ì²â Node.js =====
-echo [INFO] [1/2] ¼ì²â Node.js...
+REM ===== ï¿½ï¿½ï¿½ï¿½ 1ï¿½ï¿½ï¿½ï¿½ï¿½ Node.js =====
+echo [INFO] [1/2] ï¿½ï¿½ï¿½ Node.js...
 where node >nul 2>nul
 if errorlevel 1 (
     echo.
-    echo [ERROR] Î´¼ì²âµ½ Node.js£¬ÇëÏÈ°²×° Node.js v20+£º
-    echo           ÏÂÔØµØÖ·: https://nodejs.org/zh-cn/download/
-    echo           »òÊ¹ÓÃ nvm-windows: https://github.com/coreybutler/nvm-windows
+    echo [ERROR] Î´ï¿½ï¿½âµ½ Node.jsï¿½ï¿½ï¿½ï¿½ï¿½È°ï¿½×° Node.js v20+ï¿½ï¿½
+    echo           ï¿½ï¿½ï¿½Øµï¿½Ö·: https://nodejs.org/zh-cn/download/
+    echo           ï¿½ï¿½Ê¹ï¿½ï¿½ nvm-windows: https://github.com/coreybutler/nvm-windows
     echo.
-    echo [ÌáÊ¾] °²×°Íê³ÉºóÇëÖØÐÂ´ò¿ªÐÂµÄÃüÁîÐÐ´°¿Ú£¬ÔÙÔËÐÐ±¾½Å±¾¡£
+    echo [ï¿½ï¿½Ê¾] ï¿½ï¿½×°ï¿½ï¿½Éºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â´ï¿½ï¿½Âµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½Ú£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð±ï¿½ï¿½Å±ï¿½ï¿½ï¿½
     echo.
     pause
     exit /b 1
@@ -37,18 +37,37 @@ if errorlevel 1 (
 for /f "delims=" %%v in ('node -v') do set "NODE_VER=%%v"
 echo [OK]   Node: %NODE_VER%
 
-REM ===== ²½Öè 2£ºÎ¯ÍÐ¿çÆ½Ì¨ºËÐÄ½Å±¾ =====
+REM ===== Check dependencies (install on first run only) =====
+if not exist "%~dp0..\node_modules" (
+    echo [INFO] node_modules not found, running npm install...
+    pushd "%~dp0.."
+    call npm install
+    set "NPM_RC=%errorlevel%"
+    popd
+    if not "%NPM_RC%"=="0" (
+        echo.
+        echo [ERROR] npm install failed, exit code %NPM_RC%
+        echo.
+        pause
+        exit /b 1
+    )
+    echo [OK]   Dependencies installed
+) else (
+    echo [OK]   node_modules exists, skip npm install
+)
+
+REM ===== ï¿½ï¿½ï¿½ï¿½ 2ï¿½ï¿½Î¯ï¿½Ð¿ï¿½Æ½Ì¨ï¿½ï¿½ï¿½Ä½Å±ï¿½ =====
 echo.
-echo [INFO] [2/2] ½øÈëºËÐÄÁ÷³Ì...
+echo [INFO] [2/2] ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½...
 echo.
 
-REM %~dp0 ¶¨Î»±¾½Å±¾ËùÔÚÄ¿Â¼£¨´øÄ©Î²·´Ð±¸Ü£©
+REM %~dp0 ï¿½ï¿½Î»ï¿½ï¿½ï¿½Å±ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿Â¼ï¿½ï¿½ï¿½ï¿½Ä©Î²ï¿½ï¿½Ð±ï¿½Ü£ï¿½
 node "%~dp0lib\run-dev.mjs"
 set "EXIT_CODE=%errorlevel%"
 
 if not "%EXIT_CODE%"=="0" (
     echo.
-    echo [ERROR] Æô¶¯Ê§°Ü£¬ÍË³öÂë %EXIT_CODE%£¬Çë²é¿´ÉÏ·½ÈÕÖ¾ÅÅ²é
+    echo [ERROR] ï¿½ï¿½ï¿½ï¿½Ê§ï¿½Ü£ï¿½ï¿½Ë³ï¿½ï¿½ï¿½ %EXIT_CODE%ï¿½ï¿½ï¿½ï¿½é¿´ï¿½Ï·ï¿½ï¿½ï¿½Ö¾ï¿½Å²ï¿½
     echo.
     pause
 )

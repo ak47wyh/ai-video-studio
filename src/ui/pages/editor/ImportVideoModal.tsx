@@ -37,6 +37,8 @@ export const ImportVideoModal: React.FC<ImportVideoModalProps> = ({ open, onClos
   const linkImport = useLinkImport();
   const { state: linkState, progress: linkProgress, error: linkError, detectedPlatform, importFromUrl, reset: resetLinkImport } = linkImport;
 
+  const [urlInput, setUrlInput] = useState('');
+
   const isImporting = ['validating', 'probing', 'extracting', 'saving'].includes(importState);
   const isLinkImporting = ['parsing', 'downloading', 'validating', 'probing', 'extracting', 'saving'].includes(linkState);
 
@@ -48,8 +50,6 @@ export const ImportVideoModal: React.FC<ImportVideoModalProps> = ({ open, onClos
       onImported?.(result);
     }
   };
-
-  const [urlInput, setUrlInput] = useState('');
 
   const handleLinkImport = async () => {
     if (!urlInput.trim() || isLinkImporting) return;
