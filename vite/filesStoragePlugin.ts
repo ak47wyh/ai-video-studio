@@ -113,8 +113,13 @@ export function filesStoragePlugin(options: FilesStoragePluginOptions = {}): Plu
       }
 
       // ===== 中间件 =====
+      const base = server.config.base ?? '/';
       const middleware: Connect.NextHandleFunction = async (req, res, next) => {
-        const url = req.url ?? '';
+        // 去掉 Vite base 前缀，使路由匹配与 base 无关
+        let url = req.url ?? '';
+        if (base !== '/' && url.startsWith(base)) {
+          url = url.slice(base.length - 1); // 保留前导 /
+        }
         const method = req.method ?? 'GET';
 
         // ----- POST /__files/upload?path=<dir>/<name> -----

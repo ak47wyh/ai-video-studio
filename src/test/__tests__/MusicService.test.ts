@@ -41,6 +41,7 @@ function makeMockConfig(): ApiConfig {
     viduApiKey: '',
     viduBaseUrl: '',
     theme: 'dark',
+    vconsoleEnabled: false,
   };
 }
 

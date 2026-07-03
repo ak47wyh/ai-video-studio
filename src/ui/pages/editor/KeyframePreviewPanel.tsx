@@ -18,8 +18,8 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, Scissors, Loader2, Check, Play } from 'lucide-react';
-import { autoEditService } from '../../dependencies';
-import { useToast } from '../contexts/ToastContext';
+import { autoEditService } from '../../../dependencies';
+import { useToast } from '../../contexts/ToastContext';
 import type { KeyframeInfo, CutSuggestion } from '../../domain/services/AutoEditService';
 
 export interface KeyframePreviewPanelProps {

@@ -68,6 +68,9 @@ export interface ApiConfig {
 
   // --- 主题设置 ---
   theme: ThemeId;
+
+  // --- 开发者工具 ---
+  vconsoleEnabled: boolean;
 }
 
 const STORAGE_KEY = 'ai_video_studio_api_config';
@@ -119,6 +122,9 @@ const DEFAULT_CONFIG: ApiConfig = {
 
   // 主题默认值
   theme: 'dark' as ThemeId,
+
+  // 开发者工具默认值
+  vconsoleEnabled: false,
 };
 
 // 旧版 DEV 代理路径 → 完整外部 URL 的迁移映射。

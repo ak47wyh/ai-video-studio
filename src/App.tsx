@@ -7,7 +7,6 @@ import { ConfirmProvider } from './ui/contexts/ConfirmContext';
 import { ThemeProvider } from './ui/contexts/ThemeContext';
 import { ErrorBoundary } from './ui/components/ErrorBoundary';
 import { PageSkeleton } from './ui/components/PageSkeleton';
-import { LogViewerContainer } from './ui/components/LogViewer/LogViewerContainer';
 import { videoGenerationService } from './dependencies';
 import { installGlobalErrorCapture } from './adapters/outbound/infrastructure/GlobalErrorCapture';
 import { logSink } from './adapters/outbound/infrastructure/RingBufferLogSinkAdapter';
@@ -110,7 +109,6 @@ function App() {
           </SpaceProvider>
         </BrowserRouter>
       </ThemeProvider>
-      <LogViewerContainer />
     </ErrorBoundary>
   );
 }

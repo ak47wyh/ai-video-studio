@@ -6,7 +6,7 @@ export class MiniMaxModelAdapter implements IModelManagementPort {
 
   /**
    * List Models — GET /anthropic/v1/models
-   * Note: Uses X-Api-Key header (not Authorization: Bearer)
+   * Note: Uses Authorization: Bearer header (X-Api-Key not allowed by CORS)
    */
   async listModels(limit?: number, afterId?: string): Promise<ModelListResult> {
     const config = ApiConfigStore.load();
@@ -23,7 +23,7 @@ export class MiniMaxModelAdapter implements IModelManagementPort {
     const response = await axios.get(`${baseUrl}/v1/models`, {
       params,
       headers: {
-        'X-Api-Key': config.minimaxApiKey,
+        Authorization: `Bearer ${config.minimaxApiKey}`,
       },
     });
 

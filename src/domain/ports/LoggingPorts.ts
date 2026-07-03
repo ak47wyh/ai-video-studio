@@ -44,21 +44,3 @@ export interface ILogSinkPort {
   size(): number;
 }
 
-/**
- * 日志查看模块配置端口。
- *
- * 用途：让用户控制面板行为（启用 / 容量 / 默认展开状态 / 默认筛选级别）。
- * 实现：LocalStorageLogViewerConfigAdapter。
- */
-export interface ILogViewerConfig {
-  enabled: boolean;
-  maxEntries: number;
-  defaultOpen: boolean;
-  defaultLevel: LogLevel;
-}
-
-export interface ILogViewerConfigPort {
-  get(): ILogViewerConfig;
-  set(patch: Partial<ILogViewerConfig>): ILogViewerConfig;
-  subscribe(listener: (cfg: ILogViewerConfig) => void): () => void;
-}

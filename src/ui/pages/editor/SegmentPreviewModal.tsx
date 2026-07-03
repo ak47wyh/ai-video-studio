@@ -17,7 +17,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, Play, Loader2, RefreshCw, Check } from 'lucide-react';
-import { useToast } from '../contexts/ToastContext';
+import { useToast } from '../../contexts/ToastContext';
 import type { StorySegment } from '../../domain/entities/models';
 
 export interface SegmentPreviewModalProps {

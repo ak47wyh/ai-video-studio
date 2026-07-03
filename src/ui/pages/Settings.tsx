@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ExternalLink, RefreshCw, Cpu, Trash2, FolderOpen, FolderCog, Palette, CheckCircle, ChevronDown, Zap, Save, Database } from 'lucide-react';
+import { ExternalLink, RefreshCw, Cpu, Trash2, FolderOpen, FolderCog, Palette, CheckCircle, ChevronDown, Zap, Save, Database, Bug } from 'lucide-react';
 import { ApiConfigStore, type ApiConfig, type PlatformId } from '../../adapters/outbound/config/ApiConfigStore';
 import { useToast } from '../contexts/ToastContext';
 import { modelManagementService, fileManagementService } from '../../dependencies';
@@ -299,7 +299,7 @@ export const Settings: React.FC = () => {
     return () => clearTimeout(timeoutId);
   }, [config]);
 
-  const handleChange = useCallback((field: keyof ApiConfig, value: string) => {
+  const handleChange = useCallback((field: keyof ApiConfig, value: string | boolean) => {
     setConfig(prev => ({ ...prev, [field]: value }));
   }, []);
 
@@ -421,6 +421,38 @@ export const Settings: React.FC = () => {
         defaultExpanded={true}
       >
         <ThemeSelector />
+      </SettingsSection>
+
+      {/* ── Developer Tools Section ────────────────────────── */}
+      <SettingsSection
+        icon={<Bug size={20} />}
+        title="开发者工具"
+        badge={undefined}
+        defaultExpanded={false}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <label style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+            cursor: 'pointer',
+          }}>
+            <input
+              type="checkbox"
+              checked={config.vconsoleEnabled}
+              onChange={e => handleChange('vconsoleEnabled', e.target.checked)}
+              style={{ width: '1rem', height: '1rem', cursor: 'pointer' }}
+            />
+            <div>
+              <div style={{ fontSize: '0.88rem', fontWeight: 500, color: 'var(--text-main)' }}>
+                启用 vConsole 调试面板
+              </div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                开启后页面右下角出现调试按钮，可查看 Console / Network / Element / Storage 等信息。修改后需刷新页面生效。
+              </div>
+            </div>
+          </label>
+        </div>
       </SettingsSection>
 
       {/* ── Platform Configuration ─────────────────────────── */}

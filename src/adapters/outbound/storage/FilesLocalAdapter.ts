@@ -65,12 +65,15 @@ export class FilesLocalAdapter implements IFileStoragePort {
   private readonly urlCache = new Map<string, string>();
 
   constructor(options?: { apiBase?: string; publicPath?: string }) {
+    // Vite base 路径前缀（如 /ai-video-studio/），需要在所有请求 URL 前加上
+    const base = (typeof import.meta !== 'undefined' && import.meta.env?.BASE_URL) || '/';
+    const prefix = base !== '/' ? base.replace(/\/$/, '') : '';
     // 基础路径可通过构造器或环境变量注入；运行时用户可在设置面板里改 localStorage
     this.apiBase = options?.apiBase ?? (typeof window !== 'undefined'
-      ? (window.localStorage.getItem('ai_vido_files_api_base') || '/__files')
+      ? (window.localStorage.getItem('ai_vido_files_api_base') || `${prefix}/__files`)
       : '/__files');
     this.publicPath = options?.publicPath ?? (typeof window !== 'undefined'
-      ? (window.localStorage.getItem('ai_vido_files_public_path') || '/files')
+      ? (window.localStorage.getItem('ai_vido_files_public_path') || `${prefix}/files`)
       : '/files');
   }
 
