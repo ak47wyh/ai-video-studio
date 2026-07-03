@@ -19,21 +19,54 @@ import { withRetry } from './VolcengineErrorUtils';
  */
 export class VolcengineVideoAdapter implements IVideoGeneratorPort {
   private http: VolcengineHttpClient;
+  private config: ApiConfig;
 
   constructor(config: ApiConfig) {
+    this.config = config;
     this.http = new VolcengineHttpClient(config);
   }
 
+  /** Anthropic 协议（Agent Plan）不支持视频生成 */
+  private ensureOpenAIProtocol(): void {
+    if (this.config.volcArkProtocol === 'anthropic') {
+      throw new Error('Anthropic 协议（Agent Plan）不支持视频生成，请切换至 OpenAI 协议（标准后付费模式）');
+    }
+  }
+
   async submitVideoTask(context: VideoPromptContext): Promise<string> {
+    this.ensureOpenAIProtocol();
     const payload = this.buildPayload(context);
+
+    console.log('[VolcengineVideoAdapter] submitVideoTask 入参', {
+      prompt: context.prompt,
+      promptLength: context.prompt?.length ?? 0,
+      model: context.model,
+      hasFirstFrame: !!context.firstFrameImage,
+      hasLastFrame: !!context.lastFrameImage,
+      hasSubjectRef: !!(context.subjectReference && context.subjectReference.length > 0),
+    });
+
     const result = await withRetry(() =>
       this.http.post<{ id: string }>('/contents/generations/tasks', payload),
     );
+
+    console.log('[VolcengineVideoAdapter] submitVideoTask 出参', {
+      taskId: result.id,
+    });
+
     return result.id;
   }
 
   async queryTaskStatus(taskId: string): Promise<VideoTaskResult> {
+    this.ensureOpenAIProtocol();
     const result = await this.http.get<VolcengineTaskResponse>(`/contents/generations/tasks/${taskId}`);
+
+    console.log('[VolcengineVideoAdapter] queryTaskStatus 出参', {
+      taskId,
+      status: result.status,
+      hasVideoUrl: !!result.content?.video_url,
+    });
+
     return {
       status: this.mapStatus(result.status),
       videoUrl: result.content?.video_url,
@@ -72,10 +105,6 @@ export class VolcengineVideoAdapter implements IVideoGeneratorPort {
     // 文本提示词（直接透传原始 prompt，不做截断）
     if (context.prompt) {
       const prompt = context.prompt;
-      console.log('[VolcengineVideoAdapter] buildPayload 入参', {
-        prompt,
-        promptLength: prompt.length,
-      });
       content.push({ type: 'text', text: prompt });
     }
 

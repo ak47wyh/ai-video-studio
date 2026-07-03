@@ -16,6 +16,7 @@
 import type { IModelRegistry, TextModelCategory, IApiConfigStore } from '../../../domain/ports/PlatformPorts';
 import { PLATFORM_METADATA } from '../../../domain/services/platformCapabilities';
 import type { ILoggerPort } from '../../../domain/ports/CrossCuttingPorts';
+import type { VolcArkProtocol } from './ApiConfigStore';
 
 export class PlatformModelRegistry implements IModelRegistry {
   private configStore: IApiConfigStore;
@@ -34,6 +35,24 @@ export class PlatformModelRegistry implements IModelRegistry {
   resolveTextModel(category: TextModelCategory): string {
     const platformId = this.configStore.getActivePlatform();
     const meta = PLATFORM_METADATA[platformId];
+
+    // 火山方舟 Anthropic 协议（Agent Plan）：使用 volcArkAnthropicModel
+    if (platformId === 'volcengine') {
+      const config = this.configStore.load();
+      const protocol: VolcArkProtocol = config.volcArkProtocol ?? 'openai';
+      if (protocol === 'anthropic') {
+        const anthropicModel = config.volcArkAnthropicModel || 'doubao-seed-2.0-pro';
+        this.logger.info('resolveTextModel from volcengine anthropic (Agent Plan)', {
+          service: 'PlatformModelRegistry',
+          method: 'resolveTextModel',
+          platformId,
+          category,
+          protocol,
+          model: anthropicModel,
+        });
+        return anthropicModel;
+      }
+    }
 
     // 平台有 text 能力且有 textModel 配置
     if (meta?.textModel && meta.capabilities.includes('text')) {

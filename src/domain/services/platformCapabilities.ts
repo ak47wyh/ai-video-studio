@@ -8,7 +8,7 @@
  *
  * 修改能力支持情况时只需更新此文件。
  */
-import type { PlatformId } from '../../adapters/outbound/config/ApiConfigStore';
+import type { PlatformId, VolcArkProtocol } from '../../adapters/outbound/config/ApiConfigStore';
 
 /** 能力类型 */
 export type Capability =
@@ -66,9 +66,10 @@ export const PLATFORM_METADATA: Record<PlatformId, PlatformMeta> = {
     brand: 'Volcengine',
     icon: '🌋',
     accentColor: '#f97316',
-    description: 'Seedance · 视频/图片/文本/3D',
+    description: 'Seedance · 视频/图片/文本/语音/3D',
     externalLink: 'https://console.volcengine.com/ark',
-    capabilities: ['video', 'videoFl2v', 'videoS2v', 'image', 'text'],
+    // OpenAI 协议下的全能力（与 PlatformRouter 实际行为一致）
+    capabilities: ['video', 'videoFl2v', 'videoS2v', 'image', 'text', 'voice'],
     videoModels: ['volcengine-seedance-1-0-pro', 'volcengine-seedance-1-0-lite'],
     imageModel: 'volcengine-seedream-3-0',
     textModel: 'volcengine-doubao-pro',
@@ -172,4 +173,43 @@ export function getCapabilitySummary(platform: PlatformId): string {
 /** 获取所有支持视频生成的平台（用于 Settings 下拉过滤） */
 export function getVideoCapablePlatforms(): PlatformMeta[] {
   return Object.values(PLATFORM_METADATA).filter(p => p.capabilities.includes('video'));
+}
+
+/**
+ * 根据火山方舟接入协议获取实际可用能力。
+ *
+ * - openai:     标准后付费模式，全能力可用（video/image/text/voice 等）
+ * - anthropic:  Agent Plan 订阅，仅文本生成可用（视觉模型需 Skill 调用，本系统不集成）
+ *
+ * 用于 UI 层动态渲染入口可用性，以及 PlatformRouter 在分发前预检能力。
+ */
+export function getVolcengineCapabilities(protocol: VolcArkProtocol): {
+  capabilities: Capability[];
+  supportsAgentTemplate: boolean;
+} {
+  if (protocol === 'anthropic') {
+    return {
+      capabilities: ['text'],
+      supportsAgentTemplate: false,
+    };
+  }
+  return {
+    capabilities: PLATFORM_METADATA.volcengine.capabilities,
+    supportsAgentTemplate: false,
+  };
+}
+
+/**
+ * 判断火山方舟在指定协议下是否具备某能力。
+ * 其他平台忽略 protocol 参数，直接查 PLATFORM_METADATA。
+ */
+export function hasCapabilityWithProtocol(
+  platform: PlatformId,
+  capability: Capability,
+  protocol?: VolcArkProtocol,
+): boolean {
+  if (platform === 'volcengine' && protocol) {
+    return getVolcengineCapabilities(protocol).capabilities.includes(capability);
+  }
+  return PLATFORM_METADATA[platform]?.capabilities.includes(capability) ?? false;
 }

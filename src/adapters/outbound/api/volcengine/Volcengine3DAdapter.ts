@@ -17,18 +17,43 @@ import type { VolcengineTaskResponse } from './VolcengineVideoAdapter';
  */
 export class Volcengine3DAdapter implements IThreeDGenerationPort {
   private http: VolcengineHttpClient;
+  private config: ApiConfig;
   private provider: ThreeDPlatformId;
 
   constructor(config: ApiConfig, provider: ThreeDPlatformId) {
+    this.config = config;
     this.http = new VolcengineHttpClient(config);
     this.provider = provider;
   }
 
+  /** Anthropic 协议（Agent Plan）不支持 3D 生成 */
+  private ensureOpenAIProtocol(): void {
+    if (this.config.volcArkProtocol === 'anthropic') {
+      throw new Error('Anthropic 协议（Agent Plan）不支持 3D 生成，请切换至 OpenAI 协议（标准后付费模式）');
+    }
+  }
+
   async submitTask(params: ThreeDSubmitParams): Promise<ThreeDTaskResult> {
+    this.ensureOpenAIProtocol();
     const payload = this.buildPayload(params);
+
+    console.log('[Volcengine3DAdapter] submitTask 入参', {
+      provider: this.provider,
+      prompt: params.prompt,
+      promptLength: params.prompt?.length ?? 0,
+      imageCount: params.imageUrls?.length ?? 0,
+      modelEndpointId: params.modelEndpointId,
+    });
+
     const result = await withRetry(() =>
       this.http.post<{ id: string; status: string }>('/contents/generations/tasks', payload),
     );
+
+    console.log('[Volcengine3DAdapter] submitTask 出参', {
+      taskId: result.id,
+      status: result.status,
+    });
+
     return {
       taskId: result.id,
       status: result.status as ThreeDTaskStatusType,
@@ -37,7 +62,15 @@ export class Volcengine3DAdapter implements IThreeDGenerationPort {
   }
 
   async queryTask(taskId: string): Promise<ThreeDTaskStatus> {
+    this.ensureOpenAIProtocol();
     const result = await this.http.get<VolcengineTaskResponse>(`/contents/generations/tasks/${taskId}`);
+
+    console.log('[Volcengine3DAdapter] queryTask 出参', {
+      taskId,
+      status: result.status,
+      hasModelUrl: !!result.content?.model_url,
+    });
+
     return {
       taskId: result.id,
       status: result.status as ThreeDTaskStatusType,

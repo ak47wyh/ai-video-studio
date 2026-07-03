@@ -23,6 +23,12 @@ export type PlatformId = 'minimax' | 'volcengine' | 'coze' | 'kling' | 'wan' | '
 /** 主题标识 */
 export type ThemeId = 'dark' | 'light' | 'blue' | 'warm';
 
+/** 火山方舟接入协议类型
+ *  - openai: 标准后付费模式（Base URL: /api/v3，Authorization: Bearer）
+ *  - anthropic: Agent Plan 订阅（Base URL: /api/plan，x-api-key + anthropic-version）
+ */
+export type VolcArkProtocol = 'openai' | 'anthropic';
+
 // ===== ApiConfig 接口 =====
 
 export interface ApiConfig {
@@ -35,6 +41,12 @@ export interface ApiConfig {
   // --- 火山方舟（Ark）---
   volcArkApiKey: string;
   volcArkBaseUrl: string;
+  /** Anthropic 协议 Base URL（Agent Plan 专属，如 https://ark.cn-beijing.volces.com/api/plan） */
+  volcArkAnthropicBaseUrl: string;
+  /** 接入协议选择：openai=标准后付费，anthropic=Agent Plan 订阅 */
+  volcArkProtocol: VolcArkProtocol;
+  /** Anthropic 协议下使用的文本模型 ID（Agent Plan 支持的模型，如 doubao-seed-2.0-pro） */
+  volcArkAnthropicModel: string;
 
   // --- Coze ---
   cozePatToken: string;
@@ -89,6 +101,9 @@ const DEFAULT_CONFIG: ApiConfig = {
   // 火山方舟默认值
   volcArkApiKey: '',
   volcArkBaseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
+  volcArkAnthropicBaseUrl: 'https://ark.cn-beijing.volces.com/api/plan',
+  volcArkProtocol: 'openai' as VolcArkProtocol,
+  volcArkAnthropicModel: 'doubao-seed-2.0-pro',
 
   // Coze 默认值
   cozePatToken: '',
@@ -228,7 +243,9 @@ export const ApiConfigStore = {
     const summary = {
       activePlatform: config.activePlatform,
       minimax: !!config.minimaxApiKey.trim(),
-      volcengine: !!config.volcArkApiKey.trim(),
+      volcengine: !!config.volcArkApiKey.trim() &&
+        ((config.volcArkProtocol === 'openai' && !!config.volcArkBaseUrl.trim()) ||
+         (config.volcArkProtocol === 'anthropic' && !!config.volcArkAnthropicBaseUrl.trim())),
       coze: !!config.cozePatToken.trim(),
       kling: !!config.klingAccessKey.trim() && !!config.klingSecretKey.trim(),
       wan: !!config.wanApiKey.trim(),
@@ -254,7 +271,10 @@ export const ApiConfigStore = {
     const config = this.load();
     switch (platform) {
       case 'minimax': return !!config.minimaxApiKey.trim();
-      case 'volcengine': return !!config.volcArkApiKey.trim();
+      case 'volcengine':
+        return !!config.volcArkApiKey.trim() &&
+          ((config.volcArkProtocol === 'openai' && !!config.volcArkBaseUrl.trim()) ||
+           (config.volcArkProtocol === 'anthropic' && !!config.volcArkAnthropicBaseUrl.trim()));
       case 'coze': return !!config.cozePatToken.trim();
       case 'kling': return !!config.klingAccessKey.trim() && !!config.klingSecretKey.trim();
       case 'wan': return !!config.wanApiKey.trim();

@@ -41,6 +41,8 @@ export function withFallback(platform: PlatformId, supportedPlatforms: Set<Platf
  */
 export const SUPPORTED_MATRIX: Record<PlatformId, Set<AdapterCapability>> = {
   minimax: new Set<AdapterCapability>(['video', 'image', 'text', 'voice', 'music']),
+  // 与 platformCapabilities.ts 的 PLATFORM_METADATA.volcengine.capabilities 保持一致
+  // 注：Anthropic 协议（Agent Plan）下仅 text 可用，由 getVolcengineCapabilities 动态计算
   volcengine: new Set<AdapterCapability>(['video', 'image', 'text', 'voice']),
   coze: new Set<AdapterCapability>([]),
   kling: new Set<AdapterCapability>(['video', 'image']),

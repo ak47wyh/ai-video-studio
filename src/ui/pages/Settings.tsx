@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ExternalLink, RefreshCw, Cpu, Trash2, FolderOpen, FolderCog, Palette, CheckCircle, ChevronDown, Zap, Save, Database, Bug } from 'lucide-react';
-import { ApiConfigStore, type ApiConfig, type PlatformId } from '../../adapters/outbound/config/ApiConfigStore';
+import { ApiConfigStore, type ApiConfig, type PlatformId, type VolcArkProtocol } from '../../adapters/outbound/config/ApiConfigStore';
 import { useToast } from '../contexts/ToastContext';
 import { modelManagementService, fileManagementService } from '../../dependencies';
 import type { ModelInfo, FileItem } from '../../domain/ports/OutboundPorts';
@@ -23,8 +23,35 @@ import { ThemeSelector } from '../components/settings/ThemeSelector';
 
 // ===== Token 校验函数 =====
 
-async function validateArkToken(apiKey: string, baseUrl: string): Promise<{ ok: boolean; error?: string }> {
+async function validateArkToken(
+  apiKey: string,
+  protocol: VolcArkProtocol,
+  baseUrl: string,
+  anthropicModel?: string,
+): Promise<{ ok: boolean; error?: string }> {
   try {
+    if (protocol === 'anthropic') {
+      // Anthropic 协议校验：POST /v1/messages 最小请求
+      const response = await fetch(`${baseUrl}/v1/messages`, {
+        method: 'POST',
+        headers: {
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: anthropicModel ?? 'doubao-seed-2.0-pro',
+          max_tokens: 1,
+          messages: [{ role: 'user', content: [{ type: 'text', text: 'ping' }] }],
+        }),
+      });
+      if (!response.ok) {
+        const errText = await response.text();
+        return { ok: false, error: `校验失败 (HTTP ${response.status})：${errText}` };
+      }
+      return { ok: true };
+    }
+    // OpenAI 协议校验：GET /models
     const response = await fetch(`${baseUrl}/models`, {
       headers: { 'Authorization': `Bearer ${apiKey}` },
     });
@@ -374,11 +401,28 @@ export const Settings: React.FC = () => {
   };
 
   const handleVolcValidate = async () => {
-    const result = await validateArkToken(config.volcArkApiKey, config.volcArkBaseUrl);
+    const baseUrl = config.volcArkProtocol === 'anthropic'
+      ? config.volcArkAnthropicBaseUrl
+      : config.volcArkBaseUrl;
+    const result = await validateArkToken(
+      config.volcArkApiKey,
+      config.volcArkProtocol,
+      baseUrl,
+      config.volcArkAnthropicModel,
+    );
     if (result.ok) {
       showToast('success', t('settings.volcValidateSuccess'));
     } else {
       showToast('error', t('settings.volcValidateFailed', { error: result.error }));
+    }
+  };
+
+  /** 切换火山协议时联动：重置 Base URL 并清空 API Key（两种协议 Key 不通用） */
+  const handleVolcProtocolChange = (protocol: VolcArkProtocol) => {
+    handleChange('volcArkProtocol', protocol);
+    // 协议切换时清空 API Key（标准 Key 与 Agent Plan Key 不互通）
+    if (config.volcArkApiKey.trim()) {
+      handleChange('volcArkApiKey', '');
     }
   };
 
@@ -593,22 +637,78 @@ export const Settings: React.FC = () => {
             externalLinkLabel="获取 Token"
             accentColor="#f97316"
           >
+            {/* 接入协议选择 */}
+            <div className="settings-form-row">
+              <label className="settings-form-label">{t('settings.volcArkProtocolLabel', { defaultValue: '接入协议' })}</label>
+              <div className="settings-radio-group">
+                <label className="settings-radio-item">
+                  <input
+                    type="radio"
+                    name="volcArkProtocol"
+                    value="openai"
+                    checked={config.volcArkProtocol === 'openai'}
+                    onChange={() => handleVolcProtocolChange('openai')}
+                  />
+                  <span>{t('settings.volcArkProtocolOpenai', { defaultValue: '标准后付费（OpenAI 协议）' })}</span>
+                  <span className="settings-radio-hint">{t('settings.volcArkProtocolOpenaiHint', { defaultValue: '支持：文本/图片/视频/语音/3D 全能力' })}</span>
+                </label>
+                <label className="settings-radio-item">
+                  <input
+                    type="radio"
+                    name="volcArkProtocol"
+                    value="anthropic"
+                    checked={config.volcArkProtocol === 'anthropic'}
+                    onChange={() => handleVolcProtocolChange('anthropic')}
+                  />
+                  <span>{t('settings.volcArkProtocolAnthropic', { defaultValue: 'Agent Plan 订阅（Anthropic 协议）' })}</span>
+                  <span className="settings-radio-hint">{t('settings.volcArkProtocolAnthropicHint', { defaultValue: '仅支持文本生成（视觉模型需 Skill 调用）' })}</span>
+                </label>
+              </div>
+            </div>
+
+            {config.volcArkProtocol === 'anthropic' && (
+              <div className="settings-alert settings-alert-warning">
+                ⚠️ {t('settings.volcArkAnthropicWarning', { defaultValue: 'Agent Plan 模式仅支持文本生成。图片/视频/语音/3D 入口将置灰。请填入 Agent Plan 专属 API Key（非标准 API Key）。' })}
+              </div>
+            )}
+
             <FormField
               label={t('settings.volcArkApiKeyLabel')}
               value={config.volcArkApiKey}
               onChange={v => handleChange('volcArkApiKey', v)}
               maxLength={TEXT_LIMITS.API_KEY_MAX}
               type="password"
-              placeholder={t('settings.volcArkApiKeyPlaceholder')}
+              placeholder={config.volcArkProtocol === 'anthropic'
+                ? t('settings.volcArkApiKeyAnthropicPlaceholder', { defaultValue: '填入 Agent Plan 专属 API Key' })
+                : t('settings.volcArkApiKeyPlaceholder')}
               autoComplete="off"
               showKeyIcon
             />
-            <FormField
-              label={t('settings.volcArkBaseUrlLabel')}
-              value={config.volcArkBaseUrl}
-              onChange={v => handleChange('volcArkBaseUrl', v)}
-              placeholder={t('settings.volcArkBaseUrlPlaceholder')}
-            />
+
+            {config.volcArkProtocol === 'openai' ? (
+              <FormField
+                label={t('settings.volcArkBaseUrlLabel')}
+                value={config.volcArkBaseUrl}
+                onChange={v => handleChange('volcArkBaseUrl', v)}
+                placeholder={t('settings.volcArkBaseUrlPlaceholder')}
+              />
+            ) : (
+              <>
+                <FormField
+                  label={t('settings.volcArkAnthropicBaseUrlLabel', { defaultValue: 'Anthropic Base URL' })}
+                  value={config.volcArkAnthropicBaseUrl}
+                  onChange={v => handleChange('volcArkAnthropicBaseUrl', v)}
+                  placeholder="https://ark.cn-beijing.volces.com/api/plan"
+                />
+                <FormField
+                  label={t('settings.volcArkAnthropicModelLabel', { defaultValue: '文本模型（Agent Plan）' })}
+                  value={config.volcArkAnthropicModel}
+                  onChange={v => handleChange('volcArkAnthropicModel', v)}
+                  placeholder="doubao-seed-2.0-pro"
+                  hint={t('settings.volcArkAnthropicModelHint', { defaultValue: '可选：doubao-seed-2.0-mini/lite/pro/code, deepseek-v4-flash/pro, glm-5.2, kimi-k2.6 等' })}
+                />
+              </>
+            )}
           </PlatformCard>
 
           {/* Coze */}

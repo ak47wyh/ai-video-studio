@@ -39,9 +39,13 @@ export class VolcengineApiError extends Error {
     }
   }
 
-  /** 是否可重试（仅 429 允许重试） */
+  /** 是否可重试（429 限流 + 5xx 服务端错误 + 网关错误） */
   get isRetryable(): boolean {
-    return this.httpStatus === 429;
+    return this.httpStatus === 429
+      || this.httpStatus === 500
+      || this.httpStatus === 502
+      || this.httpStatus === 503
+      || this.httpStatus === 504;
   }
 }
 
@@ -65,7 +69,10 @@ interface VolcengineErrorBody {
 
 /**
  * 带指数退避的重试包装器。
- * 仅对 429 错误重试，其他错误直接抛出。
+ * 对以下错误重试：
+ *  - HTTP 429（限流）
+ *  - HTTP 500/502/503/504（服务端错误/网关错误）
+ *  - 网络错误（ECONNRESET/ETIMEDOUT/ENOTFOUND 等 AxiosError 无 response 的场景）
  */
 export async function withRetry<T>(
   fn: () => Promise<T>,
@@ -78,8 +85,13 @@ export async function withRetry<T>(
       return await fn();
     } catch (error) {
       lastError = error;
-      if (error instanceof VolcengineApiError && error.isRetryable && attempt < maxRetries) {
+      const retryable = isRetryableError(error);
+      if (retryable && attempt < maxRetries) {
         const delay = baseDelayMs * Math.pow(2, attempt);
+        console.warn('[VolcengineRetry] 第 %d 次重试（%dms 后）', attempt + 1, delay, {
+          errorName: error instanceof Error ? error.name : typeof error,
+          message: error instanceof Error ? error.message : String(error),
+        });
         await new Promise(r => setTimeout(r, delay));
         continue;
       }
@@ -87,4 +99,19 @@ export async function withRetry<T>(
     }
   }
   throw lastError;
+}
+
+/** 判断错误是否可重试 */
+function isRetryableError(error: unknown): boolean {
+  if (error instanceof VolcengineApiError) {
+    return error.isRetryable;
+  }
+  // 网络错误（无 HTTP 响应）：AxiosError 的 code 字段标识网络层错误
+  if (error && typeof error === 'object' && 'code' in error) {
+    const code = (error as { code?: string }).code;
+    if (code === 'ECONNRESET' || code === 'ETIMEDOUT' || code === 'ENOTFOUND' || code === 'ECONNABORTED') {
+      return true;
+    }
+  }
+  return false;
 }

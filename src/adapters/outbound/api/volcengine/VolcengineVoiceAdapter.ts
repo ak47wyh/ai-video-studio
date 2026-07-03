@@ -46,10 +46,18 @@ export class VolcengineVoiceAdapter implements IVoicePort {
 
   // ==================== 同步合成（OpenAI 兼容）====================
 
-  async synthesizeSpeechSync(context: T2ASyncContext): Promise<T2ASyncResult> {
-    if (!this.config.volcArkApiKey) {
-      return this.mockTtsResult();
+  /** Anthropic 协议（Agent Plan）不支持语音合成 */
+  private ensureOpenAIProtocol(): void {
+    if (this.config.volcArkProtocol === 'anthropic') {
+      throw new Error('Anthropic 协议（Agent Plan）不支持语音合成，请切换至 OpenAI 协议（标准后付费模式）');
     }
+    if (!this.config.volcArkApiKey.trim()) {
+      throw new Error('火山引擎语音合成未配置 API Key，请在设置页面配置标准后付费模式 API Key');
+    }
+  }
+
+  async synthesizeSpeechSync(context: T2ASyncContext): Promise<T2ASyncResult> {
+    this.ensureOpenAIProtocol();
 
     const text = context.text;
 
@@ -89,12 +97,7 @@ export class VolcengineVoiceAdapter implements IVoicePort {
   // ==================== 异步合成 ====================
 
   async createT2ATask(context: T2AAsyncContext): Promise<T2AAsyncResult> {
-    if (!this.config.volcArkApiKey) {
-      return {
-        taskId: `mock-volc-tts-${Date.now()}`,
-        usageCharacters: (context.text ?? '').length,
-      };
-    }
+    this.ensureOpenAIProtocol();
 
     const text = context.text ?? '';
 
@@ -180,16 +183,5 @@ export class VolcengineVoiceAdapter implements IVoicePort {
 
   async deleteVoice(_voiceType: 'voice_cloning' | 'voice_generation', _voiceId: string): Promise<void> {
     throw new Error('VolcengineVoiceAdapter: voice deletion not supported by Doubao TTS');
-  }
-
-  // ==================== 内部工具 ====================
-
-  private async mockTtsResult(): Promise<T2ASyncResult> {
-    const mockBase64 = 'SUQzAwAAAAABslBTRkEAAAAQAAAAHAAABVNC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0=';
-    const blob = await (await fetch(`data:audio/mp3;base64,${mockBase64}`)).blob();
-    return {
-      audioUrl: createTrackedObjectUrl(blob),
-      audioSize: blob.size,
-    };
   }
 }

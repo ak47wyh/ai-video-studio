@@ -13,13 +13,31 @@ import { withRetry } from './VolcengineErrorUtils';
  */
 export class VolcengineImageAdapter implements IImageGeneratorPort {
   private http: VolcengineHttpClient;
+  private config: ApiConfig;
 
   constructor(config: ApiConfig) {
+    this.config = config;
     this.http = new VolcengineHttpClient(config);
   }
 
+  /** Anthropic 协议（Agent Plan）不支持图片生成，视觉模型需通过 Skill 调用 */
+  private ensureOpenAIProtocol(): void {
+    if (this.config.volcArkProtocol === 'anthropic') {
+      throw new Error('Anthropic 协议（Agent Plan）不支持图片生成，请切换至 OpenAI 协议（标准后付费模式）');
+    }
+  }
+
   async generateImage(context: ImageGenerationContext): Promise<ImageGenerationResult> {
+    this.ensureOpenAIProtocol();
     const payload = this.buildPayload(context);
+
+    console.log('[VolcengineImageAdapter] generateImage 入参', {
+      prompt: context.prompt,
+      promptLength: context.prompt.length,
+      width: context.width,
+      height: context.height,
+      n: context.n,
+    });
 
     const result = await withRetry(() =>
       this.http.post<{
@@ -28,6 +46,11 @@ export class VolcengineImageAdapter implements IImageGeneratorPort {
         usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
       }>('/images/generations', payload),
     );
+
+    console.log('[VolcengineImageAdapter] generateImage 出参', {
+      successCount: result.data.filter(item => item.url || item.b64_json).length,
+      totalCount: result.data.length,
+    });
 
     return {
       imageUrls: result.data.filter(item => item.url).map(item => item.url!),
@@ -45,6 +68,7 @@ export class VolcengineImageAdapter implements IImageGeneratorPort {
    * 流式图片生成（扩展方法，不在 IImageGeneratorPort 中，供新 UI 使用）。
    */
   async *generateImageStream(context: ImageGenerationContext): AsyncIterable<VolcengineImageStreamEvent> {
+    this.ensureOpenAIProtocol();
     const payload = { ...this.buildPayload(context), stream: true };
     yield* this.http.stream<VolcengineImageStreamEvent>('/images/generations', payload);
   }
@@ -52,10 +76,6 @@ export class VolcengineImageAdapter implements IImageGeneratorPort {
   private buildPayload(context: ImageGenerationContext): Record<string, unknown> {
     // 直接透传原始 prompt，不做截断
     const prompt = context.prompt;
-    console.log('[VolcengineImageAdapter] buildPayload 入参', {
-      prompt,
-      promptLength: prompt.length,
-    });
     return {
       model: 'doubao-seedream-4-5-251128',
       prompt,
