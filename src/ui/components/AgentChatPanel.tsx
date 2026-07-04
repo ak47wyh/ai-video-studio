@@ -1,22 +1,26 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Loader2, Sparkles, Wand2 } from 'lucide-react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { Send, Bot, User, Loader2, Sparkles, Wand2, Wrench } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { agentService } from '../../dependencies';
 import { useToast } from '../contexts/ToastContext';
+import { useSpace } from '../contexts/SpaceContext';
 import { getErrorMessage } from '../utils/errorUtils';
-import type { AgentMessage } from '../../domain/services/AgentService';
+import type { AgentMessage, ReActEvent } from '../../domain/services/AgentService';
 import { TextAreaWithCounter } from './TextAreaWithCounter';
 import { TEXT_LIMITS } from '../../domain/constants/textLimits';
 
 interface AgentChatMessage {
   id: string;
-  role: 'user' | 'assistant' | 'tool_result';
+  role: 'user' | 'assistant' | 'tool_result' | 'thinking';
   content: string;
+  /** 工具调用名称（仅 role='tool_result' 时） */
+  toolName?: string;
 }
 
 export const AgentChatPanel: React.FC = () => {
   const { t } = useTranslation();
   const { showToast } = useToast();
+  const { currentSpaceId } = useSpace();
   const [messages, setMessages] = useState<AgentChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -27,8 +31,12 @@ export const AgentChatPanel: React.FC = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const sendMessage = async () => {
+  const sendMessage = useCallback(async () => {
     if (!input.trim() || isLoading) return;
+    if (!currentSpaceId) {
+      showToast('warning', t('agent.noSpace', '请先选择工作空间'));
+      return;
+    }
     const userMsg: AgentChatMessage = {
       id: `user_${Date.now()}`,
       role: 'user',
@@ -39,18 +47,45 @@ export const AgentChatPanel: React.FC = () => {
     setInput('');
     setIsLoading(true);
 
+    // 构建历史消息（仅 user/assistant，过滤掉 thinking/tool_result 展示态）
     const agentMessages: AgentMessage[] = messages
-      .filter(m => m.role !== 'tool_result')
+      .filter(m => m.role === 'user' || m.role === 'assistant')
       .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }));
 
     try {
-      const response = await agentService.chat(
-        [...agentMessages, { role: 'user', content: userInput }]
-      );
+      // P1 升级：使用 chatWithTools 启用 ReAct 工具循环（原 legacy chat 无工具能力）
+      const result = await agentService.chatWithTools({
+        messages: [...agentMessages, { role: 'user', content: userInput }],
+        spaceId: currentSpaceId,
+        onEvent: (event: ReActEvent) => {
+          switch (event.type) {
+            case 'thinking':
+              setMessages(prev => [...prev, {
+                id: `think_${event.iteration}_${event.timestamp}`,
+                role: 'thinking',
+                content: event.content,
+              }]);
+              break;
+            case 'tool_calls':
+              for (const tc of event.toolCalls) {
+                setMessages(prev => [...prev, {
+                  id: `tool_${tc.id}`,
+                  role: 'tool_result',
+                  content: tc.arguments,
+                  toolName: tc.name,
+                }]);
+              }
+              break;
+            case 'final_answer':
+              // 最终答案在 result.content 中统一处理，此处不重复添加
+              break;
+          }
+        },
+      });
       const assistantMsg: AgentChatMessage = {
         id: `asst_${Date.now()}`,
         role: 'assistant',
-        content: response,
+        content: result.content,
       };
       setMessages(prev => [...prev, assistantMsg]);
     } catch (e) {
@@ -63,7 +98,7 @@ export const AgentChatPanel: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [input, isLoading, messages, currentSpaceId, showToast, t]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -113,16 +148,31 @@ export const AgentChatPanel: React.FC = () => {
             }}>
               {msg.role === 'user'
                 ? <User size={14} style={{ color: '#818cf8' }} />
-                : <Bot size={14} style={{ color: '#a78bfa' }} />
+                : msg.role === 'tool_result'
+                  ? <Wrench size={12} style={{ color: 'var(--warning)' }} />
+                  : <Bot size={14} style={{ color: '#a78bfa' }} />
               }
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.25rem', color: 'var(--text-muted)' }}>
-                {msg.role === 'user' ? t('agent.you') : 'Agent'}
+                {msg.role === 'user'
+                  ? t('agent.you')
+                  : msg.role === 'tool_result'
+                    ? `🔧 ${msg.toolName ?? 'tool'}`
+                    : msg.role === 'thinking'
+                      ? '💭 thinking'
+                      : 'Agent'}
               </div>
               <div style={{
-                background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-md)',
+                background: msg.role === 'thinking'
+                  ? 'rgba(168,139,250,0.08)'
+                  : msg.role === 'tool_result'
+                    ? 'rgba(245,158,11,0.08)'
+                    : 'rgba(255,255,255,0.05)',
+                borderRadius: 'var(--radius-md)',
                 padding: '0.75rem', fontSize: '0.875rem', lineHeight: 1.6, whiteSpace: 'pre-wrap',
+                fontStyle: msg.role === 'thinking' ? 'italic' : undefined,
+                opacity: msg.role === 'thinking' ? 0.8 : 1,
               }}>
                 {msg.content || (
                   <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>{t('agent.thinking')}</span>

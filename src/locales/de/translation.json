@@ -310,16 +310,7 @@
     "getTokenLink": "Get your MiniMax API Key →",
     "anthropicBaseUrlLabel": "Anthropic-compatible endpoint URL",
     "anthropicBaseUrlPlaceholder": "https://api.minimaxi.com/anthropic",
-    "anthropicBaseUrlHint": "Used for text generation active caching, supports cache_control to reduce costs",
-    "fileManagement": "File Management",
-    "loadFilesBtn": "Load File List",
-    "fileName": "Filename",
-    "filePurpose": "Purpose",
-    "fileSize": "Size",
-    "fileAction": "Action",
-    "fileDeleted": "File deleted",
-    "fileDeleteFailed": "File delete failed",
-    "noFiles": "Click the button above to load file list"
+    "anthropicBaseUrlHint": "Used for text generation active caching, supports cache_control to reduce costs"
   },
   "models": {
     "title": "Available Models",

@@ -239,9 +239,13 @@ export class AgentService {
         { role: 'system', content: SYSTEM_PROMPT },
         ...fullMessages.map(m => {
           if (m.role === 'tool') {
-            return { role: 'user', content: `[tool=${m.toolName}] ${m.content}` };
+            return { role: 'user', content: `[tool=${m.toolName}] ${m.content}` } as TextGenerationMessage;
           }
-          return { role: m.role as 'user' | 'assistant', content: m.content };
+          const mapped: TextGenerationMessage = {
+            role: m.role as 'user' | 'assistant',
+            content: m.content,
+          };
+          return mapped;
         }),
       ];
 

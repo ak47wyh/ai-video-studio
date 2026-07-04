@@ -18,7 +18,7 @@ import {
 // ===== 平台标识类型 =====
 
 /** 平台标识 —— 通用 */
-export type PlatformId = 'minimax' | 'volcengine' | 'coze' | 'kling' | 'wan' | 'hunyuan' | 'zhipu' | 'vidu';
+export type PlatformId = 'minimax' | 'volcengine' | 'kling' | 'wan' | 'hunyuan' | 'zhipu' | 'vidu';
 
 /** 主题标识 */
 export type ThemeId = 'dark' | 'light' | 'blue' | 'warm';
@@ -47,11 +47,6 @@ export interface ApiConfig {
   volcArkProtocol: VolcArkProtocol;
   /** Anthropic 协议下使用的文本模型 ID（Agent Plan 支持的模型，如 doubao-seed-2.0-pro） */
   volcArkAnthropicModel: string;
-
-  // --- Coze ---
-  cozePatToken: string;
-  cozeBaseUrl: string;
-  cozeSpaceId: string;
 
   // --- 可灵 Kling（快手） ---
   klingAccessKey: string;
@@ -102,13 +97,11 @@ const DEFAULT_CONFIG: ApiConfig = {
   volcArkApiKey: '',
   volcArkBaseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
   volcArkAnthropicBaseUrl: 'https://ark.cn-beijing.volces.com/api/plan',
-  volcArkProtocol: 'openai' as VolcArkProtocol,
+  // 默认 Anthropic 协议（Agent Plan 订阅）：进入设置页默认显示 Anthropic Base URL，
+  // 用户可通过下拉框切换到 OpenAI 协议配置 OpenAI 格式 URL。
+  volcArkProtocol: 'anthropic' as VolcArkProtocol,
   volcArkAnthropicModel: 'doubao-seed-2.0-pro',
 
-  // Coze 默认值
-  cozePatToken: '',
-  cozeBaseUrl: 'https://api.coze.cn',
-  cozeSpaceId: '',
 
   // 可灵 Kling 默认值
   klingAccessKey: '',
@@ -152,7 +145,6 @@ const PROXY_PATH_MIGRATIONS: Record<string, Partial<ApiConfig>> = {
   '/zhipu': { zhipuBaseUrl: DEFAULT_CONFIG.zhipuBaseUrl },
   '/vidu': { viduBaseUrl: DEFAULT_CONFIG.viduBaseUrl },
   '/volcengine-ark': { volcArkBaseUrl: DEFAULT_CONFIG.volcArkBaseUrl },
-  '/coze': { cozeBaseUrl: DEFAULT_CONFIG.cozeBaseUrl },
 };
 
 export const ApiConfigStore = {
@@ -246,7 +238,6 @@ export const ApiConfigStore = {
       volcengine: !!config.volcArkApiKey.trim() &&
         ((config.volcArkProtocol === 'openai' && !!config.volcArkBaseUrl.trim()) ||
          (config.volcArkProtocol === 'anthropic' && !!config.volcArkAnthropicBaseUrl.trim())),
-      coze: !!config.cozePatToken.trim(),
       kling: !!config.klingAccessKey.trim() && !!config.klingSecretKey.trim(),
       wan: !!config.wanApiKey.trim(),
       hunyuan: !!config.hunyuanSecretId.trim() && !!config.hunyuanSecretKey.trim(),
@@ -275,7 +266,6 @@ export const ApiConfigStore = {
         return !!config.volcArkApiKey.trim() &&
           ((config.volcArkProtocol === 'openai' && !!config.volcArkBaseUrl.trim()) ||
            (config.volcArkProtocol === 'anthropic' && !!config.volcArkAnthropicBaseUrl.trim()));
-      case 'coze': return !!config.cozePatToken.trim();
       case 'kling': return !!config.klingAccessKey.trim() && !!config.klingSecretKey.trim();
       case 'wan': return !!config.wanApiKey.trim();
       case 'hunyuan': return !!config.hunyuanSecretId.trim() && !!config.hunyuanSecretKey.trim();

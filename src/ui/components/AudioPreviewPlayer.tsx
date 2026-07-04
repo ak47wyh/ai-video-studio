@@ -346,15 +346,15 @@ export const AudioPreviewPlayer: React.FC<AudioPreviewPlayerProps> = ({
         gap: '0.5rem',
         ...style,
       }}>
-        <AlertCircle size={compact ? 14 : 16} style={{ color: '#ef4444', flexShrink: 0 }} />
-        <span style={{ color: '#ef4444', fontSize: '0.8rem', flex: 1 }}>{audioError}</span>
+        <AlertCircle size={compact ? 14 : 16} style={{ color: 'var(--color-danger)', flexShrink: 0 }} />
+        <span style={{ color: 'var(--color-danger)', fontSize: '0.8rem', flex: 1 }}>{audioError}</span>
         <button
           onClick={handleRetry}
           style={{
             background: 'none',
             border: '1px solid rgba(239,68,68,0.3)',
             borderRadius: 'var(--radius-sm)',
-            color: '#ef4444',
+            color: 'var(--color-danger)',
             cursor: 'pointer',
             padding: '0.2rem 0.5rem',
             fontSize: '0.75rem',

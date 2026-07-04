@@ -164,13 +164,13 @@ export const MediaPanel: React.FC<MediaPanelProps> = ({ spaceId, onAddToTimeline
                 )}
                 {importState === 'error' && (
                   <div style={{
-                    background: 'rgba(239,68,68,0.1)', borderRadius: 'var(--radius-sm)',
+                    background: 'var(--color-danger-bg)', borderRadius: 'var(--radius-sm)',
                     padding: '0.5rem', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem',
                   }}>
-                    <span style={{ fontSize: '0.7rem', color: '#ef9999', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--color-danger)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {t(importError ?? 'editor.media.import.failed', importError ?? '上传失败')}
                     </span>
-                    <button className="btn btn-secondary" style={{ fontSize: '0.65rem', padding: '0.15rem 0.4rem', flexShrink: 0 }} onClick={() => videoImport.reset()}>
+                    <button className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '0.15rem 0.4rem', flexShrink: 0 }} onClick={() => videoImport.reset()}>
                       {t('editor.media.import.retry', '重试')}
                     </button>
                   </div>
@@ -293,7 +293,7 @@ const MediaList: React.FC<{ items: MediaItem[]; emptyText: string }> = ({ items,
           {item.onDelete && (
             <button
               className="btn btn-secondary media-delete-btn"
-              style={{ padding: '0.2rem 0.4rem', flexShrink: 0, color: '#ef9999' }}
+              style={{ padding: '0.2rem 0.4rem', flexShrink: 0, color: 'var(--color-danger)' }}
               onClick={item.onDelete}
               title="删除"
             >
@@ -465,17 +465,17 @@ const LinkImportPanel: React.FC<LinkImportPanelProps> = ({ spaceId, linkImport, 
         <div style={{
           marginTop: '0.4rem',
           padding: '0.4rem 0.5rem',
-          background: 'rgba(239,68,68,0.1)',
+          background: 'var(--color-danger-bg)',
           borderRadius: 'var(--radius-sm)',
-          fontSize: '0.65rem',
-          color: '#ef9999',
+          fontSize: '0.75rem',
+          color: 'var(--color-danger)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: '0.5rem',
         }}>
           <span style={{ flex: 1 }}>{t(error, error)}</span>
-          <button className="btn btn-secondary" style={{ fontSize: '0.6rem', padding: '0.1rem 0.3rem', flexShrink: 0 }} onClick={reset}>
+          <button className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '0.1rem 0.3rem', flexShrink: 0 }} onClick={reset}>
             {t('editor.media.linkImport.clear', '清除')}
           </button>
         </div>
@@ -486,10 +486,10 @@ const LinkImportPanel: React.FC<LinkImportPanelProps> = ({ spaceId, linkImport, 
         <div style={{
           marginTop: '0.4rem',
           padding: '0.4rem 0.5rem',
-          background: 'rgba(16,185,129,0.1)',
+          background: 'var(--color-success-bg)',
           borderRadius: 'var(--radius-sm)',
-          fontSize: '0.65rem',
-          color: '#10b981',
+          fontSize: '0.75rem',
+          color: 'var(--color-success)',
         }}>
           ✓ {t('editor.media.linkImport.success', '已导入，可在列表中查看')}
         </div>

@@ -526,7 +526,7 @@ const ClipView: React.FC<ClipViewProps> = ({
         overflow: 'hidden',
         fontSize: '0.7rem',
         color: '#fff',
-        boxShadow: selected ? '0 0 0 2px rgba(251,191,36,0.3)' : undefined
+        boxShadow: selected ? '0 0 0 2px color-mix(in srgb, var(--color-warning) 30%, transparent)' : undefined
       }}
     >
       <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

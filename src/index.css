@@ -53,6 +53,47 @@
   --motion-normal: 200ms;
   --motion-slow: 320ms;
   --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ===== 语义状态色（补全，UI 交互优化 §3.2） ===== */
+  --color-success: #34d399;
+  --color-success-bg: rgba(52, 211, 153, 0.12);
+  --color-success-border: rgba(52, 211, 153, 0.30);
+
+  --color-warning: #fbbf24;
+  --color-warning-bg: rgba(251, 191, 36, 0.12);
+  --color-warning-border: rgba(251, 191, 36, 0.30);
+
+  --color-danger: #f87171;
+  --color-danger-bg: rgba(248, 113, 113, 0.12);
+  --color-danger-border: rgba(248, 113, 113, 0.30);
+
+  --color-info: #60a5fa;
+  --color-info-bg: rgba(96, 165, 250, 0.12);
+  --color-info-border: rgba(96, 165, 250, 0.30);
+
+  /* ===== Lab 分类语义色（补全，UI 交互优化 §3.2） ===== */
+  --lab-color-image: #ec4899;    /* 图片 */
+  --lab-color-video: #3b82f6;    /* 视频 */
+  --lab-color-voice: #10b981;    /* 语音 */
+  --lab-color-music: #8b5cf6;    /* 音乐 */
+  --lab-color-text: #f59e0b;     /* 文本 */
+  --lab-color-watermark: #06b6d4;/* 去水印 */
+  --lab-color-enhance: #a78bfa;  /* 增强 */
+
+  /* ===== 焦点环（补全，a11y） ===== */
+  --focus-ring: 0 0 0 3px var(--border-color-focus);
+
+  /* ===== z-index 层级（补全，避免散落） ===== */
+  --z-sidebar: 10;
+  --z-dropdown: 20;
+  --z-sticky: 30;
+  --z-overlay: 40;
+  --z-drawer: 50;
+  --z-modal: 60;
+  --z-toast: 70;
+
+  /* ===== 阴影体系细化（补全，UI 交互优化 §8.2） ===== */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -166,6 +207,38 @@
 
   --shadow-glow: 0 0 15px rgba(232, 149, 107, 0.25);
   --shadow-card: 0 2px 8px rgba(180, 140, 100, 0.12);
+
+  /* ===== warm 主题语义色降饱和（护眼，UI 交互优化 §3.2） ===== */
+  --color-success: #6bbf8a;
+  --color-success-bg: rgba(107, 191, 138, 0.12);
+  --color-success-border: rgba(107, 191, 138, 0.30);
+
+  --color-warning: #d9a85a;
+  --color-warning-bg: rgba(217, 168, 90, 0.12);
+  --color-warning-border: rgba(217, 168, 90, 0.30);
+
+  --color-danger: #d97757;
+  --color-danger-bg: rgba(217, 119, 87, 0.12);
+  --color-danger-border: rgba(217, 119, 87, 0.30);
+
+  --color-info: #7ba4d4;
+  --color-info-bg: rgba(123, 164, 212, 0.12);
+  --color-info-border: rgba(123, 164, 212, 0.30);
+
+  /* ===== warm 主题 Lab 分类色降饱和 ===== */
+  --lab-color-image: #d4729a;
+  --lab-color-video: #6b8fb5;
+  --lab-color-voice: #6ba889;
+  --lab-color-music: #9a82b5;
+  --lab-color-text: #c9954a;
+  --lab-color-watermark: #6ba0a8;
+  --lab-color-enhance: #a08bbf;
+
+  /* warm 主题阴影柔化（暖褐低饱和，避免脏感） */
+  --shadow-xs: 0 1px 2px rgba(60, 50, 35, 0.04);
+  --shadow-sm: 0 2px 4px rgba(60, 50, 35, 0.06);
+  --shadow-md: 0 4px 8px rgba(60, 50, 35, 0.08);
+  --shadow-lg: 0 8px 16px rgba(60, 50, 35, 0.10);
 }
 
 :root[data-theme="warm"] .glass-panel {
@@ -223,6 +296,18 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+/* ===== 全局焦点环（a11y，UI 交互优化 §6.1） ===== */
+*:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-md);
+}
+
+/* 移除默认 outline 时必须提供替代，避免鼠标点击也出现焦点环 */
+*:focus:not(:focus-visible) {
+  outline: none;
 }
 
 body {
@@ -487,6 +572,124 @@ p {
 
 .skeleton-circle {
   border-radius: 50%;
+}
+
+/* ===== AsyncState 三态组件（UI 交互优化 §4.3） ===== */
+.async-state-spinner,
+.async-state-progress,
+.async-state-error,
+.async-state-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: var(--space-lg);
+  text-align: center;
+}
+
+.async-state-skeleton {
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.async-state-icon {
+  color: var(--primary-color);
+}
+
+.async-state-text {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+
+.async-state-hint {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.async-state-progress-track {
+  width: 100%;
+  max-width: 360px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: var(--border-color);
+  overflow: hidden;
+}
+
+.async-state-progress-fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+  transition: width var(--motion-normal) var(--ease-standard);
+}
+
+.async-state-error-icon {
+  color: var(--color-danger);
+}
+
+.async-state-error-body {
+  max-width: 400px;
+}
+
+.async-state-error-title {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.async-state-error-detail {
+  margin: 0.3rem 0 0;
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  word-break: break-word;
+  font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+}
+
+.async-state-retry {
+  font-size: var(--font-size-xs);
+  padding: 0.45rem 1rem;
+  margin-top: 0.3rem;
+}
+
+.async-state-empty-icon,
+.empty-state > svg {
+  color: var(--text-muted);
+  opacity: 0.5;
+}
+
+/* ===== EmptyState 空状态组件（UI 交互优化 §4.3.2） ===== */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: var(--space-xl) var(--space-lg);
+  text-align: center;
+}
+
+.empty-state > svg {
+  margin-bottom: var(--space-xs);
+}
+
+.empty-state-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.empty-state-desc {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+
+.empty-state-action {
+  margin-top: var(--space-sm);
 }
 
 /* 路由级骨架屏容器 */
@@ -2442,5 +2645,147 @@ p {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* ========================================
+   Settings 页面增强样式
+   ======================================== */
+
+/* 自定义 select 下拉箭头，与 input 视觉一致 */
+.settings-select-wrapper {
+  position: relative;
+  display: block;
+}
+
+.settings-select-wrapper select.form-input {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: 2.25rem;
+  cursor: pointer;
+}
+
+.settings-select-arrow {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* 内联警示条（替代缺失的 settings-alert） */
+.settings-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.6rem 0.85rem;
+  border-radius: var(--radius-md);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--text-main);
+  animation: fadeIn 0.2s ease-out;
+}
+
+.settings-alert-warning {
+  background: rgba(251, 191, 36, 0.10);
+  border: 1px solid rgba(251, 191, 36, 0.30);
+}
+
+.settings-alert-icon {
+  color: #fbbf24;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+/* Toggle 开关（替代原生 checkbox） */
+.settings-toggle {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.settings-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.settings-toggle-track {
+  position: absolute;
+  inset: 0;
+  background: var(--border-color);
+  border-radius: var(--radius-full);
+  transition: background var(--transition-fast);
+  cursor: pointer;
+}
+
+.settings-toggle-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform var(--transition-fast);
+  box-shadow: var(--shadow-sm);
+}
+
+.settings-toggle input:checked + .settings-toggle-track {
+  background: var(--primary-color);
+}
+
+.settings-toggle input:checked + .settings-toggle-track .settings-toggle-thumb {
+  transform: translateX(18px);
+}
+
+.settings-toggle input:focus-visible + .settings-toggle-track {
+  box-shadow: 0 0 0 3px var(--border-color-focus);
+}
+
+/* 平台分组标题 */
+.settings-platform-group-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin: 0.75rem 0 0.5rem;
+  padding-left: 0.5rem;
+  border-left: 3px solid var(--primary-color);
+}
+
+.settings-platform-group-hint {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  text-transform: none;
+  letter-spacing: 0;
+  opacity: 0.7;
+}
+
+/* 平台卡片窄屏单列安全边距 */
+@media (max-width: 600px) {
+  .settings-platform-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* 自动保存浮标窄屏改为静态条 */
+@media (max-width: 600px) {
+  .settings-autosave-floating {
+    position: static !important;
+    margin: 1rem 0;
+    justify-content: center;
   }
 }

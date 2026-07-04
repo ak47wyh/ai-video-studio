@@ -17,7 +17,6 @@ import { MiniMaxTextAdapter } from './adapters/outbound/api/MiniMaxTextAdapter';
 import { MiniMaxTextSplitterAdapter } from './adapters/outbound/api/MiniMaxTextSplitterAdapter';
 import { MiniMaxStoryBreakdownAdapter } from './adapters/outbound/api/MiniMaxStoryBreakdownAdapter';
 import { MiniMaxModelAdapter } from './adapters/outbound/api/MiniMaxModelAdapter';
-import { MiniMaxFileAdapter } from './adapters/outbound/api/MiniMaxFileAdapter';
 import { FFmpegAdapter } from './adapters/outbound/api/FFmpegAdapter';
 import { WhisperAdapter } from './adapters/outbound/api/WhisperAdapter';
 
@@ -27,6 +26,8 @@ import { MockStoryBreakdownAdapter } from './adapters/outbound/api/MockStoryBrea
 
 // ==================== API 配置 Port 适配器 ====================
 import { apiConfigStoreAdapter } from './adapters/outbound/config/ApiConfigStoreAdapter';
+/** API 配置 Port 单例（暴露给 UI 层读取激活平台） */
+export { apiConfigStoreAdapter };
 import { PlatformModelRegistry } from './adapters/outbound/config/PlatformModelRegistry';
 import { InMemoryCostMeter } from './adapters/outbound/InMemoryCostMeter';
 
@@ -45,7 +46,6 @@ import { MusicLabService } from './domain/services/MusicLabService';
 import { TextGenerationService } from './domain/services/TextGenerationService';
 import { TextLabService } from './domain/services/TextLabService';
 import { ModelManagementService } from './domain/services/ModelManagementService';
-import { FileManagementService } from './domain/services/FileManagementService';
 import { AgentService } from './domain/services/AgentService';
 import { AutoEditService } from './domain/services/AutoEditService';
 import { CinematographyService } from './domain/services/CinematographyService';
@@ -162,7 +162,6 @@ export const voiceAdapter = new MiniMaxVoiceAdapter();
 export const musicAdapter = new MiniMaxMusicAdapter();
 export const textAdapter = new MiniMaxTextAdapter();
 export const modelAdapter = new MiniMaxModelAdapter();
-export const fileAdapter = new MiniMaxFileAdapter();
 export const ffmpegAdapter = new FFmpegAdapter();
 export const whisperAdapter = new WhisperAdapter();
 
@@ -175,6 +174,12 @@ export const smartTextSplitter = new MiniMaxTextSplitterAdapter(textAdapter, moc
 export const smartStoryBreakdown = new MiniMaxStoryBreakdownAdapter(textAdapter, mockStoryBreakdown);
 
 // ========================================
+// M3.4 成本计量（EVOLUTION_DESIGN.md §7.4）
+// 必须先于所有业务服务实例化（imageGenerationService/textGenerationService 等依赖）
+// ========================================
+export const costMeter = new InMemoryCostMeter();
+
+// ========================================
 // 创作域服务（故事→分镜→角色/场景生成）
 // ========================================
 export const storyService = new StoryService(
@@ -183,12 +188,14 @@ export const storyService = new StoryService(
 );
 
 export const imageGenerationService = new ImageGenerationService(
-  characterRepo, backgroundRepo, platformRouter, apiConfigStoreAdapter, getFileStorage, defaultLogger.child({ service: 'ImageGenerationService' })
+  characterRepo, backgroundRepo, platformRouter, apiConfigStoreAdapter, getFileStorage, defaultLogger.child({ service: 'ImageGenerationService' }),
+  costMeter, // P1-21：成本计量
 );
 
 export const textGenerationService = new TextGenerationService(
   platformRouter, apiConfigStoreAdapter,
-  defaultLogger.child({ service: 'TextGenerationService' })
+  defaultLogger.child({ service: 'TextGenerationService' }),
+  costMeter, // P1-21：成本计量
 );
 
 export const textLabService = new TextLabService(
@@ -201,7 +208,8 @@ export const textLabService = new TextLabService(
 // ========================================
 export const videoGenerationService = new VideoGenerationService(
   videoTaskRepo, segmentRepo, characterRepo, backgroundRepo, platformRouter, getFileStorage,
-  apiConfigStoreAdapter, defaultLogger.child({ service: 'VideoGenerationService' })
+  apiConfigStoreAdapter, defaultLogger.child({ service: 'VideoGenerationService' }),
+  costMeter, // P1-21：成本计量
 );
 
 export const videoLabService = new VideoLabService(
@@ -211,10 +219,13 @@ export const videoLabService = new VideoLabService(
 
 export const voiceService = new VoiceService(
   platformRouter, characterRepo, segmentRepo, getFileStorage,
-  apiConfigStoreAdapter, defaultLogger.child({ service: 'VoiceService' })
+  apiConfigStoreAdapter, defaultLogger.child({ service: 'VoiceService' }),
+  costMeter, // P1-21：成本计量
 );
 
-export const musicService = new MusicService(platformRouter, apiConfigStoreAdapter, segmentRepo, getFileStorage, defaultLogger.child({ service: 'MusicService' }));
+export const musicService = new MusicService(platformRouter, apiConfigStoreAdapter, segmentRepo, getFileStorage, defaultLogger.child({ service: 'MusicService' }),
+  costMeter, // P1-21：成本计量
+);
 
 export const musicLabService = new MusicLabService(
   platformRouter, apiConfigStoreAdapter, getFileStorage,
@@ -231,14 +242,13 @@ export const timelineService = new TimelineService({
 });
 
 // ========================================
-// M3.3 模型注册表 + M3.4 成本计量（EVOLUTION_DESIGN.md §7.3 §7.4）
+// M3.3 模型注册表（EVOLUTION_DESIGN.md §7.3）
 // 必须先于所有业务服务实例化（subtitleService/cinematographyService 等依赖）
 // ========================================
 export const modelRegistry = new PlatformModelRegistry(
   apiConfigStoreAdapter,
   defaultLogger.child({ service: 'ModelRegistry' })
 );
-export const costMeter = new InMemoryCostMeter();
 
 export const subtitleService = new SubtitleService(
   whisperAdapter, platformRouter, apiConfigStoreAdapter,
@@ -294,15 +304,14 @@ export const storySpaceService = new StorySpaceService(
 );
 
 // ========================================
-// 模型 / 文件管理
-// 注意：ModelManagementService / FileManagementService 使用 MiniMax 专属 API，
+// 模型管理
+// 注意：ModelManagementService 使用 MiniMax 专属 API，
 // 暂保持硬编码 MiniMax 适配器，不接入 platformRouter。
 // ========================================
 import { ModelCacheAdapter } from './adapters/outbound/repositories/ModelCacheAdapter';
 import type { ModelInfo } from './domain/ports/OutboundPorts';
 const modelCache = new ModelCacheAdapter<ModelInfo>('minimax_cached_models', 60 * 60 * 1000);
 export const modelManagementService = new ModelManagementService(modelAdapter, modelCache);
-export const fileManagementService = new FileManagementService(fileAdapter);
 
 // ========================================
 // AI 增强服务

@@ -13,8 +13,9 @@ import type {
 } from '../ports/OutboundPorts';
 import type { IFileStoragePort } from '../ports/FileStoragePorts';
 import type { IApiConfigStore } from '../ports/PlatformPorts';
-import type { ILoggerPort } from '../ports/CrossCuttingPorts';
+import type { ILoggerPort, ICostMeter } from '../ports/CrossCuttingPorts';
 import type { PlatformRouter } from './PlatformRouter';
+import type { PlatformId } from '../../adapters/outbound/config/ApiConfigStore';
 import { getErrorMessage } from '../../ui/utils/errorUtils';
 
 export interface VideoGenerationOptions {
@@ -31,6 +32,7 @@ export interface VideoGenerationOptions {
  * VideoGenerationService
  * - Phase 2 反转：依赖注入 IApiConfigStore + ILoggerPort，移除对
  *   ApiConfigStore 单例和 defaultLogger 的硬编码引用。
+ * - P1-21：注入 ICostMeter 记录视频调用成本。
  */
 export class VideoGenerationService {
   videoTaskRepo: IVideoTaskRepository;
@@ -41,6 +43,7 @@ export class VideoGenerationService {
   private configStore: IApiConfigStore;
   private logger: ILoggerPort;
   private getFileStorage: () => IFileStoragePort;
+  private costMeter?: ICostMeter;
 
   private activePollers = new Map<string, ReturnType<typeof setInterval>>();
 
@@ -53,6 +56,7 @@ export class VideoGenerationService {
     fileStorage: IFileStoragePort | (() => IFileStoragePort),
     configStore: IApiConfigStore,
     logger: ILoggerPort,
+    costMeter?: ICostMeter,
   ) {
     this.videoTaskRepo = videoTaskRepo;
     this.segmentRepo = segmentRepo;
@@ -62,12 +66,26 @@ export class VideoGenerationService {
     this.getFileStorage = typeof fileStorage === 'function' ? fileStorage : () => fileStorage;
     this.configStore = configStore;
     this.logger = logger;
+    this.costMeter = costMeter;
   }
 
   /** 获取当前配置对应的视频生成适配器 */
   private getVideoPort(): IVideoGeneratorPort {
     const config = this.configStore.load();
     return this.router.resolve('video', config);
+  }
+
+  /**
+   * 记录一次视频调用到成本计量（P1-21）。
+   * 视频调用无 token 概念，仅记录调用次数。
+   */
+  private recordVideoCost(model: string, platform: PlatformId): void {
+    if (!this.costMeter) return;
+    this.costMeter.record({
+      platform,
+      model,
+      callType: 'video',
+    });
   }
 
   /** 公开访问器（供 UI 轮询 hook 使用） */
@@ -78,9 +96,11 @@ export class VideoGenerationService {
   async generateVideo(
     segmentId: string,
     storyId: string,
-    targetPlatform: string = 'MINIMAX',
+    targetPlatform?: PlatformId,
     options?: VideoGenerationOptions
   ): Promise<VideoTask> {
+    // P1 修复：默认从 configStore 读取激活平台（原硬编码 'MINIMAX'）
+    const platform = targetPlatform ?? this.configStore.load().activePlatform;
     const segments = await this.segmentRepo.findByStoryId(storyId);
     const segment = segments.find(s => s.id === segmentId);
     if (!segment) throw new Error('Segment not found');
@@ -93,7 +113,7 @@ export class VideoGenerationService {
     const task: VideoTask = {
       id: uuidv4(),
       segmentId,
-      targetPlatform,
+      targetPlatform: platform,
       status: 'PENDING',
       createdAt: Date.now(),
       mode,
@@ -215,6 +235,8 @@ export class VideoGenerationService {
       await this.videoTaskRepo.updateStatus(task.id, 'PROCESSING');
       const videoPort = this.getVideoPort();
       const externalTaskId = await videoPort.submitVideoTask(context);
+      // P1-21：记录视频调用成本（按任务创建时的目标平台）
+      this.recordVideoCost(task.model || 'video-default', task.targetPlatform);
 
       task.externalTaskId = externalTaskId;
       await this.videoTaskRepo.save(task);

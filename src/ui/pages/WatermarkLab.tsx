@@ -28,8 +28,8 @@ export const WatermarkLab: React.FC = () => {
   return (
     <LabPageLayout
       icon={<Eraser size={22} />}
-      iconBg="rgba(236, 72, 153, 0.15)"
-      iconColor="#ec4899"
+      iconBg="color-mix(in srgb, var(--lab-color-watermark) 10%, transparent)"
+      iconColor="var(--lab-color-watermark)"
       title="去水印实验室"
       subtitle="浏览器端本地处理 · 图片 / PDF / 视频去水印 · 隐私安全零上传"
       tabs={TABS}
@@ -231,7 +231,7 @@ const BatchImageWatermarkPanel: React.FC = () => {
                   </button>
                   <button
                     className="btn btn-secondary"
-                    style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem', color: '#ef4444' }}
+                    style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem', color: 'var(--color-danger)' }}
                     onClick={() => { batch.setUnifiedRegions([]); setHistory([]); setRedoStack([]); }}
                   >
                     <Trash2 size={14} /> 清除选区
@@ -397,11 +397,18 @@ const BatchImageWatermarkPanel: React.FC = () => {
 
       {/* 单独编辑模态 */}
       {editingTask && (
-        <div className="batch-edit-modal" onClick={() => setEditingTaskId(null)}>
+        <div
+          className="batch-edit-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`单独编辑选区 - ${editingTask.file.name}`}
+          onClick={() => setEditingTaskId(null)}
+          onKeyDown={(e) => { if (e.key === 'Escape') setEditingTaskId(null); }}
+        >
           <div className="batch-edit-modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="batch-edit-modal-header">
               <span>单独编辑选区 - {editingTask.file.name}</span>
-              <button className="btn btn-secondary" style={{ fontSize: '0.7rem', padding: '0.2rem 0.4rem' }} onClick={() => setEditingTaskId(null)}>
+              <button className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '0.2rem 0.4rem' }} onClick={() => setEditingTaskId(null)}>
                 <X size={14} />
               </button>
             </div>

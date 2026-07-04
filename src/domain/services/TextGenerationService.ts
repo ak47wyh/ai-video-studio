@@ -1,12 +1,13 @@
 import type { ITextGenerationPort, RefineResult } from '../ports/OutboundPorts';
 import type { IApiConfigStore } from '../ports/PlatformPorts';
-import type { ILoggerPort } from '../ports/CrossCuttingPorts';
+import type { ILoggerPort, ICostMeter } from '../ports/CrossCuttingPorts';
 import type { PlatformRouter } from './PlatformRouter';
 import { recordTextGenUsage } from '../../utils/cacheMonitor';
 
 export class TextGenerationService {
   private router: PlatformRouter;
   private configStore: IApiConfigStore;
+  private costMeter?: ICostMeter;
   // @ts-expect-error Logger injected for future use
   private _logger: ILoggerPort;
 
@@ -14,10 +15,36 @@ export class TextGenerationService {
     router: PlatformRouter,
     configStore: IApiConfigStore,
     logger: ILoggerPort,
+    costMeter?: ICostMeter,
   ) {
     this.router = router;
     this.configStore = configStore;
+    this.costMeter = costMeter;
     this._logger = logger;
+  }
+
+  /**
+   * 记录一次文本调用到成本计量（P1-21）。
+   * 仅在 costMeter 注入时生效；usage 缺失时仅记录调用次数。
+   */
+  private recordTextCost(
+    model: string,
+    usage: { promptTokens?: number; completionTokens?: number } | undefined,
+  ): void {
+    if (!this.costMeter) return;
+    const config = this.configStore.load();
+    this.costMeter.record({
+      platform: config.activePlatform,
+      model,
+      callType: 'text',
+      usage: usage
+        ? {
+            inputTokens: usage.promptTokens ?? 0,
+            outputTokens: usage.completionTokens ?? 0,
+            totalTokens: (usage.promptTokens ?? 0) + (usage.completionTokens ?? 0),
+          }
+        : undefined,
+    });
   }
 
   /** 获取当前配置对应的文本生成适配器 */
@@ -66,6 +93,7 @@ export class TextGenerationService {
     });
 
     recordTextGenUsage(`refine_${type}`, result.usage);
+    this.recordTextCost('MiniMax-M2.5-highspeed', result.usage);
 
     return {
       content: result.content.trim(),
@@ -104,6 +132,7 @@ export class TextGenerationService {
     });
 
     recordTextGenUsage('refine_text', result.usage);
+    this.recordTextCost('MiniMax-M2.5-highspeed', result.usage);
 
     return {
       content: result.content.trim(),
@@ -142,6 +171,7 @@ export class TextGenerationService {
     });
 
     recordTextGenUsage('bgm_style', result.usage);
+    this.recordTextCost('MiniMax-M2.5-highspeed', result.usage);
 
     return {
       content: result.content.trim(),
@@ -195,6 +225,7 @@ export class TextGenerationService {
     });
 
     recordTextGenUsage('video_prompt', result.usage);
+    this.recordTextCost('MiniMax-M2.5', result.usage);
 
     return {
       content: result.content.trim(),

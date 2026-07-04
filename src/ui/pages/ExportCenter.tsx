@@ -154,14 +154,23 @@ export const ExportCenter: React.FC = () => {
                 style={{
                   width: '100%',
                   aspectRatio: '16/9',
-                  background: '#000',
+                  background: 'var(--bg-dark)',
                   borderRadius: 'var(--radius-sm)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: 'pointer'
                 }}
+                role="button"
+                tabIndex={0}
+                aria-label={`${t('export.preview', '预览片段')}：${getStoryTitle(cut.storyId)}`}
                 onClick={() => setPreviewCutId(cut.id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setPreviewCutId(cut.id);
+                  }
+                }}
               >
                 {cut.thumbnailUrl ? (
                   <img
@@ -170,7 +179,7 @@ export const ExportCenter: React.FC = () => {
                     style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'var(--radius-sm)' }}
                   />
                 ) : (
-                  <Film size={32} style={{ color: 'rgba(255,255,255,0.5)' }} />
+                  <Film size={32} style={{ color: 'var(--text-muted)', opacity: 0.5 }} />
                 )}
               </div>
               <h4 style={{ margin: 0, fontSize: '0.85rem' }}>{getStoryTitle(cut.storyId)}</h4>
@@ -178,7 +187,7 @@ export const ExportCenter: React.FC = () => {
                 {formatSize(cut.size)} · {formatDuration(cut.duration)} · {formatDate(cut.createdAt)}
               </div>
               {cut.hasSubtitles && (
-                <div style={{ fontSize: '0.7rem', color: '#34d399' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--color-success)' }}>
                   ✓ {t('export.withSubs')}
                 </div>
               )}
@@ -200,7 +209,7 @@ export const ExportCenter: React.FC = () => {
                 </button>
                 <button
                   className="btn btn-secondary"
-                  style={{ padding: '0.3rem', color: '#f87171' }}
+                  style={{ padding: '0.3rem', color: 'var(--color-danger)' }}
                   onClick={() => handleDelete(cut)}
                   disabled={deletingId === cut.id}
                 >

@@ -438,9 +438,11 @@ export class PipelineService {
       emitProgress('generating_images', 20, imageCount > 0 ? `已生成 ${imageCount} 张图片` : '图片就绪');
 
       // 阶段 3: 生成旁白 (25% → 40%)
+      // P0 修复：旁白音频持久化到 OPFS（原仅计数 narrationCount，刷新即丢，合成无声）
       if (includeNarration) {
         this.startStage(task.id, 'generating_audio', '生成旁白音频', 25);
         let narrationCount = 0;
+        const fileStorage = typeof this.deps.fileStorage === 'function' ? this.deps.fileStorage() : this.deps.fileStorage;
         for (let i = 0; i < segments.length; i++) {
           const seg = segments[i];
           if (!seg.mentionedCharacters || seg.mentionedCharacters.length === 0) continue;
@@ -454,6 +456,23 @@ export class PipelineService {
                 outputFormat: 'url',
               });
               if (result.audioUrl) {
+                // 持久化到 OPFS：audioUrl → Blob → 存储 → 更新 segment.narrationAudioStoragePath
+                try {
+                  const audioBlob = await (await fetch(result.audioUrl)).blob();
+                  const storagePath = `audio/narration_${seg.id}.mp3`;
+                  await fileStorage.storeBlob(storagePath, audioBlob);
+                  seg.narrationAudioStoragePath = storagePath;
+                  await this.deps.segmentRepo.save(seg);
+                } catch (persistErr) {
+                  // 持久化失败不阻断流程，降级使用原始 URL（由 assembleFinalVideo 兜底）
+                  this.logger.warn('narration persist failed, fallback to url', {
+                    service: 'PipelineService',
+                    method: 'runFullPipeline',
+                    stage: 'generating_audio',
+                    segmentId: seg.id,
+                    error: persistErr instanceof Error ? persistErr.message : String(persistErr),
+                  });
+                }
                 narrationCount++;
               }
             } catch (e) {
@@ -585,9 +604,11 @@ export class PipelineService {
       );
 
       // 提交视频任务（并发池，控制平台 QPS）
+      const segPromptOkItems = segPromptResults
+        .filter(r => r.status === 'ok' && r.value)
+        .map(r => r.value as { seg: StorySegment; prompt: string; buildInfo: string });
       const submitResults = await PromisePool.run(
-        segPromptResults.filter((r): r is { seg: StorySegment; prompt: string; buildInfo: string } => r.status === 'ok' && !!r.value)
-                         .map(r => r.value!),
+        segPromptOkItems,
         async (item: { seg: StorySegment; prompt: string; buildInfo: string }, _index: number) => {
           try {
             const externalTaskId = await this.getVideoPort().submitVideoTask({
@@ -602,7 +623,8 @@ export class PipelineService {
             const taskEntity: VideoTask = {
               id: uuidv4(),
               segmentId: item.seg.id,
-              targetPlatform: 'MINIMAX',
+              // P0 修复：从 configStore 动态读取激活平台（原硬编码 'MINIMAX'）
+              targetPlatform: this.deps.configStore.load().activePlatform,
               status: 'PENDING',
               externalTaskId,
               mode: options.videoMode || 't2v',

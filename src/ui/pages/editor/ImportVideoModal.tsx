@@ -160,13 +160,13 @@ export const ImportVideoModal: React.FC<ImportVideoModalProps> = ({ open, onClos
 
             {importState === 'error' && importError && (
               <div style={{
-                background: 'rgba(239,68,68,0.1)', borderRadius: 'var(--radius-sm)',
+                background: 'var(--color-danger-bg)', borderRadius: 'var(--radius-sm)',
                 padding: '0.5rem', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem',
               }}>
-                <span style={{ fontSize: '0.7rem', color: '#ef9999', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: '0.75rem', color: 'var(--color-danger)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {importError}
                 </span>
-                <button className="btn btn-secondary" style={{ fontSize: '0.65rem', padding: '0.15rem 0.4rem', flexShrink: 0 }} onClick={() => videoImport.reset()}>
+                <button className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '0.15rem 0.4rem', flexShrink: 0 }} onClick={() => videoImport.reset()}>
                   {t('editor.media.import.retry', '重试')}
                 </button>
               </div>
@@ -206,7 +206,7 @@ export const ImportVideoModal: React.FC<ImportVideoModalProps> = ({ open, onClos
             />
 
             {detectedPlatform && !isLinkImporting && !(linkState === 'error') && (
-              <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                 <span>检测到：{detectedPlatform}</span>
               </div>
             )}
@@ -257,7 +257,7 @@ export const ImportVideoModal: React.FC<ImportVideoModalProps> = ({ open, onClos
                 gap: '0.5rem',
               }}>
                 <span style={{ flex: 1 }}>{linkError}</span>
-                <button className="btn btn-secondary" style={{ fontSize: '0.6rem', padding: '0.1rem 0.3rem', flexShrink: 0 }} onClick={resetLinkImport}>
+                <button className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '0.1rem 0.3rem', flexShrink: 0 }} onClick={resetLinkImport}>
                   {t('editor.media.linkImport.clear', '清除')}
                 </button>
               </div>
@@ -278,7 +278,7 @@ export const ImportVideoModal: React.FC<ImportVideoModalProps> = ({ open, onClos
           </div>
         )}
 
-        <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '0.5rem', textAlign: 'center' }}>
+        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.5rem', textAlign: 'center' }}>
           {t('editor.media.import.hint', '支持 mp4/webm/mov 格式，单视频不超过 500MB')}
         </div>
       </div>

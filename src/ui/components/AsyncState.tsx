@@ -60,11 +60,11 @@ export const AsyncState: React.FC<AsyncStateProps> = ({
     // 骨架子态：用 shimmer 灰块占位，适合首次加载
     if (loadingVariant === 'skeleton') {
       return (
-        <div className="glass-panel" style={{ padding: '1rem', minHeight }} role="status" aria-live="polite">
+        <div className="glass-panel async-state-skeleton" style={{ minHeight }} role="status" aria-live="polite">
           <span className="skeleton skeleton-text" style={{ width: '40%' }} />
           <span className="skeleton skeleton-text" style={{ width: '85%' }} />
-          <span className="skeleton skeleton-block" style={{ marginTop: '0.5rem' }} />
-          <span className="skeleton skeleton-text" style={{ width: '70%', marginTop: '0.75rem' }} />
+          <span className="skeleton skeleton-block" />
+          <span className="skeleton skeleton-text" style={{ width: '70%' }} />
         </div>
       );
     }
@@ -74,65 +74,27 @@ export const AsyncState: React.FC<AsyncStateProps> = ({
       const pct = Math.max(0, Math.min(100, progress ?? 0));
       return (
         <div
-          className="glass-panel"
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '0.75rem',
-            minHeight,
-            padding: '2rem',
-          }}
+          className="glass-panel async-state-progress"
+          style={{ minHeight }}
           role="progressbar"
           aria-valuenow={pct}
           aria-valuemin={0}
           aria-valuemax={100}
         >
-          <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{loadingText}</span>
-          <div
-            style={{
-              width: '100%',
-              maxWidth: 360,
-              height: 6,
-              borderRadius: 3,
-              background: 'var(--border-color)',
-              overflow: 'hidden',
-            }}
-          >
-            <div
-              style={{
-                width: `${pct}%`,
-                height: '100%',
-                borderRadius: 3,
-                background: 'linear-gradient(90deg, var(--primary-color), var(--accent-color))',
-                transition: `width var(--motion-normal) var(--ease-standard)`,
-              }}
-            />
+          <span className="async-state-text">{loadingText}</span>
+          <div className="async-state-progress-track">
+            <div className="async-state-progress-fill" style={{ width: `${pct}%` }} />
           </div>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{pct}%</span>
+          <span className="async-state-hint">{pct}%</span>
         </div>
       );
     }
 
     // 默认 spinner 子态：适合刷新
     return (
-      <div
-        className="glass-panel"
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '0.75rem',
-          minHeight,
-          padding: '2rem',
-        }}
-        role="status"
-        aria-live="polite"
-      >
-        <RefreshCw size={28} className="spin" style={{ color: 'var(--primary-color)' }} />
-        <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{loadingText}</span>
+      <div className="glass-panel async-state-spinner" style={{ minHeight }} role="status" aria-live="polite">
+        <RefreshCw size={28} className="spin async-state-icon" />
+        <span className="async-state-text">{loadingText}</span>
       </div>
     );
   }
@@ -141,34 +103,14 @@ export const AsyncState: React.FC<AsyncStateProps> = ({
   if (error) {
     const message = typeof error === 'string' ? error : error.message || '发生未知错误';
     return (
-      <div
-        className="glass-panel"
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '0.75rem',
-          minHeight,
-          padding: '2rem',
-          textAlign: 'center',
-        }}
-      >
-        <AlertCircle size={32} style={{ color: 'var(--error-color, #ef4444)' }} />
-        <div style={{ maxWidth: 400 }}>
-          <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-main)' }}>
-            操作失败
-          </p>
-          <p style={{ margin: '0.3rem 0 0', fontSize: '0.8rem', color: 'var(--text-muted)', wordBreak: 'break-word' }}>
-            {message}
-          </p>
+      <div className="glass-panel async-state-error" style={{ minHeight }}>
+        <AlertCircle size={32} className="async-state-error-icon" />
+        <div className="async-state-error-body">
+          <p className="async-state-error-title">操作失败</p>
+          <p className="async-state-error-detail">{message}</p>
         </div>
         {onRetry && (
-          <button
-            className="btn btn-secondary"
-            onClick={onRetry}
-            style={{ fontSize: '0.82rem', padding: '0.45rem 1rem', marginTop: '0.3rem' }}
-          >
+          <button className="btn btn-secondary async-state-retry" onClick={onRetry}>
             <RefreshCw size={14} />
             重试
           </button>
@@ -180,24 +122,68 @@ export const AsyncState: React.FC<AsyncStateProps> = ({
   // 空状态
   if (empty) {
     return (
-      <div
-        className="glass-panel"
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '0.6rem',
-          minHeight,
-          padding: '2rem',
-        }}
-      >
-        <Inbox size={36} style={{ color: 'var(--text-muted)', opacity: 0.5 }} />
-        <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{emptyText}</span>
+      <div className="glass-panel async-state-empty" style={{ minHeight }}>
+        <Inbox size={36} className="async-state-empty-icon" />
+        <span className="async-state-text">{emptyText}</span>
       </div>
     );
   }
 
   // 正常内容
   return <>{children}</>;
+};
+
+
+interface EmptyStateProps {
+  /** 描边图标（lucide-react），默认 Inbox */
+  icon?: React.ReactNode;
+  /** 标题（默认"暂无数据"） */
+  title?: string;
+  /** 描述文案 */
+  description?: string;
+  /** 主 CTA 按钮文案，提供时展示 */
+  actionText?: string;
+  /** CTA 点击回调 */
+  onAction?: () => void;
+  /** 最小高度 */
+  minHeight?: number;
+}
+
+/**
+ * 空状态组件（UI 交互优化 §4.3.2）。
+ *
+ * 统一为「插画图标 + 标题 + 描述 + 主 CTA」四件套，
+ * 替代各页面散落的纯文字空态。
+ *
+ * 用法：
+ * ```tsx
+ * <EmptyState
+ *   icon={<Film size={48} />}
+ *   title="暂无视频任务"
+ *   description="去工作台生成第一个视频"
+ *   actionText="立即生成"
+ *   onAction={() => navigate('/workbench')}
+ * />
+ * ```
+ */
+export const EmptyState: React.FC<EmptyStateProps> = ({
+  icon,
+  title = '暂无数据',
+  description,
+  actionText,
+  onAction,
+  minHeight = 200,
+}) => {
+  return (
+    <div className="glass-panel empty-state" style={{ minHeight }}>
+      {icon ?? <Inbox size={48} />}
+      <p className="empty-state-title">{title}</p>
+      {description && <p className="empty-state-desc">{description}</p>}
+      {actionText && onAction && (
+        <button className="btn btn-primary empty-state-action" onClick={onAction}>
+          {actionText}
+        </button>
+      )}
+    </div>
+  );
 };

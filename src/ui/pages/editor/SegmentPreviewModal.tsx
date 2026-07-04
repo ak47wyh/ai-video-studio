@@ -18,7 +18,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, Play, Loader2, RefreshCw, Check } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
-import type { StorySegment } from '../../domain/entities/models';
+import type { StorySegment } from '../../../domain/entities/models';
 
 export interface SegmentPreviewModalProps {
   isOpen: boolean;
@@ -92,7 +92,7 @@ export const SegmentPreviewModal: React.FC<SegmentPreviewModalProps> = ({
       if (url) {
         objectUrlRef.current = url;
         setPreviewUrl(url);
-        showToast(t('segmentPreview.renderSuccess', '渲染完成'), 'success');
+        showToast('success', t('segmentPreview.renderSuccess', '渲染完成'));
       } else {
         setError(t('segmentPreview.renderFailed', '渲染失败：素材不完整，请确保该分镜已有视频和音频'));
       }
@@ -112,8 +112,9 @@ export const SegmentPreviewModal: React.FC<SegmentPreviewModalProps> = ({
   if (!isOpen || !segment) return null;
 
   // 检查素材完整性
-  const hasVideo = !!segment.videoUrl;
-  const hasVoice = !!segment.narrationAudioStoragePath || !!segment.narrationAudioUrl;
+  // 注：StorySegment 无 videoUrl 字段，视频素材以首帧图 firstFrameImage 作为存在性判断
+  const hasVideo = !!segment.firstFrameImage;
+  const hasVoice = !!segment.narrationAudioStoragePath;
   const hasBgm = !!segment.bgmStoragePath || !!segment.bgmAudioUrl;
 
   return (

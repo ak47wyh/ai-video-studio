@@ -247,7 +247,7 @@ export const CharacterManagement: React.FC = () => {
 
           {/* Voice Selection */}
           <div className="character-form-section">
-            <div className="character-form-section-label" style={{ color: '#818cf8' }}>
+            <div className="character-form-section-label" style={{ color: 'var(--primary-color)' }}>
               <Mic size={14} /> {t('character.voiceLabel')}
             </div>
             <div className="form-group">
@@ -268,7 +268,7 @@ export const CharacterManagement: React.FC = () => {
 
           {/* Voice Clone */}
           <div className="character-form-section" style={{ borderColor: 'rgba(99,102,241,0.2)' }}>
-            <div className="character-form-section-label" style={{ color: '#818cf8' }}>
+            <div className="character-form-section-label" style={{ color: 'var(--primary-color)' }}>
               <Upload size={14} /> {t('character.cloneVoice')}
             </div>
             <div className="form-group">
@@ -306,7 +306,7 @@ export const CharacterManagement: React.FC = () => {
 
           {/* Voice Design */}
           <div className="character-form-section" style={{ borderColor: 'rgba(168,85,247,0.2)' }}>
-            <div className="character-form-section-label" style={{ color: '#a855f7' }}>
+            <div className="character-form-section-label" style={{ color: 'var(--lab-color-image)' }}>
               <Palette size={14} /> {t('character.designVoice')}
             </div>
             <div className="form-group">
@@ -445,7 +445,7 @@ export const CharacterManagement: React.FC = () => {
               )}
               {char.voiceId && (
                 <div className="character-card-voice">
-                  <Volume2 size={10} style={{ color: '#818cf8' }} />
+                  <Volume2 size={10} style={{ color: 'var(--primary-color)' }} />
                   {SYSTEM_VOICES.find(v => v.voiceId === char.voiceId)?.name || char.voiceId}
                 </div>
               )}

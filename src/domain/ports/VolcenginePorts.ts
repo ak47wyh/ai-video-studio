@@ -1,8 +1,6 @@
 import type {
   ThreeDSubmitParams, ThreeDTaskResult, ThreeDTaskStatus, ThreeDTaskListResult,
   CacheCreateParams, CacheResult, CacheChatParams,
-  BotCreateParams, BotResult, PublishResult, BotListFilter, BotListResult, BotDetailResult,
-  DialogChatParams, DialogChatResult, DialogStreamChunk, ConversationResult, MessageListResult,
   ResponseCreateParams, ResponseResult, ResponseStreamChunk, ResponseContextResult,
   TaskListFilter,
 } from '../entities/models';
@@ -47,43 +45,6 @@ export interface IContextCachePort {
 
   /** 使用缓存进行对话（流式） */
   chatWithCacheStream(params: CacheChatParams): AsyncIterable<ChatStreamChunk>;
-}
-
-// ==========================================
-// Bot 应用端口
-// ==========================================
-
-/**
- * Bot 应用管理端口。
- * 封装 Coze 平台的 Bot CRUD 操作。
- */
-export interface IBotPort {
-  createBot(params: BotCreateParams): Promise<BotResult>;
-  publishBot(botId: string): Promise<PublishResult>;
-  listBots(filters?: BotListFilter): Promise<BotListResult>;
-  getBotDetail(botId: string): Promise<BotDetailResult>;
-}
-
-// ==========================================
-// 对话端口（Bot 对话）
-// ==========================================
-
-/**
- * Bot 对话端口。
- * 支持流式和非流式两种模式。
- */
-export interface IDialogPort {
-  /** 创建对话会话 */
-  createConversation(botId: string): Promise<ConversationResult>;
-
-  /** 发送消息并获取回复（非流式） */
-  chat(params: DialogChatParams): Promise<DialogChatResult>;
-
-  /** 发送消息并流式接收回复 */
-  chatStream(params: DialogChatParams): AsyncIterable<DialogStreamChunk>;
-
-  /** 获取会话消息列表 */
-  listMessages(conversationId: string, chatId: string): Promise<MessageListResult>;
 }
 
 // ==========================================

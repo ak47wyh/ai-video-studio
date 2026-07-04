@@ -1,3 +1,5 @@
+import type { PlatformId } from '../../adapters/outbound/config/ApiConfigStore';
+
 export interface StorySpace {
   id: string;
   name: string;
@@ -58,6 +60,8 @@ export interface StorySegment {
   narrationAudioStoragePath?: string;
   /** BGM 音频的 OPFS 存储路径（Phase 2-B 持久化，bgmAudioUrl 过期时降级） */
   bgmStoragePath?: string;
+  /** 分镜视频 URL（P0-2 回写：VideoLab 生成物直接绑定到分镜） */
+  videoUrl?: string;
 }
 
 export type VideoTaskStatus = 'PENDING' | 'PROCESSING' | 'SUCCESS' | 'FAILED';
@@ -69,7 +73,8 @@ export type VideoGenerationMode = 't2v' | 'i2v' | 'fl2v' | 's2v';
 export interface VideoTask {
   id: string;
   segmentId: string;
-  targetPlatform: string;
+  /** 目标平台 ID（任务创建时的激活平台，用于历史溯源与跨平台切换提示） */
+  targetPlatform: PlatformId;
   status: VideoTaskStatus;
   videoUrl?: string;
   errorMessage?: string;
@@ -304,85 +309,6 @@ export interface CacheChatParams {
   cacheId: string;
   messages: CacheMessage[];
   stream?: boolean;
-}
-
-// ==========================================
-// Bot 应用相关
-// ==========================================
-
-export interface BotCreateParams {
-  name: string;
-  description?: string;
-  systemPrompt?: string;
-  pluginIds?: string[];
-}
-
-export interface BotResult {
-  botId: string;
-  name: string;
-}
-
-export interface PublishResult {
-  botId: string;
-  version: string;
-}
-
-export interface BotListFilter {
-  pageIndex?: number;
-  pageSize?: number;
-}
-
-export interface BotListResult {
-  bots: BotDetailResult[];
-  total: number;
-}
-
-export interface BotDetailResult {
-  botId: string;
-  name: string;
-  description?: string;
-  publishedVersion?: string;
-}
-
-// ==========================================
-// 对话相关
-// ==========================================
-
-export interface DialogChatParams {
-  botId: string;
-  userId: string;
-  conversationId?: string;
-  messages: DialogMessage[];
-  autoSaveHistory?: boolean;
-}
-
-export interface DialogMessage {
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-  contentType?: 'text' | 'object_string';
-}
-
-export interface DialogChatResult {
-  chatId: string;
-  conversationId: string;
-  status: 'created' | 'in_progress' | 'completed' | 'failed';
-  answer?: string;
-  usage?: { tokenCount: number };
-}
-
-export interface DialogStreamChunk {
-  event: 'CONVERSATION_MESSAGE_DELTA' | 'CONVERSATION_CHAT_COMPLETED' | string;
-  data: string;
-  chatId?: string;
-  conversationId?: string;
-}
-
-export interface ConversationResult {
-  conversationId: string;
-}
-
-export interface MessageListResult {
-  messages: DialogMessage[];
 }
 
 // ==========================================

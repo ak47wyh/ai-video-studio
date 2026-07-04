@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Download, Trash2, RefreshCw, Film, ArrowRight, Image, Layers, User } from 'lucide-react';
+import { Download, Trash2, RefreshCw, Film, ArrowRight, Image, Layers, User, Send } from 'lucide-react';
 import type { VideoGenerationMode } from '../../domain/ports/OutboundPorts';
 
 export interface VideoLabTask {
@@ -26,6 +26,7 @@ interface VideoTaskCardProps {
   onRetry?: (task: VideoLabTask) => void;
   onUseInStory?: (task: VideoLabTask) => void;
   onUseAsInput?: (url: string, target: UseAsInputTarget) => void;
+  onSendToSegment?: (task: VideoLabTask) => void;
 }
 
 const MODE_LABELS: Record<string, string> = {
@@ -45,7 +46,7 @@ const STATUS_CONFIG: Record<string, { color: string; label: string }> = {
   FAIL: { color: '#ef4444', label: '失败' },
 };
 
-export const VideoTaskCard: React.FC<VideoTaskCardProps> = React.memo(({ task, onDelete, onRetry, onUseInStory, onUseAsInput }) => {
+export const VideoTaskCard: React.FC<VideoTaskCardProps> = React.memo(({ task, onDelete, onRetry, onUseInStory, onUseAsInput, onSendToSegment }) => {
   const statusKey = task.status.toUpperCase();
   const statusCfg = STATUS_CONFIG[statusKey] || { color: 'var(--text-muted)', label: task.status };
   const [elapsed, setElapsed] = useState(0);
@@ -135,6 +136,15 @@ export const VideoTaskCard: React.FC<VideoTaskCardProps> = React.memo(({ task, o
           >
             <Download size={14} /> 下载
           </a>
+        )}
+        {isDone && onSendToSegment && task.videoUrl && (
+          <button
+            className="btn btn-secondary"
+            style={{ fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+            onClick={() => onSendToSegment(task)}
+          >
+            <Send size={14} /> 发送到分镜
+          </button>
         )}
         {isDone && onUseInStory && (
           <button className="btn btn-secondary" style={{ fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }} onClick={() => onUseInStory(task)}>

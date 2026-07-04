@@ -15,7 +15,11 @@ import { AssetSaveDialog } from '../components/AssetPicker';
 import { ThinkingBlock } from '../components/ThinkingBlock';
 import { TokenUsageBar } from '../components/TokenUsageBar';
 import { LabPageLayout } from '../components/LabPageLayout';
+import { AsyncState } from '../components/AsyncState';
+import { UnsupportedCapabilityNotice } from '../components/UnsupportedCapabilityNotice';
+import { usePlatformCapabilities } from '../hooks/usePlatformCapabilities';
 import { TextAreaWithCounter } from '../components/TextAreaWithCounter';
+import { SegmentPicker, type SegmentBindField } from '../components/SegmentPicker';
 import { TEXT_LIMITS } from '../../domain/constants/textLimits';
 
 type TextLabTab = 'chat' | 'refine' | 'models';
@@ -34,12 +38,12 @@ const MODEL_OPTIONS: { value: TextModel; label: string; desc: string; multimodal
 
 // ==================== 场景模板 ====================
 const SCENE_TEMPLATES: { key: TextRefineScene; label: string; icon: React.ReactNode; color: string }[] = [
-  { key: 'script', label: '剧本润色', icon: <Film size={16} />, color: '#8b5cf6' },
-  { key: 'storyboard', label: '分镜描述', icon: <ImageIcon size={16} />, color: '#3b82f6' },
-  { key: 'character', label: '角色刻画', icon: <Users size={16} />, color: '#ec4899' },
-  { key: 'scene', label: '场景描写', icon: <ImageIcon size={16} />, color: '#10b981' },
-  { key: 'bgm_style', label: 'BGM 风格', icon: <Music size={16} />, color: '#f59e0b' },
-  { key: 'prompt_optimize', label: '提示词优化', icon: <Wand2 size={16} />, color: '#6366f1' },
+  { key: 'script', label: '剧本润色', icon: <Film size={16} />, color: 'var(--lab-color-music)' },
+  { key: 'storyboard', label: '分镜描述', icon: <ImageIcon size={16} />, color: 'var(--lab-color-video)' },
+  { key: 'character', label: '角色刻画', icon: <Users size={16} />, color: 'var(--lab-color-image)' },
+  { key: 'scene', label: '场景描写', icon: <ImageIcon size={16} />, color: 'var(--lab-color-voice)' },
+  { key: 'bgm_style', label: 'BGM 风格', icon: <Music size={16} />, color: 'var(--lab-color-text)' },
+  { key: 'prompt_optimize', label: '提示词优化', icon: <Wand2 size={16} />, color: 'var(--primary-color)' },
 ];
 
 // ==================== 聊天消息类型 ====================
@@ -55,6 +59,7 @@ export const TextLab: React.FC = () => {
   const { t } = useTranslation();
   const { showToast } = useToast();
   const { currentSpaceId } = useSpace();
+  const { hasCapability } = usePlatformCapabilities();
 
   const [activeTab, setActiveTab] = useState<TextLabTab>('chat');
 
@@ -90,6 +95,9 @@ export const TextLab: React.FC = () => {
   // ==================== Models Tab State ====================
   const [modelList, setModelList] = useState<ModelInfo[]>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
+
+  // ==================== SegmentPicker (发送到分镜) ====================
+  const [pickerAsset, setPickerAsset] = useState<{ url: string; field: SegmentBindField; prompt?: string } | null>(null);
 
   // ==================== Auto-scroll ====================
   useEffect(() => {
@@ -276,9 +284,9 @@ export const TextLab: React.FC = () => {
 
   // ==================== Tab 配置 ====================
   const tabs: { key: TextLabTab; label: string; icon: React.ReactNode; color: string }[] = [
-    { key: 'chat', label: t('textLab.tabChat', '智能对话'), icon: <MessageSquare size={16} />, color: '#34d399' },
-    { key: 'refine', label: t('textLab.tabRefine', '场景润色'), icon: <Sparkles size={16} />, color: '#8b5cf6' },
-    { key: 'models', label: t('textLab.tabModels', '模型管理'), icon: <Settings size={16} />, color: '#06b6d4' },
+    { key: 'chat', label: t('textLab.tabChat', '智能对话'), icon: <MessageSquare size={16} />, color: 'var(--lab-color-text)' },
+    { key: 'refine', label: t('textLab.tabRefine', '场景润色'), icon: <Sparkles size={16} />, color: 'var(--lab-color-image)' },
+    { key: 'models', label: t('textLab.tabModels', '模型管理'), icon: <Settings size={16} />, color: 'var(--lab-color-voice)' },
   ];
 
   // 当前展示的润色结果（流式或最终）
@@ -286,11 +294,16 @@ export const TextLab: React.FC = () => {
   const displayRefineThinking = refineStreamingThinking || refineResult?.thinking || '';
   const displayRefineUsage = refineResult?.usage;
 
+  // P1 平台能力前置检测：文本生成仅部分平台支持，不支持时渲染提示
+  if (!hasCapability('text')) {
+    return <UnsupportedCapabilityNotice capability="text" />;
+  }
+
   return (
     <LabPageLayout
       icon={<MessageSquare size={32} />}
-      iconBg="rgba(52,211,153,0.1)"
-      iconColor="#34d399"
+      iconBg="color-mix(in srgb, var(--lab-color-text) 10%, transparent)"
+      iconColor="var(--lab-color-text)"
       title={t('textLab.title', '文本实验室 (Text Lab)')}
       subtitle={t('textLab.desc', 'AI 文本润色、剧本创作、提示词优化，支持多模型与思维链')}
       tabs={tabs}
@@ -320,11 +333,11 @@ export const TextLab: React.FC = () => {
             <div className="chat-advanced">
               <div className="chat-advanced-item">
                 <label className="form-label" style={{ fontSize: '0.75rem' }}>{t('textLab.temperature', '温度')} ({temperature})</label>
-                <input type="range" min="0" max="2" step="0.1" value={temperature} onChange={e => setTemperature(parseFloat(e.target.value))} style={{ width: '100%', accentColor: '#34d399' }} />
+                <input type="range" min="0" max="2" step="0.1" value={temperature} onChange={e => setTemperature(parseFloat(e.target.value))} style={{ width: '100%', accentColor: 'var(--lab-color-text)' }} />
               </div>
               <div className="chat-advanced-item">
                 <label className="form-label" style={{ fontSize: '0.75rem' }}>{t('textLab.topP', 'Top P')} ({topP})</label>
-                <input type="range" min="0" max="1" step="0.05" value={topP} onChange={e => setTopP(parseFloat(e.target.value))} style={{ width: '100%', accentColor: '#34d399' }} />
+                <input type="range" min="0" max="1" step="0.05" value={topP} onChange={e => setTopP(parseFloat(e.target.value))} style={{ width: '100%', accentColor: 'var(--lab-color-text)' }} />
               </div>
               <div style={{ flex: 1, minWidth: '100px' }}>
                 <label className="form-label" style={{ fontSize: '0.75rem' }}>{t('textLab.maxTokens', 'Max Tokens')}</label>
@@ -335,8 +348,8 @@ export const TextLab: React.FC = () => {
                   <option value={16384}>16384</option>
                 </select>
               </div>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', cursor: 'pointer', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                <input type="checkbox" checked={enableThinking} onChange={e => setEnableThinking(e.target.checked)} style={{ width: '12px', height: '12px', accentColor: '#8b5cf6' }} />
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                <input type="checkbox" checked={enableThinking} onChange={e => setEnableThinking(e.target.checked)} style={{ width: '12px', height: '12px', accentColor: 'var(--lab-color-music)' }} />
                 {t('textLab.enableThinking', 'Thinking')}
               </label>
             </div>
@@ -345,38 +358,42 @@ export const TextLab: React.FC = () => {
           {/* Chat area */}
           <div className="glass-panel chat-panel">
             <div className="chat-messages">
-              {messages.map((msg, idx) => (
-                <div key={idx} className={`chat-message ${msg.role === 'user' ? 'chat-message-user' : ''}`}>
-                  <div className={`chat-avatar ${msg.role === 'user' ? 'chat-avatar-user' : 'chat-avatar-assistant'}`}>
-                    {msg.role === 'user' ? <User size={16} /> : <Bot size={16} />}
+              {messages.length === 0 ? (
+                <AsyncState empty emptyText="开始对话吧" />
+              ) : (
+                messages.map((msg, idx) => (
+                  <div key={idx} className={`chat-message ${msg.role === 'user' ? 'chat-message-user' : ''}`}>
+                    <div className={`chat-avatar ${msg.role === 'user' ? 'chat-avatar-user' : 'chat-avatar-assistant'}`}>
+                      {msg.role === 'user' ? <User size={16} /> : <Bot size={16} />}
+                    </div>
+                    <div className={`chat-bubble ${msg.role === 'user' ? 'chat-bubble-user' : 'chat-bubble-assistant'}`}>
+                      {msg.isStreaming && !msg.content ? (
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                          <Sparkles size={12} className="spin" /> {t('textLab.thinking', '思考中...')}
+                        </span>
+                      ) : (
+                        <>
+                          {msg.content}
+                          {msg.isStreaming && <span className="blink-cursor" style={{ borderRight: '2px solid var(--primary-color)', marginLeft: '2px' }}>&nbsp;</span>}
+                        </>
+                      )}
+                      {msg.role === 'assistant' && msg.thinking && !msg.isStreaming && (
+                        <ThinkingBlock thinking={msg.thinking} />
+                      )}
+                      {msg.role === 'assistant' && msg.usage && !msg.isStreaming && (
+                        <TokenUsageBar usage={msg.usage} style={{ marginTop: '0.4rem' }} />
+                      )}
+                      {msg.role === 'assistant' && idx > 0 && !msg.isStreaming && (
+                        <div className="chat-action-btn">
+                          <button onClick={() => handleCollectPrompt(msg.content)} title={t('assetLibrary.collectBtn', '收藏')}>
+                            <BookmarkPlus size={12} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className={`chat-bubble ${msg.role === 'user' ? 'chat-bubble-user' : 'chat-bubble-assistant'}`}>
-                    {msg.isStreaming && !msg.content ? (
-                      <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                        <Sparkles size={12} className="spin" /> {t('textLab.thinking', '思考中...')}
-                      </span>
-                    ) : (
-                      <>
-                        {msg.content}
-                        {msg.isStreaming && <span className="blink-cursor" style={{ borderRight: '2px solid var(--primary-color)', marginLeft: '2px' }}>&nbsp;</span>}
-                      </>
-                    )}
-                    {msg.role === 'assistant' && msg.thinking && !msg.isStreaming && (
-                      <ThinkingBlock thinking={msg.thinking} />
-                    )}
-                    {msg.role === 'assistant' && msg.usage && !msg.isStreaming && (
-                      <TokenUsageBar usage={msg.usage} style={{ marginTop: '0.4rem' }} />
-                    )}
-                    {msg.role === 'assistant' && idx > 0 && !msg.isStreaming && (
-                      <div className="chat-action-btn">
-                        <button onClick={() => handleCollectPrompt(msg.content)} title={t('assetLibrary.collectBtn', '收藏')}>
-                          <BookmarkPlus size={12} />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
               <div ref={chatEndRef} />
             </div>
 
@@ -395,7 +412,7 @@ export const TextLab: React.FC = () => {
                 />
                 <button
                   className="btn btn-primary btn-sm"
-                  style={{ background: isGenerating ? '#ef4444' : '#34d399', border: 'none', color: '#000', padding: '0 1rem' }}
+                  style={{ background: isGenerating ? 'var(--color-danger)' : 'var(--color-success)', border: 'none', color: 'var(--text-inverse)', padding: '0 1rem' }}
                   disabled={!input.trim() && !isGenerating}
                   onClick={isGenerating ? handleStopGenerating : handleSend}
                 >
@@ -454,7 +471,7 @@ export const TextLab: React.FC = () => {
 
             <button
               className="btn btn-primary btn-sm"
-              style={{ background: '#8b5cf6', width: '100%' }}
+              style={{ background: 'var(--lab-color-image)', width: '100%' }}
               disabled={!refineInput.trim() || isRefining}
               onClick={handleRefine}
             >
@@ -465,15 +482,15 @@ export const TextLab: React.FC = () => {
 
           {/* Right: Result panel */}
           {(displayRefineContent || isRefining) ? (
-            <div className="glass-panel textlab-refine-result-panel" style={{ padding: '0.75rem', background: 'rgba(139,92,246,0.06)', borderColor: 'rgba(139,92,246,0.2)' }}>
+            <div className="glass-panel textlab-refine-result-panel" style={{ padding: '0.75rem', background: 'color-mix(in srgb, var(--lab-color-music) 6%, transparent)', borderColor: 'color-mix(in srgb, var(--lab-color-music) 20%, transparent)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.5rem' }}>
-                <CheckCircle2 size={14} style={{ color: '#a78bfa' }} />
-                <span style={{ color: '#a78bfa', fontWeight: 600, fontSize: '0.85rem' }}>{t('textLab.refineResult', '润色结果')}</span>
-                {isRefining && <RefreshCw size={12} className="spin" style={{ color: '#a78bfa' }} />}
+                <CheckCircle2 size={14} style={{ color: 'var(--lab-color-enhance)' }} />
+                <span style={{ color: 'var(--lab-color-enhance)', fontWeight: 600, fontSize: '0.85rem' }}>{t('textLab.refineResult', '润色结果')}</span>
+                {isRefining && <RefreshCw size={12} className="spin" style={{ color: 'var(--lab-color-enhance)' }} />}
               </div>
               <div style={{ fontSize: '0.85rem', lineHeight: 1.7, whiteSpace: 'pre-wrap', wordBreak: 'break-word', flex: 1, overflowY: 'auto' }}>
                 {displayRefineContent}
-                {isRefining && <span style={{ borderRight: '2px solid #8b5cf6', marginLeft: '2px' }}>&nbsp;</span>}
+                {isRefining && <span style={{ borderRight: '2px solid var(--lab-color-music)', marginLeft: '2px' }}>&nbsp;</span>}
               </div>
               {displayRefineThinking && !isRefining && <ThinkingBlock thinking={displayRefineThinking} />}
               {displayRefineUsage && !isRefining && <TokenUsageBar usage={displayRefineUsage} style={{ marginTop: '0.4rem' }} />}
@@ -487,10 +504,16 @@ export const TextLab: React.FC = () => {
                     <BookmarkPlus size={12} /> {t('assetLibrary.collectBtn', '收藏')}
                   </button>
                   {refineScene === 'bgm_style' && (
-                    <button className="btn btn-xs" style={{ background: '#8b5cf6', color: '#fff' }} onClick={() => { showToast('success', t('textLab.applied', '已复制到剪贴板')); navigator.clipboard.writeText(displayRefineContent); }}>
+                    <button className="btn btn-xs" style={{ background: 'var(--lab-color-music)', color: 'var(--text-inverse)' }} onClick={() => { showToast('success', t('textLab.applied', '已复制到剪贴板')); navigator.clipboard.writeText(displayRefineContent); }}>
                       <ArrowRight size={12} /> {t('textLab.useForMusic', '用于音乐')}
                     </button>
                   )}
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => setPickerAsset({ url: displayRefineContent, field: 'prompt' })}
+                  >
+                    <Send size={12} /> {t('segmentPicker.sendToSegment', '发送到分镜')}
+                  </button>
                 </div>
               )}
             </div>
@@ -542,7 +565,7 @@ export const TextLab: React.FC = () => {
                     <td><strong>{m.id}</strong></td>
                     <td style={{ textAlign: 'center' }}>{m.text ? '✅' : '—'}</td>
                     <td style={{ textAlign: 'center' }}>{m.image ? '✅' : '—'}</td>
-                    <td style={{ textAlign: 'center', color: m.thinking === 'adaptive' ? '#8b5cf6' : 'var(--text-muted)' }}>
+                    <td style={{ textAlign: 'center', color: m.thinking === 'adaptive' ? 'var(--lab-color-image)' : 'var(--text-muted)' }}>
                       {m.thinking === 'adaptive' ? '可控' : '始终'}
                     </td>
                     <td style={{ textAlign: 'center' }}>{m.tools ? '✅' : '—'}</td>
@@ -575,6 +598,13 @@ export const TextLab: React.FC = () => {
           onCancel={() => setShowSaveDialog(false)}
         />
       )}
+      <SegmentPicker
+        isOpen={!!pickerAsset}
+        assetUrl={pickerAsset?.url ?? ''}
+        bindField={pickerAsset?.field ?? 'image'}
+        assetPrompt={pickerAsset?.prompt}
+        onClose={() => setPickerAsset(null)}
+      />
     </LabPageLayout>
   );
 };

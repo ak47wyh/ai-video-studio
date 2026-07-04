@@ -64,7 +64,7 @@ export const LanguageSwitcher: React.FC = () => {
                   width: '100%', padding: '0.5rem 0.75rem',
                   background: active ? 'rgba(129,140,248,0.15)' : 'transparent',
                   border: 'none', borderRadius: 'var(--radius-sm)',
-                  color: active ? '#818cf8' : 'inherit',
+                  color: active ? 'var(--primary-color)' : 'inherit',
                   cursor: 'pointer', fontSize: '0.85rem',
                   textAlign: 'left',
                 }}

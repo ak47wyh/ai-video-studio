@@ -90,7 +90,6 @@ export class ApiConfigStoreAdapter implements IApiConfigStore {
     switch (platform) {
       case 'minimax': return config.minimaxApiKey;
       case 'volcengine': return config.volcArkApiKey;
-      case 'coze': return config.cozePatToken;
       case 'kling': return `${config.klingAccessKey}|||${config.klingSecretKey}`;
       case 'wan': return config.wanApiKey;
       case 'hunyuan': return `${config.hunyuanSecretId}|||${config.hunyuanSecretKey}`;

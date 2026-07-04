@@ -35,6 +35,8 @@ export interface PlatformMeta {
   description: string;
   /** 申请 Token 的外链 */
   externalLink: string;
+  /** API 文档链接 */
+  docLink: string;
   /** 该平台支持的能力集合 */
   capabilities: Capability[];
   /** 默认视频模型列表（用于 VideoLab 模型选择器） */
@@ -55,6 +57,7 @@ export const PLATFORM_METADATA: Record<PlatformId, PlatformMeta> = {
     accentColor: '#6366f1',
     description: '视频/图片/文本/语音/音乐 · 全模态',
     externalLink: 'https://platform.minimaxi.com/user-center/basic-information/interface-key',
+    docLink: 'https://platform.minimaxi.com/document/Platform%20Introduction',
     capabilities: ['video', 'videoFl2v', 'videoS2v', 'image', 'text', 'voice', 'music'],
     videoModels: ['MiniMax-Hailuo-2.3', 'MiniMax-Hailuo-02', 'T2V-01-Director', 'I2V-01'],
     imageModel: 'image-01',
@@ -68,22 +71,12 @@ export const PLATFORM_METADATA: Record<PlatformId, PlatformMeta> = {
     accentColor: '#f97316',
     description: 'Seedance · 视频/图片/文本/语音/3D',
     externalLink: 'https://console.volcengine.com/ark',
+    docLink: 'https://www.volcengine.com/docs/82379',
     // OpenAI 协议下的全能力（与 PlatformRouter 实际行为一致）
     capabilities: ['video', 'videoFl2v', 'videoS2v', 'image', 'text', 'voice'],
     videoModels: ['volcengine-seedance-1-0-pro', 'volcengine-seedance-1-0-lite'],
     imageModel: 'volcengine-seedream-3-0',
     textModel: 'volcengine-doubao-pro',
-  },
-  coze: {
-    id: 'coze',
-    name: 'Coze',
-    brand: 'Coze',
-    icon: '🤖',
-    accentColor: '#8b5cf6',
-    description: 'Bot 应用 · 对话管理（非模态生成平台）',
-    externalLink: 'https://www.coze.cn',
-    capabilities: [],
-    videoModels: [],
   },
   kling: {
     id: 'kling',
@@ -93,6 +86,7 @@ export const PLATFORM_METADATA: Record<PlatformId, PlatformMeta> = {
     accentColor: '#10b981',
     description: '快手 · 视频/图片 · JWT 鉴权',
     externalLink: 'https://klingai.kuaishou.com/',
+    docLink: 'https://docs.qingque.cn/d/home/eZQBmTMbY0cTSoxYLxgT5RTgn',
     capabilities: ['video', 'videoS2v', 'image'],
     videoModels: ['kling-v2.1', 'kling-v2-master', 'kling-v1.6'],
     imageModel: 'kling-v1',
@@ -105,6 +99,7 @@ export const PLATFORM_METADATA: Record<PlatformId, PlatformMeta> = {
     accentColor: '#06b6d4',
     description: '阿里 DashScope · 视频/图片/文本/语音',
     externalLink: 'https://help.aliyun.com/zh/model-studio/',
+    docLink: 'https://help.aliyun.com/zh/model-studio/developer-reference/use-qwen-by-calling-api',
     capabilities: ['video', 'videoFl2v', 'videoS2v', 'image', 'text', 'voice'],
     videoModels: ['wanx2.1-t2v-turbo', 'wanx2.1-t2v-plus', 'wanx2.1-i2v-turbo', 'wanx2.1-i2v-plus'],
     imageModel: 'wanx2.1-t2i-turbo',
@@ -118,6 +113,7 @@ export const PLATFORM_METADATA: Record<PlatformId, PlatformMeta> = {
     accentColor: '#3b82f6',
     description: '腾讯云 · 视频/文本/语音 · TC3 签名',
     externalLink: 'https://cloud.tencent.com/document/product/1729',
+    docLink: 'https://cloud.tencent.com/document/product/1729/97731',
     capabilities: ['video', 'text', 'voice'],
     videoModels: ['hunyuan-video', 'hunyuan-video-i2v'],
     textModel: 'hunyuan-turbos-latest',
@@ -130,6 +126,7 @@ export const PLATFORM_METADATA: Record<PlatformId, PlatformMeta> = {
     accentColor: '#ec4899',
     description: 'CogVideoX/GLM · 视频/图片/文本/语音',
     externalLink: 'https://docs.bigmodel.cn/',
+    docLink: 'https://docs.bigmodel.cn/cn/guide/start/quick-start',
     capabilities: ['video', 'videoS2v', 'image', 'text', 'voice'],
     videoModels: ['cogvideox-2', 'cogvideox-flash'],
     imageModel: 'cogview-3-plus',
@@ -143,6 +140,7 @@ export const PLATFORM_METADATA: Record<PlatformId, PlatformMeta> = {
     accentColor: '#f59e0b',
     description: '生数科技 · 仅视频 · 参考生/首尾帧',
     externalLink: 'https://docs.vidu.cn',
+    docLink: 'https://docs.vidu.cn/page/start',
     capabilities: ['video', 'videoFl2v', 'videoS2v', 'image'],
     videoModels: ['viduq1', 'vidu-1', 'vidu-2'],
     imageModel: 'viduq1',

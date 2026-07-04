@@ -481,15 +481,16 @@ export interface IMusicPort {
 
 // --- Text Generation ---
 
-export type TextModel =
-  | 'MiniMax-M3'
-  | 'MiniMax-M2.7'
-  | 'MiniMax-M2.7-highspeed'
-  | 'MiniMax-M2.5'
-  | 'MiniMax-M2.5-highspeed'
-  | 'MiniMax-M2.1'
-  | 'MiniMax-M2.1-highspeed'
-  | 'MiniMax-M2';
+/**
+ * 文本模型 ID。
+ *
+ * 设计决策：多平台化后，各平台（MiniMax/VolcArk/Wan/Zhipu/Hunyuan 等）模型 ID 各异，
+ * 封闭联合类型会迫使每加一个平台模型就改 Port 类型，造成 6+ Service 集中报错。
+ * 因此放宽为 `string`，由 PlatformModelRegistry 在运行时按平台解析具体模型 ID。
+ *
+ * MiniMax 平台默认值仍由 PlatformModelRegistry 提供（M3/M2.7/M2.5 系列）。
+ */
+export type TextModel = string;
 
 export interface TextGenerationCacheControl {
   type: 'ephemeral';
@@ -585,24 +586,4 @@ export interface ModelListResult {
 export interface IModelManagementPort {
   listModels(limit?: number, afterId?: string): Promise<ModelListResult>;
   retrieveModel(modelId: string): Promise<ModelInfo>;
-}
-
-// --- File Management ---
-
-export interface FileItem {
-  fileId: string;
-  filename: string;
-  bytes: number;
-  purpose: string;
-  createdAt: number;
-}
-
-export interface FileListResult {
-  files: FileItem[];
-  hasMore: boolean;
-}
-
-export interface IFileManagementPort {
-  listFiles(purpose?: string, limit?: number): Promise<FileListResult>;
-  deleteFile(fileId: string): Promise<void>;
 }

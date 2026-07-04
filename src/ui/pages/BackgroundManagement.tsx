@@ -165,7 +165,7 @@ export const BackgroundManagement: React.FC = () => {
             <button
               type="button"
               className="btn btn-secondary btn-xs"
-              style={{ marginTop: '0.3rem', color: '#f472b6' }}
+              style={{ marginTop: '0.3rem', color: 'var(--lab-color-image)' }}
               disabled={!environmentPrompt.trim() || refiningEnv}
               onClick={async () => {
                 setRefiningEnv(true);
@@ -288,7 +288,7 @@ export const BackgroundManagement: React.FC = () => {
             <div style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', display: 'flex', gap: '0.3rem' }}>
               <button
                 className="btn btn-secondary"
-                style={{ padding: '0.3rem', border: 'none', color: '#f472b6' }}
+                style={{ padding: '0.3rem', border: 'none', color: 'var(--lab-color-image)' }}
                 onClick={() => handleGenerateBackgroundImage(bg.id)}
                 disabled={generatingBgId === bg.id}
                 title={t('background.generateImage')}

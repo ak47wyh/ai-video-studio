@@ -1,7 +1,7 @@
 import type { IMusicPort, IStorySegmentRepository, MusicGenerationContext, MusicModel, LyricsGenerationContext, LyricsGenerationResult, CoverPreprocessResult } from '../ports/OutboundPorts';
 import type { IFileStoragePort } from '../ports/FileStoragePorts';
 import type { IApiConfigStore } from '../ports/PlatformPorts';
-import type { ILoggerPort } from '../ports/CrossCuttingPorts';
+import type { ILoggerPort, ICostMeter } from '../ports/CrossCuttingPorts';
 import type { PlatformRouter } from './PlatformRouter';
 
 export class MusicService {
@@ -10,6 +10,7 @@ export class MusicService {
   private logger: ILoggerPort;
   segmentRepo: IStorySegmentRepository;
   private getFileStorage: () => IFileStoragePort;
+  private costMeter?: ICostMeter;
 
   constructor(
     router: PlatformRouter,
@@ -17,17 +18,33 @@ export class MusicService {
     segmentRepo: IStorySegmentRepository,
     fileStorage: IFileStoragePort | (() => IFileStoragePort),
     logger: ILoggerPort,
+    costMeter?: ICostMeter,
   ) {
     this.router = router;
     this.configStore = configStore;
     this.segmentRepo = segmentRepo;
     this.getFileStorage = typeof fileStorage === 'function' ? fileStorage : () => fileStorage;
     this.logger = logger;
+    this.costMeter = costMeter;
   }
 
   /** 获取当前配置对应的音乐生成适配器 */
   private getMusicPort(): IMusicPort {
     return this.router.resolveMusic(this.configStore.load());
+  }
+
+  /**
+   * 记录一次音乐调用到成本计量（P1-21）。
+   * 音乐调用无 token 概念，仅记录调用次数。
+   */
+  private recordMusicCost(model: string): void {
+    if (!this.costMeter) return;
+    const config = this.configStore.load();
+    this.costMeter.record({
+      platform: config.activePlatform,
+      model,
+      callType: 'music',
+    });
   }
 
   /**
@@ -60,6 +77,7 @@ export class MusicService {
     };
 
     const result = await this.getMusicPort().generateMusic(context);
+    this.recordMusicCost(model);
 
     if (!result.audioUrl) {
       throw new Error('Music generation completed but no audio URL returned');
@@ -111,6 +129,7 @@ export class MusicService {
     };
 
     const result = await this.getMusicPort().generateMusic(context);
+    this.recordMusicCost(model);
 
     if (!result.audioUrl) {
       throw new Error('Cover music generation completed but no audio URL returned');

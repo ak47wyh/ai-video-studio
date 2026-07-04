@@ -49,10 +49,10 @@ interface SegmentCardProps {
 
 const getStatusColor = (status: VideoTask['status']) => {
   switch (status) {
-    case 'SUCCESS': return '#34d399';
-    case 'FAILED': return '#f87171';
-    case 'PROCESSING': return '#fbbf24';
-    case 'PENDING': return '#9ca3af';
+    case 'SUCCESS': return 'var(--color-success)';
+    case 'FAILED': return 'var(--color-danger)';
+    case 'PROCESSING': return 'var(--color-warning)';
+    case 'PENDING': return 'var(--text-muted)';
   }
 };
 
@@ -246,7 +246,7 @@ export const SegmentCard: React.FC<SegmentCardProps> = React.memo(({
                   {segment.bgmIsInstrumental ? '\uD83C\uDFB5' : '\uD83C\uDFA4'} {segment.bgmPrompt}
                 </span>
               )}
-              <button className="btn btn-secondary btn-xs" style={{ marginTop: '0.3rem', color: '#f87171' }}
+              <button className="btn btn-secondary btn-xs" style={{ marginTop: '0.3rem', color: 'var(--color-danger)' }}
                 onClick={() => onRemoveBGM(segment.id)}>
                 <Trash2 size={12} /> {t('music.removeBGMBtn')}
               </button>

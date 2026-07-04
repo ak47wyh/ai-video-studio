@@ -1,7 +1,7 @@
 import React, { useMemo, useEffect, useRef, useCallback, useReducer } from 'react';
-import { storyService, videoGenerationService, imageAdapter, voiceService, musicService, textGenerationService, pipelineService, assetLibraryService } from '../../dependencies';
+import { storyService, videoGenerationService, imageAdapter, voiceService, musicService, textGenerationService, pipelineService, assetLibraryService, apiConfigStoreAdapter, bgmRecommendationService } from '../../dependencies';
 import { Spline, Sparkles, AlertTriangle, ImagePlus, PlayCircle, Film, Scissors } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { VideoTask, Character, SavedImage, SavedPrompt } from '../../domain/entities/models';
 import type { ImageGenerationContext } from '../../domain/ports/OutboundPorts';
@@ -16,11 +16,13 @@ import { SegmentCard } from '../components/SegmentCard';
 import { PipelinePanel } from '../components/PipelinePanel';
 import { workbenchReducer, initialWorkbenchState, breakdownReducer, initialBreakdownState, bgmReducer, initialBGMState } from '../hooks/useWorkbenchState';
 import { AssetPicker } from '../components/AssetPicker';
+import { AsyncState } from '../components/AsyncState';
 import { useAssetPicker } from '../hooks/useAssetPicker';
 
 export const StoryWorkbench: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { currentSpaceId } = useSpace();
   const { showToast } = useToast();
   const { confirm } = useConfirm();
@@ -96,6 +98,24 @@ export const StoryWorkbench: React.FC = () => {
     wsDispatch({ type: 'CLEAR_NARRATION' });
     bgmDispatch({ type: 'RESET' });
   }, []);
+
+  // P0 修复：读取 Dashboard 跳转携带的 ?story=xxx 参数并自动切换
+  useEffect(() => {
+    const storyIdFromUrl = searchParams.get('story');
+    if (!storyIdFromUrl) return;
+    // 已选中则仅清除 URL 参数，避免重复触发
+    if (ws.selectedStoryId === storyIdFromUrl) {
+      navigate('/workbench', { replace: true });
+      return;
+    }
+    // stories 列表未加载完成时等待
+    if (stories.length === 0) return;
+    if (stories.some(s => s.id === storyIdFromUrl)) {
+      switchStory(storyIdFromUrl);
+    }
+    // 切换后清除 URL 参数，避免刷新再次触发
+    navigate('/workbench', { replace: true });
+  }, [searchParams, stories, ws.selectedStoryId, switchStory, navigate]);
 
   // ---- Story CRUD ----
 
@@ -213,7 +233,9 @@ export const StoryWorkbench: React.FC = () => {
     const seg = segments.find(s => s.id === segmentId);
     if (!seg) return;
     try {
-      await videoGenerationService.generateVideo(segmentId, ws.selectedStoryId, 'MINIMAX', {
+      // P0 修复：从 apiConfigStore 动态读取当前激活平台（原硬编码 'MINIMAX'）
+      const activePlatform = apiConfigStoreAdapter.load().activePlatform;
+      await videoGenerationService.generateVideo(segmentId, ws.selectedStoryId, activePlatform, {
         mode: ws.videoMode, model: ws.videoModel, resolution: ws.videoResolution,
         duration: ws.videoDuration, promptOptimizer: ws.videoPromptOptimizer,
         firstFrameImage: seg.firstFrameImage,
@@ -240,9 +262,10 @@ export const StoryWorkbench: React.FC = () => {
         if (!ok) { wsDispatch({ type: 'SET_BATCH_GENERATING', value: false }); return; }
       }
       let successCount = 0, failCount = 0;
+      const batchPlatform = apiConfigStoreAdapter.load().activePlatform;
       for (const seg of eligible) {
         try {
-          await videoGenerationService.generateVideo(seg.id, ws.selectedStoryId!, 'MINIMAX', {
+          await videoGenerationService.generateVideo(seg.id, ws.selectedStoryId!, batchPlatform, {
             mode: ws.videoMode, model: ws.videoModel, resolution: ws.videoResolution,
             duration: ws.videoDuration, promptOptimizer: ws.videoPromptOptimizer,
             firstFrameImage: seg.firstFrameImage,
@@ -256,6 +279,79 @@ export const StoryWorkbench: React.FC = () => {
     } catch (e: unknown) { showToast('error', getErrorMessage(e)); }
     finally { wsDispatch({ type: 'SET_BATCH_GENERATING', value: false }); }
   };
+
+  /**
+   * P0-1：批量生成旁白 —— 遍历所有缺旁白且角色已绑定音色的段落，并发度 2。
+   * 失败段落标记错误状态，不影响其他段落。
+   */
+  const handleBatchNarrate = useCallback(async () => {
+    if (!ws.selectedStoryId) return;
+    wsDispatch({ type: 'SET_BATCH_NARRATING', value: true });
+    let successCount = 0;
+    let skipCount = 0;
+    let failCount = 0;
+    try {
+      // 并发度 2 的简单池
+      const queue = segments.filter(seg => !ws.narrationUrls[seg.id]);
+      const concurrency = 2;
+      let cursor = 0;
+      const worker = async () => {
+        while (cursor < queue.length) {
+          const seg = queue[cursor++];
+          const charWithVoice = seg.mentionedCharacters
+            .map(id => characters.find(c => c.id === id))
+            .find(c => c?.voiceId);
+          if (!charWithVoice?.voiceId) { skipCount++; continue; }
+          wsDispatch({ type: 'SET_NARRATION_STATUS', segmentId: seg.id, status: 'running' });
+          try {
+            const url = await voiceService.generateAndPersistNarration(seg.id, seg.content, charWithVoice.voiceId);
+            wsDispatch({ type: 'SET_NARRATION_URL', segmentId: seg.id, url });
+            wsDispatch({ type: 'SET_NARRATION_STATUS', segmentId: seg.id, status: 'success' });
+            successCount++;
+          } catch {
+            wsDispatch({ type: 'SET_NARRATION_STATUS', segmentId: seg.id, status: 'error' });
+            failCount++;
+          }
+        }
+      };
+      await Promise.all(Array.from({ length: Math.min(concurrency, queue.length) }, worker));
+      const msg = `旁白完成：成功 ${successCount}，跳过 ${skipCount}（无音色）${failCount > 0 ? `，失败 ${failCount}` : ''}`;
+      showToast(successCount > 0 ? 'success' : 'warning', msg);
+    } catch (e: unknown) { showToast('error', getErrorMessage(e)); }
+    finally { wsDispatch({ type: 'SET_BATCH_NARRATING', value: false }); }
+  }, [ws.selectedStoryId, segments, ws.narrationUrls, characters, showToast, wsDispatch]);
+
+  /**
+   * P0-1：批量生成 BGM —— 基于段落内容推荐风格后一键生成，并发度 2。
+   * 使用 bgmRecommendationService 自动推荐，用户无需逐段填写 prompt。
+   */
+  const handleBatchBGM = useCallback(async () => {
+    if (!ws.selectedStoryId) return;
+    wsDispatch({ type: 'SET_BATCH_BGM_GENERATING', value: true });
+    let successCount = 0;
+    let failCount = 0;
+    try {
+      const queue = segments.filter(seg => !seg.bgmAudioUrl);
+      const concurrency = 2;
+      let cursor = 0;
+      const worker = async () => {
+        while (cursor < queue.length) {
+          const seg = queue[cursor++];
+          try {
+            const recommendation = await bgmRecommendationService.recommend(seg.content);
+            await musicService.generateBGM(seg.id, recommendation.prompt, { isInstrumental: true });
+            successCount++;
+          } catch {
+            failCount++;
+          }
+        }
+      };
+      await Promise.all(Array.from({ length: Math.min(concurrency, queue.length) }, worker));
+      const msg = `BGM 完成：成功 ${successCount}${failCount > 0 ? `，失败 ${failCount}` : ''}`;
+      showToast(successCount > 0 ? 'success' : 'warning', msg);
+    } catch (e: unknown) { showToast('error', getErrorMessage(e)); }
+    finally { wsDispatch({ type: 'SET_BATCH_BGM_GENERATING', value: false }); }
+  }, [ws.selectedStoryId, segments, showToast, wsDispatch]);
 
   const handleBatchSetBackground = async () => {
     if (!ws.selectedStoryId || !ws.batchBgId) return;
@@ -309,39 +405,11 @@ export const StoryWorkbench: React.FC = () => {
     if (!charWithVoice?.voiceId) { showToast('warning', t('character.noVoice')); return; }
     wsDispatch({ type: 'SET_NARRATION_STATUS', segmentId, status: 'running' });
     try {
-      const result = await voiceService.generateNarrationAudio(content, charWithVoice.voiceId);
-      if (result.audioUrl) {
-        wsDispatch({ type: 'SET_NARRATION_STATUS', segmentId, status: 'done' });
-        wsDispatch({ type: 'SET_NARRATION_URL', segmentId, url: result.audioUrl });
-        showToast('success', t('character.narrationGenerated'));
-      } else if (result.taskId) {
-        let retries = 0;
-        const maxRetries = 60;
-        const pollInterval = setInterval(async () => {
-          try {
-            retries++;
-            const pollResult = await voiceService.queryNarrationStatus(result.taskId!);
-            if (pollResult.status === 'success') {
-              clearInterval(pollInterval); narrationPollersRef.current.delete(segmentId);
-              wsDispatch({ type: 'SET_NARRATION_STATUS', segmentId, status: 'done' });
-              if (pollResult.audioUrl) wsDispatch({ type: 'SET_NARRATION_URL', segmentId, url: pollResult.audioUrl });
-              showToast('success', t('character.narrationGenerated'));
-            } else if (pollResult.status === 'failed') {
-              clearInterval(pollInterval); narrationPollersRef.current.delete(segmentId);
-              wsDispatch({ type: 'SET_NARRATION_STATUS', segmentId, status: 'failed' });
-              showToast('error', pollResult.errorMessage || t('character.narrationFailed'));
-            } else if (retries >= maxRetries) {
-              clearInterval(pollInterval); narrationPollersRef.current.delete(segmentId);
-              wsDispatch({ type: 'SET_NARRATION_STATUS', segmentId, status: 'failed' });
-              showToast('error', t('character.narrationFailed'));
-            }
-          } catch {
-            clearInterval(pollInterval); narrationPollersRef.current.delete(segmentId);
-            wsDispatch({ type: 'SET_NARRATION_STATUS', segmentId, status: 'failed' });
-          }
-        }, 3000);
-        narrationPollersRef.current.set(segmentId, pollInterval);
-      }
+      // P0 修复：改用 generateAndPersistNarration 持久化到 OPFS（原 generateNarrationAudio 仅存内存，刷新即丢）
+      const audioUrl = await voiceService.generateAndPersistNarration(segmentId, content, charWithVoice.voiceId);
+      wsDispatch({ type: 'SET_NARRATION_STATUS', segmentId, status: 'done' });
+      wsDispatch({ type: 'SET_NARRATION_URL', segmentId, url: audioUrl });
+      showToast('success', t('character.narrationGenerated'));
     } catch (e: unknown) {
       wsDispatch({ type: 'SET_NARRATION_STATUS', segmentId, status: 'failed' });
       showToast('error', getErrorMessage(e, t('character.narrationFailed')));
@@ -444,7 +512,12 @@ export const StoryWorkbench: React.FC = () => {
 
   const handleSuggestBGMStyle = useCallback(async (segmentContent: string) => {
     bgmDispatch({ type: 'SET_SUGGESTING_STYLE', value: true });
-    try { const result = await textGenerationService.suggestBGMStyle(segmentContent); bgmDispatch({ type: 'SET_PROMPT', value: result.content }); showToast('success', t('textAI.bgmStyleSuggested')); }
+    try {
+      // P1 修复：改用专用 BGMRecommendationService（原走通用 textGenerationService.suggestBGMStyle）
+      const recommendation = await bgmRecommendationService.recommend(segmentContent);
+      bgmDispatch({ type: 'SET_PROMPT', value: recommendation.prompt });
+      showToast('success', t('textAI.bgmStyleSuggested'));
+    }
     catch (e) { showToast('error', getErrorMessage(e, t('textAI.promptRefineFailed'))); }
     finally { bgmDispatch({ type: 'SET_SUGGESTING_STYLE', value: false }); }
   }, [showToast, t]);
@@ -569,11 +642,11 @@ export const StoryWorkbench: React.FC = () => {
         )}
 
         {selectedStory && segments.length > 0 && (!hasCharacters || !hasBackgrounds) && (
-          <div style={{ padding: '0.5rem 0.75rem', marginBottom: '0.5rem', borderRadius: 'var(--radius-md)', background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.25)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <AlertTriangle size={16} color="#fbbf24" />
+          <div style={{ padding: '0.5rem 0.75rem', marginBottom: '0.5rem', borderRadius: 'var(--radius-md)', background: 'var(--color-warning-bg)', border: '1px solid var(--color-warning-border)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <AlertTriangle size={16} color="var(--color-warning)" />
             <div style={{ flex: 1 }}>
-              {!hasCharacters && <span style={{ fontSize: '0.8rem', color: '#fbbf24', marginRight: '0.75rem' }}>{t('workbench.noCharactersWarning')}</span>}
-              {!hasBackgrounds && <span style={{ fontSize: '0.8rem', color: '#fbbf24' }}>{t('workbench.noBackgroundsWarning')}</span>}
+              {!hasCharacters && <span style={{ fontSize: '0.8rem', color: 'var(--color-warning)', marginRight: '0.75rem' }}>{t('workbench.noCharactersWarning')}</span>}
+              {!hasBackgrounds && <span style={{ fontSize: '0.8rem', color: 'var(--color-warning)' }}>{t('workbench.noBackgroundsWarning')}</span>}
             </div>
             <button className="btn btn-secondary btn-xs"
               onClick={() => navigate(hasCharacters ? '/backgrounds' : '/characters')}>
@@ -596,14 +669,14 @@ export const StoryWorkbench: React.FC = () => {
                   aria-valuemax={progressStats.total}
                   aria-label={t('workbench.completed', '已完成')}
                 >
-                  {progressStats.success > 0 && <div style={{ width: `${(progressStats.success / progressStats.total) * 100}%`, background: '#34d399', transition: 'width 0.3s' }} />}
-                  {progressStats.processing + progressStats.pending > 0 && <div style={{ width: `${((progressStats.processing + progressStats.pending) / progressStats.total) * 100}%`, background: '#fbbf24', transition: 'width 0.3s' }} />}
-                  {progressStats.failed > 0 && <div style={{ width: `${(progressStats.failed / progressStats.total) * 100}%`, background: '#f87171', transition: 'width 0.3s' }} />}
+                  {progressStats.success > 0 && <div style={{ width: `${(progressStats.success / progressStats.total) * 100}%`, background: 'var(--color-success)', transition: 'width 0.3s' }} />}
+                  {progressStats.processing + progressStats.pending > 0 && <div style={{ width: `${((progressStats.processing + progressStats.pending) / progressStats.total) * 100}%`, background: 'var(--color-warning)', transition: 'width 0.3s' }} />}
+                  {progressStats.failed > 0 && <div style={{ width: `${(progressStats.failed / progressStats.total) * 100}%`, background: 'var(--color-danger)', transition: 'width 0.3s' }} />}
                 </div>
                 <div className="workbench-progress-stats">
-                  {progressStats.success > 0 && <span style={{ color: '#34d399' }}>{progressStats.success}✓</span>}
-                  {progressStats.processing + progressStats.pending > 0 && <span style={{ color: '#fbbf24' }}>{progressStats.processing + progressStats.pending}⏳</span>}
-                  {progressStats.failed > 0 && <span style={{ color: '#f87171' }}>{progressStats.failed}✗</span>}
+                  {progressStats.success > 0 && <span style={{ color: 'var(--color-success)' }}>{progressStats.success}✓</span>}
+                  {progressStats.processing + progressStats.pending > 0 && <span style={{ color: 'var(--color-warning)' }}>{progressStats.processing + progressStats.pending}⏳</span>}
+                  {progressStats.failed > 0 && <span style={{ color: 'var(--color-danger)' }}>{progressStats.failed}✗</span>}
                   {progressStats.ready > 0 && <span>{progressStats.ready}○</span>}
                 </div>
               </div>
@@ -623,6 +696,24 @@ export const StoryWorkbench: React.FC = () => {
                 disabled={ws.isBatchGenerating || !hasBackgrounds}>
                 <PlayCircle size={12} />
                 {ws.isBatchGenerating ? t('workbench.batchGenerating') : t('workbench.batchGenerateBtn')}
+              </button>
+              {/* P0-1：批量生成旁白 */}
+              <button
+                className="btn btn-secondary btn-xs"
+                onClick={handleBatchNarrate}
+                disabled={ws.isBatchNarrating || segments.length === 0}
+                title="为所有缺旁白且角色已绑定音色的段落自动生成旁白"
+              >
+                {ws.isBatchNarrating ? '生成中...' : '批量旁白'}
+              </button>
+              {/* P0-1：批量生成 BGM */}
+              <button
+                className="btn btn-secondary btn-xs"
+                onClick={handleBatchBGM}
+                disabled={ws.isBatchBgmGenerating || segments.length === 0}
+                title="基于段落内容自动推荐 BGM 风格并生成"
+              >
+                {ws.isBatchBgmGenerating ? '生成中...' : '批量 BGM'}
               </button>
               <button className="btn btn-primary btn-xs" onClick={handleAssembleFinalVideo}
                 disabled={ws.isAssembling || progressStats?.success !== progressStats?.total}>
@@ -676,7 +767,7 @@ export const StoryWorkbench: React.FC = () => {
         {!ws.selectedStoryId ? (
           <p style={{ color: 'var(--text-muted)', textAlign: 'center', marginTop: '2rem' }}>{t('workbench.selectStory')}</p>
         ) : segments.length === 0 ? (
-          <p style={{ color: 'var(--text-muted)', textAlign: 'center', marginTop: '2rem' }}>{t('workbench.noSegments')}</p>
+          <AsyncState empty emptyText={t('workbench.noSegments')} />
         ) : (
           <div className="workbench-segments">
             {segments.map((seg, idx) => (

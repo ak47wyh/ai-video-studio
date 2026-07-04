@@ -8,13 +8,15 @@
  * 交互：
  *   1. Lab 生成素材后点"发送到分镜"按钮
  *   2. 弹出 SegmentPicker 显示当前故事的所有分镜列表
- *   3. 选中后一键绑定到 seg 的对应字段（图片/音频/BGM）
+ *   3. 选中后一键绑定到 seg 的对应字段（图片/音频/BGM/视频/文本）
  *   4. 显示 toast "已绑定到分镜 N"
  *
  * 绑定字段映射：
- *   - image → seg.firstFrameImage
- *   - voice → seg.narrationAudioStoragePath / seg.narrationAudioUrl
- *   - bgm   → seg.bgmStoragePath / seg.bgmAudioUrl / seg.bgmPrompt
+ *   - image  → seg.firstFrameImage
+ *   - voice  → seg.narrationAudioStoragePath / seg.narrationAudioUrl
+ *   - bgm    → seg.bgmStoragePath / seg.bgmAudioUrl / seg.bgmPrompt
+ *   - video  → seg.videoUrl（P0-2 扩展：VideoLab 回写）
+ *   - prompt → seg.actionContent（P0-2 扩展：TextLab 改写回写）
  */
 
 import React, { useEffect, useState, useCallback } from 'react';
@@ -25,7 +27,7 @@ import { useSpace } from '../contexts/SpaceContext';
 import { useToast } from '../contexts/ToastContext';
 import type { StorySegment, Story } from '../../domain/entities/models';
 
-export type SegmentBindField = 'image' | 'voice' | 'bgm';
+export type SegmentBindField = 'image' | 'voice' | 'bgm' | 'video' | 'prompt';
 
 export interface SegmentPickerProps {
   isOpen: boolean;
@@ -100,22 +102,30 @@ export const SegmentPicker: React.FC<SegmentPickerProps> = ({
           updated.firstFrameImage = assetUrl;
           break;
         case 'voice':
+          // StorySegment 已迁移到 OPFS 持久化（Phase 2-A），仅写 narrationAudioStoragePath
           updated.narrationAudioStoragePath = assetUrl;
-          updated.narrationAudioUrl = assetUrl;
           break;
         case 'bgm':
           updated.bgmStoragePath = assetUrl;
           updated.bgmAudioUrl = assetUrl;
           if (assetPrompt) updated.bgmPrompt = assetPrompt;
           break;
+        case 'video':
+          // P0-2 扩展：VideoLab 回写，直接写入分镜视频 URL
+          updated.videoUrl = assetUrl;
+          break;
+        case 'prompt':
+          // P0-2 扩展：TextLab 改写回写，写入动作描述
+          updated.actionContent = assetUrl;
+          break;
       }
       await segmentRepo.save(updated);
-      showToast(t('segmentPicker.boundSuccess', `已绑定到分镜 ${seg.sequenceOrder + 1}`), 'success');
+      showToast('success', t('segmentPicker.boundSuccess', `已绑定到分镜 ${seg.sequenceOrder + 1}`));
       onBound?.(seg.id, seg.sequenceOrder);
       onClose();
     } catch (e) {
       console.error('bind segment failed', e);
-      showToast(t('segmentPicker.boundFailed', '绑定失败'), 'error');
+      showToast('error', t('segmentPicker.boundFailed', '绑定失败'));
     } finally {
       setBinding(null);
     }
@@ -127,6 +137,8 @@ export const SegmentPicker: React.FC<SegmentPickerProps> = ({
     image: t('segmentPicker.imageField', '首帧图片'),
     voice: t('segmentPicker.voiceField', '旁白音频'),
     bgm: t('segmentPicker.bgmField', '背景音乐'),
+    video: t('segmentPicker.videoField', '视频成片'),
+    prompt: t('segmentPicker.promptField', '动作描述'),
   }[bindField];
 
   return (
@@ -171,7 +183,9 @@ export const SegmentPicker: React.FC<SegmentPickerProps> = ({
               const isBound = (
                 (bindField === 'image' && seg.firstFrameImage === assetUrl) ||
                 (bindField === 'voice' && seg.narrationAudioStoragePath === assetUrl) ||
-                (bindField === 'bgm' && seg.bgmStoragePath === assetUrl)
+                (bindField === 'bgm' && seg.bgmStoragePath === assetUrl) ||
+                (bindField === 'video' && seg.videoUrl === assetUrl) ||
+                (bindField === 'prompt' && seg.actionContent === assetUrl)
               );
               return (
                 <div

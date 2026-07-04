@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Music as MusicIcon, Sparkles, RefreshCw, FileText, Mic2,
-  ChevronUp, ChevronDown, ArrowRight, BookmarkPlus, Wand2, CheckCircle2,
+  ChevronUp, ChevronDown, ArrowRight, BookmarkPlus, Wand2, CheckCircle2, Send,
 } from 'lucide-react';
 import { musicLabService, assetLibraryService } from '../../dependencies';
 import type {
@@ -15,11 +15,15 @@ import { getErrorMessage } from '../utils/errorUtils';
 import { useSpace } from '../contexts/SpaceContext';
 import { AssetSaveDialog } from '../components/AssetPicker';
 import { LabPageLayout } from '../components/LabPageLayout';
+import { AsyncState } from '../components/AsyncState';
+import { UnsupportedCapabilityNotice } from '../components/UnsupportedCapabilityNotice';
+import { usePlatformCapabilities } from '../hooks/usePlatformCapabilities';
 import { AudioPreviewPlayer } from '../components/AudioPreviewPlayer';
 import { AudioUploadField } from '../components/AudioUploadField';
 import { LyricsDisplay } from '../components/LyricsDisplay';
 import { TextAreaWithCounter } from '../components/TextAreaWithCounter';
 import { InputWithCounter } from '../components/InputWithCounter';
+import { SegmentPicker, type SegmentBindField } from '../components/SegmentPicker';
 import { TEXT_LIMITS } from '../../domain/constants/textLimits';
 import { validateTextLimit } from '../utils/validateTextLimit';
 
@@ -45,6 +49,7 @@ export const MusicLab: React.FC = () => {
   const { t } = useTranslation();
   const { showToast } = useToast();
   const { currentSpaceId } = useSpace();
+  const { hasCapability } = usePlatformCapabilities();
 
   const [activeTab, setActiveTab] = useState<MusicLabTab>('compose');
 
@@ -81,6 +86,9 @@ export const MusicLab: React.FC = () => {
   const [coverModel, setCoverModel] = useState<'music-cover' | 'music-cover-free'>('music-cover');
   const [isGeneratingCover, setIsGeneratingCover] = useState(false);
   const [coverResult, setCoverResult] = useState<ResolvedMusicResult | null>(null);
+
+  // ==================== SegmentPicker (发送到分镜) ====================
+  const [pickerAsset, setPickerAsset] = useState<{ url: string; field: SegmentBindField; prompt?: string } | null>(null);
 
   // ==================== Blob URL 内存管理 ====================
   const blobUrlsRef = useRef<Set<string>>(new Set());
@@ -293,16 +301,21 @@ export const MusicLab: React.FC = () => {
 
   // ==================== Tab 配置 ====================
   const tabs: { key: MusicLabTab; label: string; icon: React.ReactNode; color: string }[] = [
-    { key: 'compose', label: t('musicLab.tabCompose', 'AI 作曲'), icon: <MusicIcon size={16} />, color: '#8b5cf6' },
-    { key: 'lyrics', label: t('musicLab.tabLyrics', '歌词创作'), icon: <FileText size={16} />, color: '#3b82f6' },
-    { key: 'cover', label: t('musicLab.tabCover', '翻唱生成'), icon: <Mic2 size={16} />, color: '#ec4899' },
+    { key: 'compose', label: t('musicLab.tabCompose', 'AI 作曲'), icon: <MusicIcon size={16} />, color: 'var(--lab-color-music)' },
+    { key: 'lyrics', label: t('musicLab.tabLyrics', '歌词创作'), icon: <FileText size={16} />, color: 'var(--lab-color-video)' },
+    { key: 'cover', label: t('musicLab.tabCover', '翻唱生成'), icon: <Mic2 size={16} />, color: 'var(--lab-color-image)' },
   ];
+
+  // P1 平台能力前置检测：音乐生成仅部分平台支持，不支持时渲染提示替代页面主体
+  if (!hasCapability('music')) {
+    return <UnsupportedCapabilityNotice capability="music" />;
+  }
 
   return (
     <LabPageLayout
       icon={<MusicIcon size={32} />}
-      iconBg="rgba(139,92,246,0.1)"
-      iconColor="#8b5cf6"
+      iconBg="color-mix(in srgb, var(--lab-color-music) 10%, transparent)"
+      iconColor="var(--lab-color-music)"
       title={t('musicLab.title', '音乐实验室 (Music Lab)')}
       subtitle={t('musicLab.desc', 'AI 作曲、歌词创作、翻唱生成，支持多模型与音频参数调节')}
       tabs={tabs}
@@ -335,7 +348,7 @@ export const MusicLab: React.FC = () => {
                   type="checkbox"
                   checked={isInstrumental}
                   onChange={e => setIsInstrumental(e.target.checked)}
-                  style={{ width: '14px', height: '14px', accentColor: '#8b5cf6' }}
+                  style={{ width: '14px', height: '14px', accentColor: 'var(--lab-color-music)' }}
                 />
                 {t('musicLab.instrumental', '纯音乐（无歌词）')}
               </label>
@@ -370,7 +383,7 @@ export const MusicLab: React.FC = () => {
                   checked={lyricsOptimizer}
                   onChange={e => setLyricsOptimizer(e.target.checked)}
                   disabled={isInstrumental}
-                  style={{ width: '16px', height: '16px', accentColor: '#8b5cf6' }}
+                  style={{ width: '16px', height: '16px', accentColor: 'var(--lab-color-music)' }}
                 />
                 {t('musicLab.lyricsOptimizer', '歌词智能优化')}
               </label>
@@ -432,8 +445,8 @@ export const MusicLab: React.FC = () => {
           {composeResult && (
             <div className="lab-result-card" style={{ background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.3)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                <CheckCircle2 size={16} style={{ color: '#a78bfa' }} />
-                <span style={{ color: '#a78bfa', fontWeight: 600 }}>{t('musicLab.composeSuccess', '音乐生成成功')}</span>
+                <CheckCircle2 size={16} style={{ color: 'var(--lab-color-music)' }} />
+                <span style={{ color: 'var(--lab-color-music)', fontWeight: 600 }}>{t('musicLab.composeSuccess', '音乐生成成功')}</span>
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: 'auto' }}>
                   {Math.round(composeResult.duration / 1000)}s · {composeResult.sampleRate}Hz · {Math.round(composeResult.bitrate / 1000)}kbps
                 </span>
@@ -446,6 +459,14 @@ export const MusicLab: React.FC = () => {
                 downloadFilename={buildDownloadFilename(composePrompt, audioFormat)}
                 onDownload={handleDownload}
               />
+              <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <button
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setPickerAsset({ url: composeResult.audioUrl, field: 'bgm', prompt: composePrompt })}
+                >
+                  <Send size={12} /> {t('segmentPicker.sendToSegment', '发送到分镜')}
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -460,14 +481,14 @@ export const MusicLab: React.FC = () => {
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               <button
                 className={`btn btn-sm ${lyricsMode === 'write_full_song' ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ flex: 1, background: lyricsMode === 'write_full_song' ? '#3b82f6' : undefined }}
+                style={{ flex: 1, background: lyricsMode === 'write_full_song' ? 'var(--lab-color-image)' : undefined }}
                 onClick={() => setLyricsMode('write_full_song')}
               >
                 <Wand2 size={14} /> {t('musicLab.modeWriteFull', '全新创作')}
               </button>
               <button
                 className={`btn btn-sm ${lyricsMode === 'edit' ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ flex: 1, background: lyricsMode === 'edit' ? '#3b82f6' : undefined }}
+                style={{ flex: 1, background: lyricsMode === 'edit' ? 'var(--lab-color-image)' : undefined }}
                 onClick={() => setLyricsMode('edit')}
               >
                 <FileText size={14} /> {t('musicLab.modeEdit', '润色修改')}
@@ -566,7 +587,7 @@ export const MusicLab: React.FC = () => {
           {/* Step 1: 上传参考音频 */}
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-              <span className="lab-step-indicator" style={{ background: coverPreprocess ? '#10b981' : '#ec4899' }}>{coverPreprocess ? '✓' : '1'}</span>
+              <span className="lab-step-indicator" style={{ background: coverPreprocess ? 'var(--color-success)' : 'var(--lab-color-voice)' }}>{coverPreprocess ? '✓' : '1'}</span>
               <h3 style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-color)' }}>
                 {t('musicLab.coverStep1', 'Step 1: 上传参考音频并预处理')}
               </h3>
@@ -581,7 +602,7 @@ export const MusicLab: React.FC = () => {
             />
             <button
               className="btn btn-primary btn-sm"
-              style={{ marginTop: '0.5rem', background: '#ec4899' }}
+              style={{ marginTop: '0.5rem', background: 'var(--lab-color-voice)' }}
               disabled={!coverAudio || isPreprocessing}
               onClick={handlePreprocessCover}
             >
@@ -594,8 +615,8 @@ export const MusicLab: React.FC = () => {
           {coverPreprocess && (
             <div className="lab-result-card" style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                <CheckCircle2 size={16} style={{ color: '#34d399' }} />
-                <span style={{ color: '#34d399', fontWeight: 600 }}>{t('musicLab.preprocessSuccess', '预处理完成')}</span>
+                <CheckCircle2 size={16} style={{ color: 'var(--color-success)' }} />
+                <span style={{ color: 'var(--color-success)', fontWeight: 600 }}>{t('musicLab.preprocessSuccess', '预处理完成')}</span>
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: 'auto' }}>
                   {t('musicLab.audioDuration', '时长')}: {Math.round(coverPreprocess.audioDuration)}s
                 </span>
@@ -610,7 +631,7 @@ export const MusicLab: React.FC = () => {
           {coverPreprocess && (
             <div style={{ borderTop: '1px dashed var(--border-color)', paddingTop: '1rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                <span className="lab-step-indicator" style={{ background: coverResult ? '#10b981' : '#8b5cf6' }}>{coverResult ? '✓' : '2'}</span>
+                <span className="lab-step-indicator" style={{ background: coverResult ? 'var(--color-success)' : 'var(--lab-color-music)' }}>{coverResult ? '✓' : '2'}</span>
                 <h3 style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-color)' }}>
                   {t('musicLab.coverStep2', 'Step 2: 编辑歌词并生成翻唱')}
                 </h3>
@@ -657,8 +678,8 @@ export const MusicLab: React.FC = () => {
 
                 <button
                   className="btn btn-primary btn-generate"
-                  style={{ background: '#8b5cf6' }}
-                  disabled={!coverPrompt.trim() || !coverLyrics.trim() || isGeneratingCover}
+                  style={{ background: 'var(--lab-color-music)' }}
+            disabled={!coverPrompt.trim() || !coverLyrics.trim() || isGeneratingCover}
                   onClick={handleGenerateCover}
                 >
                   {isGeneratingCover ? <RefreshCw className="spin" size={20} /> : <Mic2 size={20} />}
@@ -670,8 +691,8 @@ export const MusicLab: React.FC = () => {
               {coverResult && (
                 <div className="lab-result-card" style={{ marginTop: '0.75rem', background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.3)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                    <CheckCircle2 size={16} style={{ color: '#a78bfa' }} />
-                    <span style={{ color: '#a78bfa', fontWeight: 600 }}>{t('musicLab.coverSuccess', '翻唱生成成功')}</span>
+                    <CheckCircle2 size={16} style={{ color: 'var(--lab-color-music)' }} />
+                <span style={{ color: 'var(--lab-color-music)', fontWeight: 600 }}>{t('musicLab.coverSuccess', '翻唱生成成功')}</span>
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: 'auto' }}>
                       {Math.round(coverResult.duration / 1000)}s · {coverResult.sampleRate}Hz
                     </span>
@@ -679,9 +700,9 @@ export const MusicLab: React.FC = () => {
                   <AudioPreviewPlayer
                     key={coverResult.audioUrl}
                     src={coverResult.audioUrl}
-                    autoPlay
-                    accentColor="#8b5cf6"
-                    downloadFilename={buildDownloadFilename(coverPrompt, audioFormat)}
+                autoPlay
+                accentColor="var(--lab-color-music)"
+                downloadFilename={buildDownloadFilename(coverPrompt, audioFormat)}
                     onDownload={handleDownload}
                   />
                 </div>
@@ -692,48 +713,52 @@ export const MusicLab: React.FC = () => {
       )}
 
       {/* ==================== 历史记录（仅 Compose Tab 显示） ==================== */}
-      {activeTab === 'compose' && history.length > 0 && (
-        <div className="glass-panel slide-up" style={{ marginTop: '0.75rem', padding: '0.75rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-            <h3 style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)' }}>{t('musicLab.history', '生成历史')} ({history.length})</h3>
-            <button
-              className="btn btn-secondary btn-xs"
-              onClick={() => {
-                history.forEach(h => revokeBlobUrl(h.audioUrl));
-                setHistory([]);
-              }}
-            >{t('common.clear', '清空')}</button>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {history.map(item => (
-              <div key={item.id} style={{ padding: '0.6rem', background: 'rgba(0,0,0,0.15)', borderRadius: 'var(--radius-md)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {item.prompt}
-                  </span>
-                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{item.model}</span>
+      {activeTab === 'compose' && (
+        history.length === 0 ? (
+          <AsyncState empty emptyText="尚未生成音乐" />
+        ) : (
+          <div className="glass-panel slide-up" style={{ marginTop: '0.75rem', padding: '0.75rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+              <h3 style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)' }}>{t('musicLab.history', '生成历史')} ({history.length})</h3>
+              <button
+                className="btn btn-secondary btn-xs"
+                onClick={() => {
+                  history.forEach(h => revokeBlobUrl(h.audioUrl));
+                  setHistory([]);
+                }}
+              >{t('common.clear', '清空')}</button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {history.map(item => (
+                <div key={item.id} style={{ padding: '0.6rem', background: 'rgba(0,0,0,0.15)', borderRadius: 'var(--radius-md)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {item.prompt}
+                    </span>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{item.model}</span>
+                  </div>
+                  <AudioPreviewPlayer
+                    key={item.audioUrl}
+                    src={item.audioUrl}
+                    compact
+                    accentColor="var(--lab-color-music)"
+                    showWaveform={false}
+                    downloadFilename={buildDownloadFilename(item.prompt, audioFormat)}
+                    onDownload={handleDownload}
+                  />
+                  <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.5rem' }}>
+                    <button
+                      className="btn btn-secondary btn-xs"
+                      onClick={() => handleSaveClick(item)}
+                    >
+                      <BookmarkPlus size={12} /> {t('assetLibrary.saveBtn', '保存到素材库')}
+                    </button>
+                  </div>
                 </div>
-                <AudioPreviewPlayer
-                  key={item.audioUrl}
-                  src={item.audioUrl}
-                  compact
-                  accentColor="#8b5cf6"
-                  showWaveform={false}
-                  downloadFilename={buildDownloadFilename(item.prompt, audioFormat)}
-                  onDownload={handleDownload}
-                />
-                <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.5rem' }}>
-                  <button
-                    className="btn btn-secondary btn-xs"
-                    onClick={() => handleSaveClick(item)}
-                  >
-                    <BookmarkPlus size={12} /> {t('assetLibrary.saveBtn', '保存到素材库')}
-                  </button>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
+        )
       )}
 
       {/* ==================== 保存对话框 ==================== */}
@@ -745,6 +770,13 @@ export const MusicLab: React.FC = () => {
           onCancel={() => { setShowSaveDialog(false); setSaveTarget(null); }}
         />
       )}
+      <SegmentPicker
+        isOpen={!!pickerAsset}
+        assetUrl={pickerAsset?.url ?? ''}
+        bindField={pickerAsset?.field ?? 'image'}
+        assetPrompt={pickerAsset?.prompt}
+        onClose={() => setPickerAsset(null)}
+      />
     </LabPageLayout>
   );
 };

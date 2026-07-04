@@ -20,7 +20,7 @@ import { useTranslation } from 'react-i18next';
 import { X, Scissors, Loader2, Check, Play } from 'lucide-react';
 import { autoEditService } from '../../../dependencies';
 import { useToast } from '../../contexts/ToastContext';
-import type { KeyframeInfo, CutSuggestion } from '../../domain/services/AutoEditService';
+import type { KeyframeInfo, CutSuggestion } from '../../../domain/services/AutoEditService';
 
 export interface KeyframePreviewPanelProps {
   isOpen: boolean;
@@ -55,7 +55,7 @@ export const KeyframePreviewPanel: React.FC<KeyframePreviewPanelProps> = ({
       })
       .catch(e => {
         console.error('detect keyframes failed', e);
-        showToast(t('autoEdit.detectFailed', '关键帧检测失败'), 'error');
+        showToast('error', t('autoEdit.detectFailed', '关键帧检测失败'));
       })
       .finally(() => { if (!cancelled) setLoading(false); });
 
@@ -80,7 +80,7 @@ export const KeyframePreviewPanel: React.FC<KeyframePreviewPanelProps> = ({
 
   const handleApply = useCallback(() => {
     if (selectedCutIds.size === 0) {
-      showToast(t('autoEdit.noSelection', '请至少选择一个片段'), 'warn');
+      showToast('warning', t('autoEdit.noSelection', '请至少选择一个片段'));
       return;
     }
     setApplying(true);
@@ -89,7 +89,7 @@ export const KeyframePreviewPanel: React.FC<KeyframePreviewPanelProps> = ({
       .map(c => ({ startSec: c.startSec, endSec: c.endSec }));
     onApplyTrim?.(keptSegments);
     setApplying(false);
-    showToast(t('autoEdit.applied', `已应用剪切，保留 ${keptSegments.length} 个片段`), 'success');
+    showToast('success', t('autoEdit.applied', `已应用剪切，保留 ${keptSegments.length} 个片段`));
     onClose();
   }, [selectedCutIds, cuts, onApplyTrim, showToast, t, onClose]);
 
@@ -100,7 +100,14 @@ export const KeyframePreviewPanel: React.FC<KeyframePreviewPanelProps> = ({
     .reduce((sum, c) => sum + (c.endSec - c.startSec), 0);
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div
+      className="modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label={t('autoEdit.title', 'AI 智能剪切')}
+      onClick={onClose}
+      onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
+    >
       <div className="modal-content" style={{ maxWidth: 800, maxHeight: '85vh', overflow: 'auto' }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -141,7 +148,7 @@ export const KeyframePreviewPanel: React.FC<KeyframePreviewPanelProps> = ({
                       alt={`frame ${kf.timestamp.toFixed(1)}s`}
                       style={{ width: 64, height: 36, objectFit: 'cover', borderRadius: 4, border: '1px solid var(--border-color)' }}
                     />
-                    <span style={{ position: 'absolute', bottom: 2, right: 2, fontSize: 9, background: 'rgba(0,0,0,0.6)', color: '#fff', padding: '0 3px', borderRadius: 2 }}>
+                    <span style={{ position: 'absolute', bottom: 2, right: 2, fontSize: 11, background: 'color-mix(in srgb, var(--bg-dark) 70%, transparent)', color: 'var(--text-inverse)', padding: '0 3px', borderRadius: 2 }}>
                       {kf.timestamp.toFixed(1)}s
                     </span>
                   </div>
@@ -177,7 +184,7 @@ export const KeyframePreviewPanel: React.FC<KeyframePreviewPanelProps> = ({
                       <strong>{cut.startSec.toFixed(1)}s - {cut.endSec.toFixed(1)}s</strong>
                       <span style={{ color: 'var(--text-muted)', marginLeft: 8 }}>({duration}s)</span>
                     </span>
-                    <span style={{ fontSize: 11, color: 'var(--text-muted)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontSize: 12, color: 'var(--text-muted)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {cut.reason}
                     </span>
                   </div>

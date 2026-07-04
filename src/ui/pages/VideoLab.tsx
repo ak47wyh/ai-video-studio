@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Film, Image, Layers, User, FileText, RefreshCw, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
+import { Film, Image, Layers, User, FileText, RefreshCw, ChevronDown, ChevronUp, AlertCircle, SplitSquareHorizontal } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { videoLabService } from '../../dependencies';
 import type { VideoModel, VideoResolution, VideoGenerationMode, VideoAgentContext } from '../../domain/ports/OutboundPorts';
@@ -7,14 +7,17 @@ import { useToast } from '../contexts/ToastContext';
 import { getErrorMessage } from '../utils/errorUtils';
 import { CameraDirectivePanel } from '../components/CameraDirectivePanel';
 import { VideoTaskCard } from '../components/VideoTaskCard';
+import { VideoCompare } from '../components/VideoCompare';
 import { ImageUploadField } from '../components/ImageUploadField';
 import { fileToBase64 } from '../utils/imageUtils';
 import type { VideoLabTask } from '../components/VideoTaskCard';
 import { LabPageLayout } from '../components/LabPageLayout';
-import { ApiConfigStore } from '../../adapters/outbound/config/ApiConfigStore';
-import { hasCapability } from '../../domain/services/platformCapabilities';
+import { AsyncState } from '../components/AsyncState';
+import { UnsupportedCapabilityNotice } from '../components/UnsupportedCapabilityNotice';
+import { usePlatformCapabilities } from '../hooks/usePlatformCapabilities';
 import { TextAreaWithCounter } from '../components/TextAreaWithCounter';
 import { InputWithCounter } from '../components/InputWithCounter';
+import { SegmentPicker, type SegmentBindField } from '../components/SegmentPicker';
 import { TEXT_LIMITS } from '../../domain/constants/textLimits';
 import { validateTextLimit } from '../utils/validateTextLimit';
 
@@ -152,6 +155,7 @@ const VideoModelConfig: React.FC<VideoModelConfigProps> = ({
 export const VideoLab: React.FC = () => {
   const { showToast } = useToast();
   const navigate = useNavigate();
+  const { hasCapability: hasCap } = usePlatformCapabilities();
 
   const [activeTab, setActiveTab] = useState<VideoLabTab>('t2v');
 
@@ -212,6 +216,10 @@ export const VideoLab: React.FC = () => {
   const [agentTextInput, setAgentTextInput] = useState('');
   const [agentMediaFile, setAgentMediaFile] = useState<File | null>(null);
   const [isSubmittingAgent, setIsSubmittingAgent] = useState(false);
+
+  // ==================== SegmentPicker (发送到分镜) ====================
+  const [pickerAsset, setPickerAsset] = useState<{ url: string; field: SegmentBindField; prompt?: string } | null>(null);
+  const [showCompare, setShowCompare] = useState(false);
 
   // ==================== Helpers ====================
   const insertDirective = (setter: React.Dispatch<React.SetStateAction<string>>, directive: string) => {
@@ -410,23 +418,27 @@ export const VideoLab: React.FC = () => {
 
   // ==================== Tab Buttons ====================
   // 根据当前激活平台的能力矩阵，动态禁用不支持的视频生成模式
-  const activePlatform = ApiConfigStore.getActivePlatform();
-  const supportsFl2v = hasCapability(activePlatform, 'videoFl2v');
-  const supportsS2v = hasCapability(activePlatform, 'videoS2v');
+  const supportsFl2v = hasCap('videoFl2v');
+  const supportsS2v = hasCap('videoS2v');
   const tabs: { key: VideoLabTab; label: string; icon: React.ReactNode; color?: string; disabled?: boolean; disabledReason?: string }[] = [
     { key: 't2v', label: '文生视频', icon: <Film size={16} /> },
-    { key: 'i2v', label: '图生视频', icon: <Image size={16} />, color: '#3b82f6' },
-    { key: 'fl2v', label: '首尾帧', icon: <Layers size={16} />, color: '#8b5cf6', disabled: !supportsFl2v, disabledReason: '该平台不支持首尾帧生视频模式' },
-    { key: 's2v', label: '主体参考', icon: <User size={16} />, color: '#ec4899', disabled: !supportsS2v, disabledReason: '该平台不支持主体参考生视频模式' },
-    { key: 'agent', label: '视频模板', icon: <FileText size={16} />, color: '#f59e0b' },
-    { key: 'tasks', label: `任务管理${tasks.length > 0 ? ` (${tasks.length})` : ''}`, icon: <RefreshCw size={16} />, color: '#06b6d4' },
+    { key: 'i2v', label: '图生视频', icon: <Image size={16} />, color: 'var(--lab-color-video)' },
+    { key: 'fl2v', label: '首尾帧', icon: <Layers size={16} />, color: 'var(--lab-color-music)', disabled: !supportsFl2v, disabledReason: '该平台不支持首尾帧生视频模式' },
+    { key: 's2v', label: '主体参考', icon: <User size={16} />, color: 'var(--lab-color-image)', disabled: !supportsS2v, disabledReason: '该平台不支持主体参考生视频模式' },
+    { key: 'agent', label: '视频模板', icon: <FileText size={16} />, color: 'var(--lab-color-text)' },
+    { key: 'tasks', label: `任务管理${tasks.length > 0 ? ` (${tasks.length})` : ''}`, icon: <RefreshCw size={16} />, color: 'var(--lab-color-watermark)' },
   ];
+
+  // P1 平台能力前置检测：视频生成仅部分平台支持，不支持时渲染提示
+  if (!hasCap('video')) {
+    return <UnsupportedCapabilityNotice capability="video" />;
+  }
 
   return (
     <LabPageLayout
       icon={<Film size={32} />}
-      iconBg="rgba(59,130,246,0.1)"
-      iconColor="#3b82f6"
+      iconBg="color-mix(in srgb, var(--lab-color-video) 10%, transparent)"
+      iconColor="var(--lab-color-video)"
       title="视频实验室 (Video Lab)"
       subtitle="文本转视频、图片驱动、首尾帧、主体参考、视频模板与任务管理"
       tabs={tabs}
@@ -509,7 +521,7 @@ export const VideoLab: React.FC = () => {
 
           <button
             className="btn btn-primary btn-generate"
-            style={{ background: '#3b82f6' }}
+            style={{ background: 'var(--lab-color-image)' }}
             disabled={!i2vFirstFrame || isSubmittingI2V}
             onClick={handleI2VSubmit}
           >
@@ -573,7 +585,7 @@ export const VideoLab: React.FC = () => {
 
           <button
             className="btn btn-primary btn-generate"
-            style={{ background: '#8b5cf6' }}
+            style={{ background: 'var(--lab-color-image)' }}
             disabled={!fl2vFirstFrame || !fl2vLastFrame || isSubmittingFL2V}
             onClick={handleFL2VSubmit}
           >
@@ -633,9 +645,9 @@ export const VideoLab: React.FC = () => {
       {/* ==================== Agent Tab ==================== */}
       {activeTab === 'agent' && (
         <div className="glass-panel slide-up lab-tab-panel">
-          <div className="lab-warning-banner" style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)' }}>
-            <AlertCircle size={16} style={{ color: '#f59e0b' }} />
-            <span style={{ fontSize: '0.8rem', color: '#f59e0b' }}>模板功能即将下线 (API 已标记为 deprecated)</span>
+          <div className="lab-warning-banner" style={{ background: 'var(--color-warning-bg)', border: '1px solid var(--color-warning-border)' }}>
+            <AlertCircle size={16} style={{ color: 'var(--color-warning)' }} />
+            <span style={{ fontSize: '0.8rem', color: 'var(--color-warning)' }}>模板功能即将下线 (API 已标记为 deprecated)</span>
           </div>
 
           <div>
@@ -667,7 +679,7 @@ export const VideoLab: React.FC = () => {
 
           <button
             className="btn btn-primary btn-generate"
-            style={{ background: '#f59e0b' }}
+            style={{ background: 'var(--color-warning)' }}
             disabled={!agentTemplateId || isSubmittingAgent}
             onClick={handleAgentSubmit}
           >
@@ -680,11 +692,41 @@ export const VideoLab: React.FC = () => {
       {/* ==================== Tasks Tab ==================== */}
       {activeTab === 'tasks' && (
         <div className="glass-panel slide-up lab-tab-panel">
-          <h3 style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)' }}>任务列表 {tasks.length > 0 && `(${tasks.length})`}</h3>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+            <h3 style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)' }}>任务列表 {tasks.length > 0 && `(${tasks.length})`}</h3>
+            {tasks.filter(t => t.status === 'SUCCESS' && t.videoUrl).length >= 2 && (
+              <button
+                className="btn btn-secondary btn-sm"
+                style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+                onClick={() => setShowCompare(v => !v)}
+              >
+                <SplitSquareHorizontal size={12} />
+                {showCompare ? '收起对比' : '版本对比'}
+              </button>
+            )}
+          </div>
+
+          {/* 版本对比面板（P2-2：接入 VideoCompare，支持多版本并排播放择优） */}
+          {showCompare && tasks.filter(t => t.status === 'SUCCESS' && t.videoUrl).length >= 2 && (
+            <div style={{ marginBottom: '1rem', padding: '0.75rem', background: 'rgba(255,255,255,0.03)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+              <VideoCompare
+                versions={tasks
+                  .filter(t => t.status === 'SUCCESS' && t.videoUrl)
+                  .map(t => ({
+                    taskId: t.taskId,
+                    videoUrl: t.videoUrl!,
+                    createdAt: t.createdAt,
+                    model: t.model,
+                    prompt: t.prompt,
+                    mode: t.mode,
+                    duration: t.duration,
+                  }))}
+              />
+            </div>
+          )}
+
           {tasks.length === 0 ? (
-            <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '1.5rem' }}>
-              暂无任务，请从其他 Tab 提交视频生成任务
-            </p>
+            <AsyncState empty emptyText="暂无视频任务，去生成第一个视频" />
           ) : (
             tasks.map(task => (
               <VideoTaskCard
@@ -694,11 +736,19 @@ export const VideoLab: React.FC = () => {
                 onRetry={handleRetryTask}
                 onUseInStory={handleUseInStory}
                 onUseAsInput={handleUseAsInput}
+                onSendToSegment={(t) => t.videoUrl && setPickerAsset({ url: t.videoUrl, field: 'video' })}
               />
             ))
           )}
         </div>
       )}
+      <SegmentPicker
+        isOpen={!!pickerAsset}
+        assetUrl={pickerAsset?.url ?? ''}
+        bindField={pickerAsset?.field ?? 'image'}
+        assetPrompt={pickerAsset?.prompt}
+        onClose={() => setPickerAsset(null)}
+      />
     </LabPageLayout>
   );
 };

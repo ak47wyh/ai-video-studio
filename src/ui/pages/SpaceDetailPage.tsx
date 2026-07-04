@@ -233,7 +233,7 @@ const SpaceHeader: React.FC<SpaceHeaderProps> = ({
               <button className="btn btn-secondary btn-sm" onClick={onEditToggle} title={t('space.editTitle')}>
                 <Pencil size={14} /> {t('space.editTitle')}
               </button>
-              <button className="btn btn-secondary btn-sm" onClick={onDelete} title={t('common.delete')} style={{ color: '#dc2626' }}>
+              <button className="btn btn-secondary btn-sm" onClick={onDelete} title={t('common.delete')} style={{ color: 'var(--color-danger)' }}>
                 <Trash2 size={14} />
               </button>
             </>
@@ -467,7 +467,7 @@ const ImagesTab: React.FC<ImagesTabProps> = ({ spaceId }) => {
               </button>
               <button
                 onClick={e => { e.stopPropagation(); handleDelete(img.id); }}
-                style={{ background: 'rgba(220, 38, 38, 0.7)', border: 'none', borderRadius: '0.2rem', cursor: 'pointer', color: '#fff', padding: '0.2rem' }}
+                style={{ background: 'color-mix(in srgb, var(--color-danger) 70%, transparent)', border: 'none', borderRadius: '0.2rem', cursor: 'pointer', color: '#fff', padding: '0.2rem' }}
                 title={t('common.delete', '删除')}
               >
                 <Trash2 size={12} />
@@ -701,7 +701,7 @@ const StoriesTab: React.FC<StoriesTabProps> = ({ spaceId }) => {
             padding: '0.15rem 0.4rem',
             borderRadius: '0.2rem',
             background: story.status === 'DRAFT' ? 'rgba(99,102,241,0.2)' : 'rgba(16,185,129,0.2)',
-            color: story.status === 'DRAFT' ? '#818cf8' : '#10b981',
+            color: story.status === 'DRAFT' ? 'var(--primary-color)' : 'var(--color-success)',
           }}>
             {story.status}
           </span>

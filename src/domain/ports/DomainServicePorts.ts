@@ -55,7 +55,6 @@ export interface AgentResponseDelta {
 /**
  * AI Agent 端口。
  * 当前实现：AgentService。
- * 后续可实现：CozeBotAgentAdapter（直接对接 Coze 工作流）。
  */
 export interface IAgentPort {
   chat(context: AgentContext): Promise<AgentResponse>;

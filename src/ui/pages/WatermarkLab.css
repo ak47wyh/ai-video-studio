@@ -11,30 +11,30 @@
   justify-content: center;
   gap: 0.75rem;
   min-height: 300px;
-  border: 2px dashed rgba(236, 72, 153, 0.3);
+  border: 2px dashed color-mix(in srgb, var(--lab-color-watermark) 30%, transparent);
   border-radius: var(--radius-lg);
-  background: rgba(236, 72, 153, 0.03);
+  background: color-mix(in srgb, var(--lab-color-watermark) 3%, transparent);
   cursor: pointer;
-  transition: border-color 0.2s, background 0.2s;
+  transition: border-color var(--motion-fast), background var(--motion-fast);
   padding: 2rem;
   text-align: center;
 }
 
 .watermark-upload-zone:hover {
-  border-color: rgba(236, 72, 153, 0.6);
-  background: rgba(236, 72, 153, 0.06);
+  border-color: color-mix(in srgb, var(--lab-color-watermark) 60%, transparent);
+  background: color-mix(in srgb, var(--lab-color-watermark) 6%, transparent);
 }
 
 .watermark-editor-layout {
   display: flex;
-  gap: 1rem;
+  gap: var(--space-md);
   align-items: flex-start;
   flex-wrap: wrap;
 }
 
 .watermark-canvas-area {
   flex: 1;
-  min-width: 400px;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -42,13 +42,13 @@
 
 .watermark-params-panel {
   width: 280px;
-  min-width: 240px;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
   padding: 1rem;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
 }
 
@@ -63,7 +63,7 @@
 .watermark-progress {
   width: 100%;
   height: 6px;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--bg-panel-hover);
   border-radius: 3px;
   overflow: hidden;
   margin-top: 0.5rem;
@@ -71,31 +71,31 @@
 
 .watermark-progress-bar {
   height: 100%;
-  background: linear-gradient(90deg, #ec4899, #f472b6);
+  background: linear-gradient(90deg, var(--lab-color-watermark), var(--primary-color));
   border-radius: 3px;
-  transition: width 0.3s ease;
+  transition: width var(--motion-normal) var(--ease-standard);
 }
 
 .watermark-retry-hint {
   padding: 0.5rem 0.75rem;
-  font-size: 0.75rem;
-  color: #f59e0b;
-  background: rgba(245, 158, 11, 0.08);
-  border: 1px solid rgba(245, 158, 11, 0.25);
+  font-size: var(--font-size-xs);
+  color: var(--color-warning);
+  background: var(--color-warning-bg);
+  border: 1px solid var(--color-warning-border);
   border-radius: var(--radius-sm);
   line-height: 1.4;
 }
 
 .watermark-retry-hint strong {
-  color: #fbbf24;
+  color: var(--color-warning);
   font-weight: 600;
 }
 
 .watermark-params-panel .btn-generate {
-  background: linear-gradient(135deg, #ec4899, #f472b6);
+  background: linear-gradient(135deg, var(--lab-color-watermark), var(--primary-color));
   border: none;
   padding: 0.6rem 1rem;
-  font-size: 0.85rem;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   width: 100%;
   display: flex;
@@ -103,9 +103,9 @@
   justify-content: center;
   gap: 0.5rem;
   border-radius: var(--radius-md);
-  color: #fff;
+  color: var(--text-inverse);
   cursor: pointer;
-  transition: opacity 0.2s, transform 0.1s;
+  transition: opacity var(--motion-fast), transform var(--motion-fast);
 }
 
 .watermark-params-panel .btn-generate:hover:not(:disabled) {
@@ -147,29 +147,29 @@
 
 .batch-task-card {
   position: relative;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   overflow: hidden;
   cursor: pointer;
-  transition: border-color 0.2s, transform 0.1s;
-  background: rgba(255, 255, 255, 0.02);
+  transition: border-color var(--motion-fast), transform var(--motion-fast);
+  background: var(--bg-panel);
 }
 
 .batch-task-card:hover {
-  border-color: rgba(236, 72, 153, 0.4);
+  border-color: color-mix(in srgb, var(--lab-color-watermark) 40%, transparent);
   transform: translateY(-1px);
 }
 
 .batch-task-card.processing {
-  border-color: rgba(59, 130, 246, 0.4);
+  border-color: var(--color-info-border);
 }
 
 .batch-task-card.success {
-  border-color: rgba(34, 197, 94, 0.3);
+  border-color: var(--color-success-border);
 }
 
 .batch-task-card.error {
-  border-color: rgba(239, 68, 68, 0.4);
+  border-color: var(--color-danger-border);
 }
 
 .batch-task-thumb {
@@ -177,7 +177,7 @@
   width: 100%;
   height: 90px;
   overflow: hidden;
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--bg-panel-hover);
 }
 
 .batch-task-thumb img {
@@ -194,19 +194,19 @@
   align-items: center;
   justify-content: center;
   gap: 0.2rem;
-  background: rgba(0, 0, 0, 0.5);
-  color: #fff;
-  font-size: 0.7rem;
+  background: color-mix(in srgb, var(--bg-dark) 50%, transparent);
+  color: var(--text-inverse);
+  font-size: var(--font-size-xs);
 }
 
 .batch-task-overlay.success {
-  background: rgba(34, 197, 94, 0.3);
-  color: #4ade80;
+  background: color-mix(in srgb, var(--color-success) 30%, transparent);
+  color: var(--color-success);
 }
 
 .batch-task-overlay.error {
-  background: rgba(239, 68, 68, 0.3);
-  color: #f87171;
+  background: color-mix(in srgb, var(--color-danger) 30%, transparent);
+  color: var(--color-danger);
 }
 
 .batch-task-badge {
@@ -214,15 +214,15 @@
   top: 4px;
   right: 4px;
   padding: 1px 6px;
-  font-size: 0.6rem;
-  background: rgba(236, 72, 153, 0.8);
-  color: #fff;
+  font-size: var(--font-size-xs);
+  background: color-mix(in srgb, var(--lab-color-watermark) 80%, transparent);
+  color: var(--text-inverse);
   border-radius: 3px;
 }
 
 .batch-task-name {
   padding: 0.3rem 0.4rem;
-  font-size: 0.65rem;
+  font-size: var(--font-size-xs);
   color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
@@ -241,38 +241,38 @@
   justify-content: center;
   gap: 0.3rem;
   min-height: 120px;
-  border: 2px dashed rgba(255, 255, 255, 0.1);
+  border: 2px dashed var(--border-color);
   border-radius: var(--radius-md);
   cursor: pointer;
   color: var(--text-muted);
-  transition: border-color 0.2s, color 0.2s;
+  transition: border-color var(--motion-fast), color var(--motion-fast);
 }
 
 .batch-add-card:hover {
-  border-color: rgba(236, 72, 153, 0.4);
-  color: #ec4899;
+  border-color: color-mix(in srgb, var(--lab-color-watermark) 40%, transparent);
+  color: var(--lab-color-watermark);
 }
 
 /* 单独编辑模态 */
 .batch-edit-modal {
   position: fixed;
   inset: 0;
-  z-index: 1000;
+  z-index: var(--z-modal);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.6);
+  background: color-mix(in srgb, var(--bg-dark) 60%, transparent);
   padding: 2rem;
 }
 
 .batch-edit-modal-content {
-  background: var(--bg-primary, #1a1a1a);
+  background: var(--bg-panel);
   border-radius: var(--radius-lg);
   padding: 1.5rem;
   max-width: 90vw;
   max-height: 90vh;
   overflow: auto;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border-color);
 }
 
 .batch-edit-modal-header {
@@ -305,10 +305,10 @@
 
 .video-address-tips {
   padding: 0.75rem;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   color: var(--text-muted);
   line-height: 1.6;
 }
@@ -332,15 +332,15 @@
   align-items: flex-start;
   gap: 0.5rem;
   padding: 0.6rem 0.75rem;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: border-color 0.2s, background 0.2s;
+  transition: border-color var(--motion-fast), background var(--motion-fast);
 }
 
 .video-mode-option:hover {
-  border-color: rgba(236, 72, 153, 0.3);
-  background: rgba(236, 72, 153, 0.03);
+  border-color: color-mix(in srgb, var(--lab-color-watermark) 30%, transparent);
+  background: color-mix(in srgb, var(--lab-color-watermark) 3%, transparent);
 }
 
 .video-mode-option.disabled {
@@ -350,7 +350,7 @@
 
 .video-mode-option input[type="radio"] {
   margin-top: 2px;
-  accent-color: #ec4899;
+  accent-color: var(--lab-color-watermark);
 }
 
 .video-mode-content {
@@ -358,13 +358,42 @@
 }
 
 .video-mode-title {
-  font-size: 0.8rem;
+  font-size: var(--font-size-sm);
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--text-main);
 }
 
 .video-mode-desc {
-  font-size: 0.7rem;
+  font-size: var(--font-size-xs);
   color: var(--text-muted);
   margin-top: 0.2rem;
+}
+
+/* ===== 响应式：移动端堆叠（P0-5，UI 交互优化 §7.2） ===== */
+@media (max-width: 768px) {
+  .watermark-editor-layout {
+    flex-direction: column;
+  }
+
+  .watermark-params-panel {
+    width: 100%;
+  }
+
+  .watermark-canvas-area {
+    width: 100%;
+  }
+
+  .batch-edit-modal {
+    padding: 0.5rem;
+  }
+
+  .batch-edit-modal-content {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .batch-task-grid {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 140px), 1fr));
+  }
 }

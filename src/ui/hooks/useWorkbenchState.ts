@@ -247,6 +247,10 @@ export interface WorkbenchState {
   isBatchGenerating: boolean;
   batchBgId: string;
   isRefiningStoryText: boolean;
+  /** P0-1：批量旁白生成中 */
+  isBatchNarrating: boolean;
+  /** P0-1：批量 BGM 生成中 */
+  isBatchBgmGenerating: boolean;
   narrationStatuses: Record<string, string>;
   narrationUrls: Record<string, string>;
   isAssembling: boolean;
@@ -265,6 +269,8 @@ type WorkbenchAction =
   | { type: 'SET_BATCH_GENERATING'; value: boolean }
   | { type: 'SET_BATCH_BG_ID'; value: string }
   | { type: 'SET_REFINING_STORY_TEXT'; value: boolean }
+  | { type: 'SET_BATCH_NARRATING'; value: boolean }
+  | { type: 'SET_BATCH_BGM_GENERATING'; value: boolean }
   | { type: 'SET_NARRATION_STATUS'; segmentId: string; status: string }
   | { type: 'SET_NARRATION_URL'; segmentId: string; url: string }
   | { type: 'CLEAR_NARRATION' }
@@ -287,6 +293,10 @@ export function workbenchReducer(state: WorkbenchState, action: WorkbenchAction)
       return { ...state, isBatchGenerating: action.value };
     case 'SET_BATCH_BG_ID':
       return { ...state, batchBgId: action.value };
+    case 'SET_BATCH_NARRATING':
+      return { ...state, isBatchNarrating: action.value };
+    case 'SET_BATCH_BGM_GENERATING':
+      return { ...state, isBatchBgmGenerating: action.value };
     case 'SET_REFINING_STORY_TEXT':
       return { ...state, isRefiningStoryText: action.value };
     case 'SET_NARRATION_STATUS':
@@ -319,6 +329,8 @@ export const initialWorkbenchState: WorkbenchState = {
   isBatchGenerating: false,
   batchBgId: '',
   isRefiningStoryText: false,
+  isBatchNarrating: false,
+  isBatchBgmGenerating: false,
   narrationStatuses: {},
   narrationUrls: {},
   isAssembling: false,

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Key } from 'lucide-react';
+import { Key, ChevronDown } from 'lucide-react';
 
 export interface FormFieldOption {
   value: string;
@@ -55,17 +55,21 @@ export const FormField: React.FC<FormFieldProps> = ({
       <label className="form-label">{label}</label>
       <div style={{ position: 'relative' }}>
         {type === 'select' ? (
-          <select
-            className="form-input"
-            value={value}
-            onChange={e => onChange(e.target.value)}
-            disabled={disabled}
-            style={{ paddingRight: '0.75rem', appearance: 'auto' }}
-          >
-            {(options ?? []).map(o => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
-          </select>
+          <div className="settings-select-wrapper">
+            <select
+              className="form-input"
+              value={value}
+              onChange={e => onChange(e.target.value)}
+              disabled={disabled}
+            >
+              {(options ?? []).map(o => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+            <span className="settings-select-arrow" aria-hidden="true">
+              <ChevronDown size={16} />
+            </span>
+          </div>
         ) : (
           <input
             className="form-input"

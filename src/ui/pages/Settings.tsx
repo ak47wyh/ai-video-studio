@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ExternalLink, RefreshCw, Cpu, Trash2, FolderOpen, FolderCog, Palette, CheckCircle, ChevronDown, Zap, Save, Database, Bug } from 'lucide-react';
+import { ExternalLink, RefreshCw, Cpu, Trash2, FolderCog, Palette, CheckCircle, ChevronDown, Zap, Save, Database, Bug, AlertTriangle, BookOpen } from 'lucide-react';
 import { ApiConfigStore, type ApiConfig, type PlatformId, type VolcArkProtocol } from '../../adapters/outbound/config/ApiConfigStore';
 import { useToast } from '../contexts/ToastContext';
-import { modelManagementService, fileManagementService } from '../../dependencies';
-import type { ModelInfo, FileItem } from '../../domain/ports/OutboundPorts';
+import { modelManagementService } from '../../dependencies';
+import type { ModelInfo } from '../../domain/ports/OutboundPorts';
 import { getErrorMessage } from '../utils/errorUtils';
-import { PLATFORM_METADATA, getCapabilitySummary, type Capability } from '../../domain/services/platformCapabilities';
+import { PLATFORM_METADATA, type Capability } from '../../domain/services/platformCapabilities';
 import { TEXT_LIMITS } from '../../domain/constants/textLimits';
 import {
   getMediaCacheStats,
@@ -20,6 +20,7 @@ import { FormField } from '../components/settings/FormField';
 import { StatusBadge } from '../components/settings/StatusBadge';
 import { ValidationButton } from '../components/settings/ValidationButton';
 import { ThemeSelector } from '../components/settings/ThemeSelector';
+import { CostMeterSection } from '../components/settings/CostMeterSection';
 
 // ===== Token 校验函数 =====
 
@@ -54,26 +55,6 @@ async function validateArkToken(
     // OpenAI 协议校验：GET /models
     const response = await fetch(`${baseUrl}/models`, {
       headers: { 'Authorization': `Bearer ${apiKey}` },
-    });
-    if (!response.ok) {
-      const errText = await response.text();
-      return { ok: false, error: `校验失败 (HTTP ${response.status})：${errText}` };
-    }
-    return { ok: true };
-  } catch (err) {
-    return { ok: false, error: `网络错误：${err instanceof Error ? err.message : String(err)}` };
-  }
-}
-
-async function validateCozeToken(token: string, baseUrl: string): Promise<{ ok: boolean; error?: string }> {
-  try {
-    const response = await fetch(`${baseUrl}/v1/bots/list`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ page_index: 1, page_size: 1 }),
     });
     if (!response.ok) {
       const errText = await response.text();
@@ -142,6 +123,7 @@ interface PlatformCardProps {
   validateLabel: string;
   externalLink?: string;
   externalLinkLabel?: string;
+  docLink?: string;
   accentColor?: string;
 }
 
@@ -160,6 +142,7 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
   validateLabel,
   externalLink,
   externalLinkLabel,
+  docLink,
   accentColor = 'var(--primary-color)',
 }) => {
   return (
@@ -211,6 +194,7 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
             <h3 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 600, color: 'var(--text-main)' }}>{name}</h3>
             {isActive && <StatusBadge status="connected" label="已激活" />}
+            {isConfigured && !isActive && <StatusBadge status="ready" label="已就绪" />}
             {!isConfigured && !isActive && <StatusBadge status="inactive" label="未配置" />}
           </div>
           <p style={{ margin: '0.15rem 0 0', fontSize: '0.72rem', color: 'var(--text-muted)', lineHeight: 1.3 }}>
@@ -230,12 +214,7 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
         />
       </div>
 
-      {/* ── 能力标签栏（始终显示） ── */}
-      <div style={{ padding: '0 1rem 0.6rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-        <CapabilityChips platform={id} accentColor={accentColor} />
-      </div>
-
-      {/* ── 展开内容：配置字段 + 操作 ── */}
+      {/* ── 展开内容：能力标签 + 配置字段 + 操作 ── */}
       {expanded && (
         <div
           style={{
@@ -244,8 +223,13 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
             animation: 'fadeIn 0.2s ease-out',
           }}
         >
+          {/* 能力标签栏（移入展开区顶部） */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', paddingTop: '0.75rem', paddingBottom: '0.65rem' }}>
+            <CapabilityChips platform={id} accentColor={accentColor} />
+          </div>
+
           {/* 配置字段 */}
-          <div style={{ display: 'grid', gap: '0.65rem', paddingTop: '0.85rem' }}>
+          <div style={{ display: 'grid', gap: '0.65rem', paddingTop: '0.2rem', borderTop: '1px solid var(--border-color)' }}>
             {children}
           </div>
 
@@ -298,6 +282,23 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
                 {externalLinkLabel}
               </a>
             )}
+
+            {/* API 文档链接 */}
+            {docLink && (
+              <a
+                href={docLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+                  fontSize: '0.78rem', color: 'var(--text-muted)',
+                  textDecoration: 'none',
+                }}
+              >
+                <BookOpen size={13} />
+                文档
+              </a>
+            )}
           </div>
         </div>
       )}
@@ -318,6 +319,10 @@ export const Settings: React.FC = () => {
     setExpandedPlatform(prev => (prev === platform ? null : platform));
   }, []);
 
+  // MiniMax 协议切换（UI 本地状态，不持久化到 ApiConfig；两个 URL 字段都已存在）
+  // 默认 anthropic，与火山引擎协议下拉范式一致
+  const [minimaxProtocol, setMinimaxProtocol] = useState<'anthropic' | 'openai'>('anthropic');
+
   // 监听配置变化，自动保存
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -337,9 +342,6 @@ export const Settings: React.FC = () => {
     showToast('success', `已切换到${meta?.name ?? platform}平台`);
   }, [showToast]);
 
-  // 当前激活平台元信息
-  const activeMeta = PLATFORM_METADATA[config.activePlatform];
-
   // Model management state
   const [textModels, setTextModels] = useState<ModelInfo[]>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
@@ -355,11 +357,6 @@ export const Settings: React.FC = () => {
     });
   }, []);
 
-  // File management state
-  const [files, setFiles] = useState<FileItem[]>([]);
-  const [isLoadingFiles, setIsLoadingFiles] = useState(false);
-  const [deletingFileId, setDeletingFileId] = useState<string | null>(null);
-
   const handleRefreshModels = async () => {
     setIsLoadingModels(true);
     try {
@@ -372,31 +369,6 @@ export const Settings: React.FC = () => {
       showToast('error', getErrorMessage(e, t('models.refreshFailed')));
     } finally {
       setIsLoadingModels(false);
-    }
-  };
-
-  const handleLoadFiles = async () => {
-    setIsLoadingFiles(true);
-    try {
-      const result = await fileManagementService.listFiles();
-      setFiles(result.files);
-    } catch (e) {
-      showToast('error', getErrorMessage(e, t('models.refreshFailed')));
-    } finally {
-      setIsLoadingFiles(false);
-    }
-  };
-
-  const handleDeleteFile = async (fileId: string) => {
-    setDeletingFileId(fileId);
-    try {
-      await fileManagementService.deleteFile(fileId);
-      setFiles(prev => prev.filter(f => f.fileId !== fileId));
-      showToast('success', t('settings.fileDeleted'));
-    } catch (e) {
-      showToast('error', getErrorMessage(e, t('settings.fileDeleteFailed')));
-    } finally {
-      setDeletingFileId(null);
     }
   };
 
@@ -417,28 +389,20 @@ export const Settings: React.FC = () => {
     }
   };
 
-  /** 切换火山协议时联动：重置 Base URL 并清空 API Key（两种协议 Key 不通用） */
+  /** 切换火山协议时联动：清空 API Key（两种协议 Key 不通用）并 Toast 提示 */
   const handleVolcProtocolChange = (protocol: VolcArkProtocol) => {
+    if (protocol === config.volcArkProtocol) return;
     handleChange('volcArkProtocol', protocol);
     // 协议切换时清空 API Key（标准 Key 与 Agent Plan Key 不互通）
     if (config.volcArkApiKey.trim()) {
       handleChange('volcArkApiKey', '');
-    }
-  };
-
-  const handleCozeValidate = async () => {
-    const result = await validateCozeToken(config.cozePatToken, config.cozeBaseUrl);
-    if (result.ok) {
-      showToast('success', t('settings.cozeValidateSuccess'));
-    } else {
-      showToast('error', t('settings.cozeValidateFailed', { error: result.error }));
+      showToast('info', t('settings.volcArkProtocolSwitched', { defaultValue: '已切换协议，请重新填写 API Key' }));
     }
   };
 
   // 检查平台是否已配置
   const isMiniMaxConfigured = !!config.minimaxApiKey.trim();
   const isVolcConfigured = !!config.volcArkApiKey.trim();
-  const isCozeConfigured = !!config.cozePatToken.trim();
   const isKlingConfigured = !!config.klingAccessKey.trim() && !!config.klingSecretKey.trim();
   const isWanConfigured = !!config.wanApiKey.trim();
   const isHunyuanConfigured = !!config.hunyuanSecretId.trim() && !!config.hunyuanSecretKey.trim();
@@ -481,12 +445,18 @@ export const Settings: React.FC = () => {
             gap: '0.75rem',
             cursor: 'pointer',
           }}>
-            <input
-              type="checkbox"
-              checked={config.vconsoleEnabled}
-              onChange={e => handleChange('vconsoleEnabled', e.target.checked)}
-              style={{ width: '1rem', height: '1rem', cursor: 'pointer' }}
-            />
+            <span className="settings-toggle">
+              <input
+                type="checkbox"
+                role="switch"
+                aria-checked={config.vconsoleEnabled}
+                checked={config.vconsoleEnabled}
+                onChange={e => handleChange('vconsoleEnabled', e.target.checked)}
+              />
+              <span className="settings-toggle-track">
+                <span className="settings-toggle-thumb" />
+              </span>
+            </span>
             <div>
               <div style={{ fontSize: '0.88rem', fontWeight: 500, color: 'var(--text-main)' }}>
                 启用 vConsole 调试面板
@@ -512,69 +482,13 @@ export const Settings: React.FC = () => {
           平台配置
         </h2>
 
-        {/* ── 当前激活平台 Hero Banner ── */}
-        {activeMeta && (
-          <div
-            className="glass-panel"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '1rem',
-              padding: '1rem 1.25rem',
-              marginBottom: '0.75rem',
-              border: `1px solid ${activeMeta.accentColor}44`,
-              borderLeft: `4px solid ${activeMeta.accentColor}`,
-              background: `linear-gradient(135deg, ${activeMeta.accentColor}10, var(--bg-panel))`,
-              boxShadow: `0 4px 20px ${activeMeta.accentColor}1a`,
-            }}
-          >
-            <div
-              style={{
-                width: 52,
-                height: 52,
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '1.8rem',
-                background: `${activeMeta.accentColor}1f`,
-                border: `1px solid ${activeMeta.accentColor}40`,
-                flexShrink: 0,
-              }}
-            >
-              {activeMeta.icon}
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: activeMeta.accentColor, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  当前激活
-                </span>
-                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                  {activeMeta.name} · {activeMeta.brand}
-                </h3>
-              </div>
-              <p style={{ margin: '0.2rem 0 0', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                {activeMeta.description} · 能力：{getCapabilitySummary(config.activePlatform)}
-              </p>
-            </div>
-            <a
-              href={activeMeta.externalLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
-                fontSize: '0.78rem', color: activeMeta.accentColor,
-                textDecoration: 'none', flexShrink: 0,
-              }}
-            >
-              <ExternalLink size={14} />
-              文档
-            </a>
-          </div>
-        )}
 
-        {/* ── 平台卡片网格（2 列） ── */}
-        <div style={{
+        {/* ── 分组① 全模态平台 ── */}
+        <div className="settings-platform-group-title">
+          <span>全模态平台</span>
+          <span className="settings-platform-group-hint">视频/图片/文本/语音/音乐</span>
+        </div>
+        <div className="settings-platform-grid" style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
           gap: '0.75rem',
@@ -594,8 +508,24 @@ export const Settings: React.FC = () => {
             validateLabel="验证"
             externalLink="https://platform.minimaxi.com/user-center/basic-information/interface-key"
             externalLinkLabel="获取 Token"
+            docLink={PLATFORM_METADATA.minimax.docLink}
             accentColor="#6366f1"
           >
+            {/* 接入协议下拉：默认 Anthropic 兼容，可切换 OpenAI 格式 */}
+            <FormField
+              label={t('settings.volcArkProtocolLabel', { defaultValue: '接入协议' })}
+              value={minimaxProtocol}
+              onChange={v => setMinimaxProtocol(v as 'anthropic' | 'openai')}
+              type="select"
+              options={[
+                { value: 'anthropic', label: t('settings.minimaxProtocolAnthropic', { defaultValue: 'Anthropic 兼容' }) },
+                { value: 'openai', label: t('settings.minimaxProtocolOpenai', { defaultValue: 'OpenAI 格式' }) },
+              ]}
+              hint={minimaxProtocol === 'anthropic'
+                ? t('settings.minimaxProtocolAnthropicHint', { defaultValue: '使用 /anthropic 端点，兼容 Anthropic SDK 调用' })
+                : t('settings.minimaxProtocolOpenaiHint', { defaultValue: '使用 /v1 端点，兼容 OpenAI SDK 调用' })
+              }
+            />
             <FormField
               label={t('settings.apiKeyLabel')}
               value={config.minimaxApiKey}
@@ -605,19 +535,22 @@ export const Settings: React.FC = () => {
               autoComplete="off"
               showKeyIcon
             />
-            <FormField
-              label={t('settings.baseUrlLabel')}
-              value={config.minimaxBaseUrl}
-              onChange={v => handleChange('minimaxBaseUrl', v)}
-              placeholder={t('settings.baseUrlPlaceholder')}
-            />
-            <FormField
-              label={t('settings.anthropicBaseUrlLabel')}
-              value={config.minimaxAnthropicBaseUrl}
-              onChange={v => handleChange('minimaxAnthropicBaseUrl', v)}
-              placeholder={t('settings.anthropicBaseUrlPlaceholder')}
-              hint={t('settings.anthropicBaseUrlHint')}
-            />
+            {minimaxProtocol === 'openai' ? (
+              <FormField
+                label={t('settings.baseUrlLabel', { defaultValue: 'OpenAI Base URL' })}
+                value={config.minimaxBaseUrl}
+                onChange={v => handleChange('minimaxBaseUrl', v)}
+                placeholder={t('settings.baseUrlPlaceholder')}
+              />
+            ) : (
+              <FormField
+                label={t('settings.anthropicBaseUrlLabel', { defaultValue: 'Anthropic Base URL' })}
+                value={config.minimaxAnthropicBaseUrl}
+                onChange={v => handleChange('minimaxAnthropicBaseUrl', v)}
+                placeholder={t('settings.anthropicBaseUrlPlaceholder')}
+                hint={t('settings.anthropicBaseUrlHint')}
+              />
+            )}
           </PlatformCard>
 
           {/* Volcano Engine */}
@@ -635,40 +568,29 @@ export const Settings: React.FC = () => {
             validateLabel={t('settings.volcValidateBtn')}
             externalLink="https://console.volcengine.com/ark"
             externalLinkLabel="获取 Token"
+            docLink={PLATFORM_METADATA.volcengine.docLink}
             accentColor="#f97316"
           >
-            {/* 接入协议选择 */}
-            <div className="settings-form-row">
-              <label className="settings-form-label">{t('settings.volcArkProtocolLabel', { defaultValue: '接入协议' })}</label>
-              <div className="settings-radio-group">
-                <label className="settings-radio-item">
-                  <input
-                    type="radio"
-                    name="volcArkProtocol"
-                    value="openai"
-                    checked={config.volcArkProtocol === 'openai'}
-                    onChange={() => handleVolcProtocolChange('openai')}
-                  />
-                  <span>{t('settings.volcArkProtocolOpenai', { defaultValue: '标准后付费（OpenAI 协议）' })}</span>
-                  <span className="settings-radio-hint">{t('settings.volcArkProtocolOpenaiHint', { defaultValue: '支持：文本/图片/视频/语音/3D 全能力' })}</span>
-                </label>
-                <label className="settings-radio-item">
-                  <input
-                    type="radio"
-                    name="volcArkProtocol"
-                    value="anthropic"
-                    checked={config.volcArkProtocol === 'anthropic'}
-                    onChange={() => handleVolcProtocolChange('anthropic')}
-                  />
-                  <span>{t('settings.volcArkProtocolAnthropic', { defaultValue: 'Agent Plan 订阅（Anthropic 协议）' })}</span>
-                  <span className="settings-radio-hint">{t('settings.volcArkProtocolAnthropicHint', { defaultValue: '仅支持文本生成（视觉模型需 Skill 调用）' })}</span>
-                </label>
-              </div>
-            </div>
+            {/* 接入协议下拉：默认 Anthropic，可切换 OpenAI */}
+            <FormField
+              label={t('settings.volcArkProtocolLabel', { defaultValue: '接入协议' })}
+              value={config.volcArkProtocol}
+              onChange={v => handleVolcProtocolChange(v as VolcArkProtocol)}
+              type="select"
+              options={[
+                { value: 'anthropic', label: t('settings.volcArkProtocolAnthropic', { defaultValue: 'Agent Plan 订阅（Anthropic 协议）' }) },
+                { value: 'openai', label: t('settings.volcArkProtocolOpenai', { defaultValue: '标准后付费（OpenAI 协议）' }) },
+              ]}
+              hint={config.volcArkProtocol === 'anthropic'
+                ? t('settings.volcArkProtocolAnthropicHint', { defaultValue: '仅支持文本生成；图片/视频/语音/3D 入口将置灰' })
+                : t('settings.volcArkProtocolOpenaiHint', { defaultValue: '支持文本/图片/视频/语音/3D 全能力' })
+              }
+            />
 
             {config.volcArkProtocol === 'anthropic' && (
-              <div className="settings-alert settings-alert-warning">
-                ⚠️ {t('settings.volcArkAnthropicWarning', { defaultValue: 'Agent Plan 模式仅支持文本生成。图片/视频/语音/3D 入口将置灰。请填入 Agent Plan 专属 API Key（非标准 API Key）。' })}
+              <div className="settings-alert settings-alert-warning" role="status" aria-live="polite">
+                <AlertTriangle size={14} className="settings-alert-icon" />
+                <span>{t('settings.volcArkAnthropicWarning', { defaultValue: 'Agent Plan 模式仅支持文本生成。图片/视频/语音/3D 入口将置灰。请填入 Agent Plan 专属 API Key（非标准 API Key）。' })}</span>
               </div>
             )}
 
@@ -687,7 +609,7 @@ export const Settings: React.FC = () => {
 
             {config.volcArkProtocol === 'openai' ? (
               <FormField
-                label={t('settings.volcArkBaseUrlLabel')}
+                label={t('settings.volcArkBaseUrlLabel', { defaultValue: 'OpenAI Base URL' })}
                 value={config.volcArkBaseUrl}
                 onChange={v => handleChange('volcArkBaseUrl', v)}
                 placeholder={t('settings.volcArkBaseUrlPlaceholder')}
@@ -710,47 +632,18 @@ export const Settings: React.FC = () => {
               </>
             )}
           </PlatformCard>
+        </div>
 
-          {/* Coze */}
-          <PlatformCard
-            id="coze"
-            icon="🤖"
-            name="Coze"
-            description="Bot 应用 · 对话管理"
-            isActive={config.activePlatform === 'coze'}
-            isConfigured={isCozeConfigured}
-            expanded={expandedPlatform === 'coze'}
-            onToggleExpand={() => toggleExpand('coze')}
-            onActivate={() => handleActivate('coze')}
-            onValidate={handleCozeValidate}
-            validateLabel={t('settings.cozeValidateBtn')}
-            externalLink="https://www.coze.cn"
-            externalLinkLabel="获取 Token"
-            accentColor="#8b5cf6"
-          >
-            <FormField
-              label={t('settings.cozePatTokenLabel')}
-              value={config.cozePatToken}
-              onChange={v => handleChange('cozePatToken', v)}
-              type="password"
-              placeholder={t('settings.cozePatTokenPlaceholder')}
-              autoComplete="off"
-              showKeyIcon
-            />
-            <FormField
-              label={t('settings.cozeBaseUrlLabel')}
-              value={config.cozeBaseUrl}
-              onChange={v => handleChange('cozeBaseUrl', v)}
-              placeholder={t('settings.cozeBaseUrlPlaceholder')}
-            />
-            <FormField
-              label={t('settings.cozeSpaceIdLabel')}
-              value={config.cozeSpaceId}
-              onChange={v => handleChange('cozeSpaceId', v)}
-              placeholder={t('settings.cozeSpaceIdPlaceholder')}
-            />
-          </PlatformCard>
-
+        {/* ── 分组② 垂直生成平台 ── */}
+        <div className="settings-platform-group-title">
+          <span>垂直生成平台</span>
+          <span className="settings-platform-group-hint">视频/图片为主</span>
+        </div>
+        <div className="settings-platform-grid" style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
+          gap: '0.75rem',
+        }}>
           {/* 可灵 Kling */}
           <PlatformCard
             id="kling"
@@ -766,6 +659,7 @@ export const Settings: React.FC = () => {
             validateLabel="验证"
             externalLink={PLATFORM_METADATA.kling.externalLink}
             externalLinkLabel="获取 Key"
+            docLink={PLATFORM_METADATA.kling.docLink}
             accentColor={PLATFORM_METADATA.kling.accentColor}
           >
             <FormField
@@ -811,6 +705,7 @@ export const Settings: React.FC = () => {
             validateLabel="验证"
             externalLink={PLATFORM_METADATA.wan.externalLink}
             externalLinkLabel="获取 Key"
+            docLink={PLATFORM_METADATA.wan.docLink}
             accentColor={PLATFORM_METADATA.wan.accentColor}
           >
             <FormField
@@ -846,6 +741,7 @@ export const Settings: React.FC = () => {
             validateLabel="验证"
             externalLink={PLATFORM_METADATA.hunyuan.externalLink}
             externalLinkLabel="获取 Key"
+            docLink={PLATFORM_METADATA.hunyuan.docLink}
             accentColor={PLATFORM_METADATA.hunyuan.accentColor}
           >
             <FormField
@@ -892,6 +788,7 @@ export const Settings: React.FC = () => {
             validateLabel="验证"
             externalLink={PLATFORM_METADATA.zhipu.externalLink}
             externalLinkLabel="获取 Key"
+            docLink={PLATFORM_METADATA.zhipu.docLink}
             accentColor={PLATFORM_METADATA.zhipu.accentColor}
           >
             <FormField
@@ -927,6 +824,7 @@ export const Settings: React.FC = () => {
             validateLabel="验证"
             externalLink={PLATFORM_METADATA.vidu.externalLink}
             externalLinkLabel="获取 Key"
+            docLink={PLATFORM_METADATA.vidu.docLink}
             accentColor={PLATFORM_METADATA.vidu.accentColor}
           >
             <FormField
@@ -946,6 +844,18 @@ export const Settings: React.FC = () => {
               placeholder="https://api.vidu.cn"
             />
           </PlatformCard>
+        </div>
+
+        {/* ── 分组③ 应用与编排 ── */}
+        <div className="settings-platform-group-title">
+          <span>应用与编排</span>
+          <span className="settings-platform-group-hint">Bot 应用 · 对话管理</span>
+        </div>
+        <div className="settings-platform-grid" style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
+          gap: '0.75rem',
+        }}>
         </div>
       </div>
 
@@ -1034,75 +944,17 @@ export const Settings: React.FC = () => {
         </div>
       </SettingsSection>
 
-      {/* ── File Management Section ──────────────────────── */}
-      <SettingsSection
-        icon={<FolderOpen size={20} />}
-        title={t('settings.fileManagement')}
-        badge={undefined}
-        defaultExpanded={false}
-      >
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
-          <button
-            type="button"
-            className="btn btn-secondary btn-xs"
-            disabled={isLoadingFiles}
-            onClick={handleLoadFiles}
-          >
-            {isLoadingFiles ? <RefreshCw size={12} className="spin" /> : <RefreshCw size={12} />}
-            {t('settings.loadFilesBtn')}
-          </button>
-        </div>
-
-        {files.length > 0 ? (
-          <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-            <table style={{ width: '100%', fontSize: '0.8rem', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
-                  <th style={{ textAlign: 'left', padding: '0.5rem' }}>{t('settings.fileName')}</th>
-                  <th style={{ textAlign: 'left', padding: '0.5rem' }}>{t('settings.filePurpose')}</th>
-                  <th style={{ textAlign: 'right', padding: '0.5rem' }}>{t('settings.fileSize')}</th>
-                  <th style={{ textAlign: 'center', padding: '0.5rem' }}>{t('settings.fileAction')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {files.map(f => (
-                  <tr key={f.fileId} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                    <td style={{ padding: '0.5rem', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {f.filename || f.fileId}
-                    </td>
-                    <td style={{ padding: '0.5rem' }}>{f.purpose}</td>
-                    <td style={{ padding: '0.5rem', textAlign: 'right' }}>{(f.bytes / 1024).toFixed(1)} KB</td>
-                    <td style={{ padding: '0.5rem', textAlign: 'center' }}>
-                      <button
-                        type="button"
-                        className="btn btn-secondary"
-                        style={{ padding: '0.2rem 0.4rem', fontSize: '0.7rem', color: '#f87171' }}
-                        disabled={deletingFileId === f.fileId}
-                        onClick={() => handleDeleteFile(f.fileId)}
-                      >
-                        {deletingFileId === f.fileId ? <RefreshCw size={10} className="spin" /> : <Trash2 size={10} />}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'center', padding: '2rem' }}>
-            {isLoadingFiles ? t('models.refreshing') : t('settings.noFiles')}
-          </p>
-        )}
-      </SettingsSection>
-
       {/* ── 本地保存路径（避开外部 OSS CORS） ─────────────── */}
       <LocalStorageSettingsSection />
 
       {/* ── 媒体缓存（Service Worker） ─────────────────── */}
       <MediaCacheSettingsSection />
 
+      {/* ── AI 调用成本统计（P1-21） ─────────────────── */}
+      <CostMeterSection />
+
       {/* ── Auto-save indicator ─────────────────────────── */}
-      <div style={{
+      <div className="settings-autosave-floating" style={{
         position: 'fixed',
         bottom: '1.5rem',
         right: '1.5rem',
@@ -1571,7 +1423,7 @@ function MediaCacheSettingsSection() {
             className="btn btn-danger"
             onClick={handleClear}
             disabled={isClearing || stats === null}
-            style={{ background: 'rgba(248, 113, 113, 0.2)', color: '#f87171' }}
+            style={{ background: 'rgba(248, 113, 113, 0.2)', color: 'var(--color-danger)' }}
           >
             <Trash2 size={14} />
             {isClearing

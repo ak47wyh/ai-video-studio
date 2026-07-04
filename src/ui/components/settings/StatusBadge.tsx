@@ -1,7 +1,7 @@
 import React from 'react';
 import { CheckCircle, AlertCircle } from 'lucide-react';
 
-export type BadgeStatus = 'live' | 'mock' | 'connected' | 'inactive' | 'error';
+export type BadgeStatus = 'live' | 'mock' | 'connected' | 'inactive' | 'error' | 'ready';
 
 interface StatusBadgeProps {
   status: BadgeStatus;
@@ -32,6 +32,12 @@ const BADGE_CONFIG: Record<BadgeStatus, { bg: string; color: string; border: str
     color: '#fbbf24',
     border: 'rgba(251, 191, 36, 0.4)',
     icon: AlertCircle,
+  },
+  ready: {
+    bg: 'rgba(148, 163, 184, 0.15)',
+    color: '#94a3b8',
+    border: 'rgba(148, 163, 184, 0.4)',
+    icon: CheckCircle,
   },
   error: {
     bg: 'rgba(248, 113, 113, 0.15)',

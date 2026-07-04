@@ -1,5 +1,5 @@
 /* 清晰度提升实验室样式
- * 与 WatermarkLab.css 结构对齐，主色采用靛蓝 #6366f1（与去水印粉色区分）
+ * 与 WatermarkLab.css 结构对齐，主色采用 --lab-color-enhance（语义令牌，随主题切换）
  */
 
 .enhance-panel {
@@ -15,30 +15,30 @@
   justify-content: center;
   gap: 0.75rem;
   min-height: 300px;
-  border: 2px dashed rgba(99, 102, 241, 0.3);
+  border: 2px dashed color-mix(in srgb, var(--lab-color-enhance) 30%, transparent);
   border-radius: var(--radius-lg);
-  background: rgba(99, 102, 241, 0.03);
+  background: color-mix(in srgb, var(--lab-color-enhance) 3%, transparent);
   cursor: pointer;
-  transition: border-color 0.2s, background 0.2s;
+  transition: border-color var(--motion-fast), background var(--motion-fast);
   padding: 2rem;
   text-align: center;
 }
 
 .enhance-upload-zone:hover {
-  border-color: rgba(99, 102, 241, 0.6);
-  background: rgba(99, 102, 241, 0.06);
+  border-color: color-mix(in srgb, var(--lab-color-enhance) 60%, transparent);
+  background: color-mix(in srgb, var(--lab-color-enhance) 6%, transparent);
 }
 
 .enhance-editor-layout {
   display: flex;
-  gap: 1rem;
+  gap: var(--space-md);
   align-items: flex-start;
   flex-wrap: wrap;
 }
 
 .enhance-canvas-area {
   flex: 1;
-  min-width: 400px;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -46,13 +46,13 @@
 
 .enhance-params-panel {
   width: 280px;
-  min-width: 240px;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
   padding: 1rem;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
 }
 
@@ -67,7 +67,7 @@
 .enhance-progress {
   width: 100%;
   height: 6px;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--bg-panel-hover);
   border-radius: 3px;
   overflow: hidden;
   margin-top: 0.5rem;
@@ -75,26 +75,26 @@
 
 .enhance-progress-bar {
   height: 100%;
-  background: linear-gradient(90deg, #6366f1, #818cf8);
+  background: linear-gradient(90deg, var(--lab-color-enhance), var(--primary-color));
   border-radius: 3px;
-  transition: width 0.3s ease;
+  transition: width var(--motion-normal) var(--ease-standard);
 }
 
 .enhance-retry-hint {
   padding: 0.5rem 0.75rem;
-  font-size: 0.75rem;
-  color: #f59e0b;
-  background: rgba(245, 158, 11, 0.08);
-  border: 1px solid rgba(245, 158, 11, 0.25);
+  font-size: var(--font-size-xs);
+  color: var(--color-warning);
+  background: var(--color-warning-bg);
+  border: 1px solid var(--color-warning-border);
   border-radius: var(--radius-sm);
   line-height: 1.4;
 }
 
 .enhance-params-panel .btn-generate {
-  background: linear-gradient(135deg, #6366f1, #818cf8);
+  background: linear-gradient(135deg, var(--lab-color-enhance), var(--primary-color));
   border: none;
   padding: 0.6rem 1rem;
-  font-size: 0.85rem;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   width: 100%;
   display: flex;
@@ -102,9 +102,9 @@
   justify-content: center;
   gap: 0.5rem;
   border-radius: var(--radius-md);
-  color: #fff;
+  color: var(--text-inverse);
   cursor: pointer;
-  transition: opacity 0.2s, transform 0.1s;
+  transition: opacity var(--motion-fast), transform var(--motion-fast);
 }
 
 .enhance-params-panel .btn-generate:hover:not(:disabled) {
@@ -118,4 +118,19 @@
 .enhance-params-panel .btn-generate:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* ===== 响应式：移动端堆叠（P0-5，UI 交互优化 §7.2） ===== */
+@media (max-width: 768px) {
+  .enhance-editor-layout {
+    flex-direction: column;
+  }
+
+  .enhance-params-panel {
+    width: 100%;
+  }
+
+  .enhance-canvas-area {
+    width: 100%;
+  }
 }

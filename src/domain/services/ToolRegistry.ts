@@ -198,6 +198,7 @@ const TOOL_DEFINITIONS = {
         type: 'string',
         enum: ['fade', 'fadeblack', 'fadewhite', 'wipeleft', 'wiperight', 'slideup', 'slidedown'],
         default: 'fade',
+        description: '转场类型：fade 淡入淡出 / fadeblack 黑场过渡 / fadewhite 白场过渡 / wipeleft 左擦除 / wiperight 右擦除 / slideup 上滑 / slidedown 下滑',
       },
       duration: { type: 'number', description: '转场时长（秒）', default: 0.5 },
     },
@@ -467,13 +468,13 @@ export class ToolRegistry {
           ? await this.deps.backgroundRepo.findById(args.backgroundId as string)
           : undefined;
 
-        // 调用 ImageGenerationService（公开方法签名见该 service）
+        // 调用 ImageGenerationService.generateImage（通用方法，接受自由 prompt）
         const result = await this.deps.imageGenerationService.generateImage({
           prompt: args.prompt as string,
           aspectRatio: (args.aspectRatio as '1:1' | '16:9' | '9:16' | '4:3' | '3:4') || '16:9',
           character,
           background,
-        } as Parameters<typeof this.deps.imageGenerationService.generateImage>[0]);
+        });
 
         return {
           success: true,
@@ -543,17 +544,17 @@ export class ToolRegistry {
           };
         }
 
-        // 调用 VoiceService.synthesize（公开方法见 VoiceService）
-        const result = await this.deps.voiceService.synthesize({
+        // 调用 VoiceService.generateAndPersistNarration（持久化到 OPFS）
+        const audioUrl = await this.deps.voiceService.generateAndPersistNarration(
           segmentId,
           text,
-          voiceId: args.voiceId as string | undefined,
-        } as Parameters<typeof this.deps.voiceService.synthesize>[0]);
+          (args.voiceId as string | undefined) ?? '',
+        );
 
         return {
           success: true,
-          data: { audioUrl: result.audioUrl, duration: result.duration },
-          summary: `已生成旁白音频（时长 ${result.duration ?? '?'}s）`,
+          data: { audioUrl, segmentId },
+          summary: `已生成旁白音频并持久化（绑定分镜 ${segmentId}）`,
         };
       },
     });

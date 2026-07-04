@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Users, Image as ImageIcon, BookOpen, Settings, ArrowRight, CheckCircle, XCircle, Clock, Film, Mic, MessageSquare, Sparkles, Music } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useSpaceScopedCharacters, useSpaceScopedBackgrounds, useSpaceScopedStories, useSpaceVideoTaskStats, useRecentStories } from '../hooks/useSpaceScopedQuery';
+import { AgentChatPanel } from '../components/AgentChatPanel';
+import { AsyncState } from '../components/AsyncState';
 
 export const Dashboard: React.FC = () => {
   const { t } = useTranslation();
@@ -29,7 +31,7 @@ export const Dashboard: React.FC = () => {
       count: characterCount,
       countLabel: t('dashboard.charactersCount'),
       path: '/characters',
-      color: '#6366f1'
+      color: 'var(--primary-color)'
     },
     {
       icon: <ImageIcon size={18} />,
@@ -38,7 +40,7 @@ export const Dashboard: React.FC = () => {
       count: backgroundCount,
       countLabel: t('dashboard.backgroundsCount'),
       path: '/backgrounds',
-      color: '#ec4899'
+      color: 'var(--lab-color-image)'
     },
     {
       icon: <BookOpen size={18} />,
@@ -47,7 +49,7 @@ export const Dashboard: React.FC = () => {
       count: storyCount,
       countLabel: t('dashboard.storiesCount'),
       path: '/workbench',
-      color: '#f59e0b'
+      color: 'var(--lab-color-text)'
     },
     {
       icon: <Film size={18} />,
@@ -56,7 +58,7 @@ export const Dashboard: React.FC = () => {
       count: null,
       countLabel: '',
       path: '/export',
-      color: '#8b5cf6'
+      color: 'var(--lab-color-video)'
     },
     {
       icon: <Settings size={18} />,
@@ -65,7 +67,7 @@ export const Dashboard: React.FC = () => {
       count: null,
       countLabel: '',
       path: '/settings',
-      color: '#10b981'
+      color: 'var(--color-info)'
     }
   ];
 
@@ -104,7 +106,7 @@ export const Dashboard: React.FC = () => {
               onKeyDown={(e) => handleCardKeyDown(e, step.path)}
             >
               <div className="dashboard-card-header">
-                <div className="dashboard-card-icon" style={{ background: `${step.color}20`, color: step.color, position: 'relative' }}>
+                <div className="dashboard-card-icon" style={{ background: `color-mix(in srgb, ${step.color} 12%, transparent)`, color: step.color, position: 'relative' }}>
                   {step.icon}
                   <span className="dashboard-step-badge" style={{ background: step.color }}>{index + 1}</span>
                 </div>
@@ -134,11 +136,11 @@ export const Dashboard: React.FC = () => {
         </div>
         <div className="dashboard-grid">
           {[
-            { icon: <ImageIcon size={16} />, label: t('nav.imageLab', '图片生成'), path: '/labs/image', color: '#ec4899', desc: t('dashboard.aiImageDesc', 'AI 图片生成与编辑') },
-            { icon: <Film size={16} />, label: t('nav.videoLab', '视频生成'), path: '/labs/video', color: '#3b82f6', desc: t('dashboard.aiVideoDesc', '文生视频、图生视频、首尾帧、主体参考') },
-            { icon: <Mic size={16} />, label: t('nav.voiceLab', '音色与配音'), path: '/labs/voice', color: '#10b981', desc: t('dashboard.aiVoiceDesc', '音色克隆、文本配音、音色设计') },
-            { icon: <Music size={16} />, label: t('nav.musicLab', '音乐生成'), path: '/labs/music', color: '#8b5cf6', desc: t('dashboard.aiMusicDesc', 'AI 音乐创作与 BGM 生成') },
-            { icon: <MessageSquare size={16} />, label: t('nav.textLab', '文本润色'), path: '/labs/text', color: '#f59e0b', desc: t('dashboard.aiTextDesc', 'AI 文本优化与改写') },
+            { icon: <ImageIcon size={16} />, label: t('nav.imageLab', '图片生成'), path: '/labs/image', color: 'var(--lab-color-image)', desc: t('dashboard.aiImageDesc', 'AI 图片生成与编辑') },
+            { icon: <Film size={16} />, label: t('nav.videoLab', '视频生成'), path: '/labs/video', color: 'var(--lab-color-video)', desc: t('dashboard.aiVideoDesc', '文生视频、图生视频、首尾帧、主体参考') },
+            { icon: <Mic size={16} />, label: t('nav.voiceLab', '音色与配音'), path: '/labs/voice', color: 'var(--lab-color-voice)', desc: t('dashboard.aiVoiceDesc', '音色克隆、文本配音、音色设计') },
+            { icon: <Music size={16} />, label: t('nav.musicLab', '音乐生成'), path: '/labs/music', color: 'var(--lab-color-music)', desc: t('dashboard.aiMusicDesc', 'AI 音乐创作与 BGM 生成') },
+            { icon: <MessageSquare size={16} />, label: t('nav.textLab', '文本润色'), path: '/labs/text', color: 'var(--lab-color-text)', desc: t('dashboard.aiTextDesc', 'AI 文本优化与改写') },
           ].map(item => (
             <div
               key={item.path}
@@ -150,7 +152,7 @@ export const Dashboard: React.FC = () => {
               onKeyDown={(e) => handleCardKeyDown(e, item.path)}
             >
               <div className="dashboard-card-header">
-                <div className="dashboard-card-icon" style={{ background: `${item.color}20`, color: item.color }}>
+                <div className="dashboard-card-icon" style={{ background: `color-mix(in srgb, ${item.color} 12%, transparent)`, color: item.color }}>
                   {item.icon}
                 </div>
                 <span className="dashboard-card-title">{item.label}</span>
@@ -163,38 +165,38 @@ export const Dashboard: React.FC = () => {
 
       {/* Stats row: Video task stats + Recent stories */}
       <div className="dashboard-section">
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '0.75rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))', gap: 'var(--space-sm)' }}>
           {/* Video task stats — inline compact, no nested cards */}
           <div className="dashboard-card" style={{ cursor: 'default' }}>
             <h3 className="dashboard-section-title" style={{ marginBottom: '0.5rem' }}>{t('dashboard.videoStats')}</h3>
             {taskStats.total === 0 ? (
-              <p className="dashboard-card-desc" style={{ textAlign: 'center', padding: '0.75rem 0' }}>{t('dashboard.noVideoStats')}</p>
+              <AsyncState empty emptyText={t('dashboard.noVideoStats')} minHeight={120} />
             ) : (
             <div className="dashboard-stats-row">
-              <div className="dashboard-stat-item" style={{ background: 'rgba(52,211,153,0.08)' }}>
-                <div className="dashboard-stat-icon" style={{ background: 'rgba(52,211,153,0.2)' }}>
-                  <CheckCircle size={16} color="#34d399" />
+              <div className="dashboard-stat-item" style={{ background: 'var(--color-success-bg)' }}>
+                <div className="dashboard-stat-icon" style={{ background: 'color-mix(in srgb, var(--color-success) 20%, transparent)' }}>
+                  <CheckCircle size={16} color="var(--color-success)" />
                 </div>
                 <div>
-                  <div className="dashboard-stat-value" style={{ color: '#34d399' }}>{taskStats.success}</div>
+                  <div className="dashboard-stat-value" style={{ color: 'var(--color-success)' }}>{taskStats.success}</div>
                   <div className="dashboard-stat-label">{t('dashboard.statusSuccess')}</div>
                 </div>
               </div>
-              <div className="dashboard-stat-item" style={{ background: 'rgba(248,113,113,0.08)' }}>
-                <div className="dashboard-stat-icon" style={{ background: 'rgba(248,113,113,0.2)' }}>
-                  <XCircle size={16} color="#f87171" />
+              <div className="dashboard-stat-item" style={{ background: 'var(--color-danger-bg)' }}>
+                <div className="dashboard-stat-icon" style={{ background: 'color-mix(in srgb, var(--color-danger) 20%, transparent)' }}>
+                  <XCircle size={16} color="var(--color-danger)" />
                 </div>
                 <div>
-                  <div className="dashboard-stat-value" style={{ color: '#f87171' }}>{taskStats.failed}</div>
+                  <div className="dashboard-stat-value" style={{ color: 'var(--color-danger)' }}>{taskStats.failed}</div>
                   <div className="dashboard-stat-label">{t('dashboard.statusFailed')}</div>
                 </div>
               </div>
-              <div className="dashboard-stat-item" style={{ background: 'rgba(251,191,36,0.08)' }}>
-                <div className="dashboard-stat-icon" style={{ background: 'rgba(251,191,36,0.2)' }}>
-                  <Clock size={16} color="#fbbf24" />
+              <div className="dashboard-stat-item" style={{ background: 'var(--color-warning-bg)' }}>
+                <div className="dashboard-stat-icon" style={{ background: 'color-mix(in srgb, var(--color-warning) 20%, transparent)' }}>
+                  <Clock size={16} color="var(--color-warning)" />
                 </div>
                 <div>
-                  <div className="dashboard-stat-value" style={{ color: '#fbbf24' }}>{taskStats.processing}</div>
+                  <div className="dashboard-stat-value" style={{ color: 'var(--color-warning)' }}>{taskStats.processing}</div>
                   <div className="dashboard-stat-label">{t('dashboard.statusProcessing')}</div>
                 </div>
               </div>
@@ -206,14 +208,23 @@ export const Dashboard: React.FC = () => {
           <div className="dashboard-card" style={{ cursor: 'default' }}>
             <h3 className="dashboard-section-title" style={{ marginBottom: '0.5rem' }}>{t('dashboard.recentStories')}</h3>
             {(!recentStories || recentStories.length === 0) ? (
-              <p className="dashboard-card-desc">{t('dashboard.noStories')}</p>
+              <AsyncState empty emptyText={t('dashboard.noStories')} minHeight={120} />
             ) : (
               <div className="dashboard-story-list">
                 {recentStories.map(s => (
                   <div
                     key={s.id}
                     className="dashboard-story-item"
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`${t('dashboard.openStory', '打开故事')}《${s.title}》`}
                     onClick={() => handleStoryClick(s.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleStoryClick(s.id);
+                      }
+                    }}
                   >
                     <div>
                       <div className="dashboard-story-title">{s.title}</div>
@@ -222,8 +233,8 @@ export const Dashboard: React.FC = () => {
                       </div>
                     </div>
                     <span className="dashboard-story-badge" style={{
-                      background: s.status === 'SPLIT' ? 'rgba(52,211,153,0.15)' : 'rgba(251,191,36,0.15)',
-                      color: s.status === 'SPLIT' ? '#34d399' : '#fbbf24',
+                      background: s.status === 'SPLIT' ? 'var(--color-success-bg)' : 'var(--color-warning-bg)',
+                      color: s.status === 'SPLIT' ? 'var(--color-success)' : 'var(--color-warning)',
                     }}>
                       {s.status === 'SPLIT' ? t('dashboard.statusSplit') : t('dashboard.statusDraft')}
                     </span>
@@ -232,6 +243,14 @@ export const Dashboard: React.FC = () => {
               </div>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* P1 接入：AI Agent 助手面板（ReAct 工具循环，自然语言驱动端到端创作） */}
+      <div className="dashboard-section">
+        <h3 className="dashboard-section-title">{t('dashboard.agentAssistant', 'AI 创作助手')}</h3>
+        <div style={{ height: 480 }}>
+          <AgentChatPanel />
         </div>
       </div>
     </div>

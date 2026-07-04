@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Download, BookmarkPlus, ImagePlus, X, Maximize2 } from 'lucide-react';
+import { Download, BookmarkPlus, ImagePlus, X, Maximize2, Send } from 'lucide-react';
 
 export interface GalleryImage {
   url: string;
@@ -15,11 +15,12 @@ interface ImageGalleryProps {
   onDownload: (image: GalleryImage) => void;
   onSave: (image: GalleryImage) => void;
   onUseAsReference?: (image: GalleryImage) => void;
+  onSendToSegment?: (image: GalleryImage) => void;
 }
 
 /** 多图画廊组件：网格展示 + 大图模态框 */
 export const ImageGallery: React.FC<ImageGalleryProps> = ({
-  images, onDownload, onSave, onUseAsReference,
+  images, onDownload, onSave, onUseAsReference, onSendToSegment,
 }) => {
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
 
@@ -70,6 +71,14 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({
                 onClick={() => onSave(img)}
                 title="保存到素材库"
               ><BookmarkPlus size={12} /> 保存</button>
+              {onSendToSegment && (
+                <button
+                  className="btn btn-secondary"
+                  style={{ fontSize: '0.7rem', padding: '0.25rem 0.5rem' }}
+                  onClick={() => onSendToSegment(img)}
+                  title="发送到分镜"
+                ><Send size={12} /> 发送到分镜</button>
+              )}
               {onUseAsReference && (
                 <button
                   className="btn btn-secondary"

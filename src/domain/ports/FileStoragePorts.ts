@@ -27,7 +27,7 @@ export interface FileStorageStats {
  * 文件存储端口 — 抽象二进制 Blob 持久化。
  *
  * 主适配器：OPFSFileStorageAdapter（Origin Private File System）
- * 降级适配器：IndexedDBFileStorageAdapter（不支持 OPFS 的浏览器）
+ * 降级适配器：FilesLocalAdapter（Vite 插件 /__files 路由落盘）
  *
  * 职责：
  * - 按文件系统语义存储/检索/删除二进制 Blob

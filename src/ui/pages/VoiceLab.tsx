@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Mic, Volume2, Upload, RefreshCw, Save, BookmarkPlus, Palette, FileText, Trash2, Play, Search, ChevronDown, ChevronUp, ArrowRight } from 'lucide-react';
+import { Mic, Volume2, Upload, RefreshCw, Save, BookmarkPlus, Palette, FileText, Trash2, Play, Search, ChevronDown, ChevronUp, ArrowRight, Send } from 'lucide-react';
 import { voiceService, assetLibraryService } from '../../dependencies';
 import type { T2ASyncModel, VoiceListResult, VoiceInfo } from '../../domain/ports/OutboundPorts';
 import { VOICES_BY_LANGUAGE, LANGUAGE_LABELS } from '../../domain/data/systemVoices';
@@ -11,8 +11,12 @@ import { useSpace } from '../contexts/SpaceContext';
 import { AssetSaveDialog } from '../components/AssetPicker';
 import { AudioPreviewPlayer } from '../components/AudioPreviewPlayer';
 import { LabPageLayout } from '../components/LabPageLayout';
+import { AsyncState } from '../components/AsyncState';
+import { UnsupportedCapabilityNotice } from '../components/UnsupportedCapabilityNotice';
+import { usePlatformCapabilities } from '../hooks/usePlatformCapabilities';
 import { TextAreaWithCounter } from '../components/TextAreaWithCounter';
 import { InputWithCounter } from '../components/InputWithCounter';
+import { SegmentPicker, type SegmentBindField } from '../components/SegmentPicker';
 import { TEXT_LIMITS } from '../../domain/constants/textLimits';
 import { validateTextLimit } from '../utils/validateTextLimit';
 
@@ -36,6 +40,7 @@ export const VoiceLab: React.FC = () => {
   const { showToast } = useToast();
   const { confirm } = useConfirm();
   const { currentSpaceId } = useSpace();
+  const { hasCapability } = usePlatformCapabilities();
 
   const [activeTab, setActiveTab] = useState<VoiceLabTab>('tts');
 
@@ -96,6 +101,9 @@ export const VoiceLab: React.FC = () => {
   const [previewAudioUrl, setPreviewAudioUrl] = useState<string | null>(null);
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [deletingVoiceId, setDeletingVoiceId] = useState<string | null>(null);
+
+  // ==================== SegmentPicker (发送到分镜) ====================
+  const [pickerAsset, setPickerAsset] = useState<{ url: string; field: SegmentBindField; prompt?: string } | null>(null);
 
   // ==================== Blob URL 内存管理 ====================
   const blobUrlsRef = useRef<Set<string>>(new Set());
@@ -416,9 +424,13 @@ export const VoiceLab: React.FC = () => {
   };
 
   // ==================== Tab Buttons ====================
+  // P1 修复：补齐 design/async/manage 三个 Tab 入口（渲染分支已存在但无按钮入口）
   const tabs = [
     { key: 'tts', label: '文本配音', icon: <Volume2 size={16} /> },
-    { key: 'clone', label: '音色克隆', icon: <Mic size={16} />, color: '#ec4899' },
+    { key: 'clone', label: '音色克隆', icon: <Mic size={16} />, color: 'var(--lab-color-voice)' },
+    { key: 'design', label: '音色设计', icon: <Palette size={16} />, color: 'var(--lab-color-image)' },
+    { key: 'async', label: '长文本合成', icon: <FileText size={16} />, color: 'var(--lab-color-text)' },
+    { key: 'manage', label: '音色管理', icon: <Search size={16} />, color: 'var(--lab-color-watermark)' },
   ];
 
   // 合并系统音色 + 自定义音色供 TTS/异步选择器使用
@@ -435,11 +447,16 @@ export const VoiceLab: React.FC = () => {
     return groups;
   })();
 
+  // P1 平台能力前置检测：语音合成仅部分平台支持，不支持时渲染提示
+  if (!hasCapability('voice')) {
+    return <UnsupportedCapabilityNotice capability="voice" />;
+  }
+
   return (
     <LabPageLayout
       icon={<Mic size={32} />}
-      iconBg="rgba(236,72,153,0.1)"
-      iconColor="#ec4899"
+      iconBg="color-mix(in srgb, var(--lab-color-voice) 10%, transparent)"
+      iconColor="var(--lab-color-voice)"
       title="音色实验室 (Voice Lab)"
       subtitle="文本转语音、声音克隆、音色设计、长文本合成与音色管理"
       tabs={tabs}
@@ -666,7 +683,7 @@ export const VoiceLab: React.FC = () => {
 
           <button
             className="btn btn-primary btn-generate"
-            style={{ background: '#ec4899' }}
+            style={{ background: 'var(--lab-color-voice)' }}
             disabled={!cloneFile || !cloneName.trim() || isCloning}
             onClick={handleCloneVoice}
           >
@@ -675,14 +692,14 @@ export const VoiceLab: React.FC = () => {
           </button>
 
           {clonedVoiceId && (
-            <div className="success-banner" style={{ background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.3)' }}>
-              <p style={{ color: '#34d399' }}>克隆成功！Voice ID: <strong>{clonedVoiceId}</strong></p>
+            <div className="success-banner" style={{ background: 'var(--color-success-bg)', border: '1px solid var(--color-success-border)' }}>
+              <p style={{ color: 'var(--color-success)' }}>克隆成功！Voice ID: <strong>{clonedVoiceId}</strong></p>
               {clonePreviewAudioUrl && (
                 <AudioPreviewPlayer
                   key={clonePreviewAudioUrl}
                   src={clonePreviewAudioUrl}
                   autoPlay
-                  accentColor="#34d399"
+                  accentColor="var(--color-success)"
                   downloadFilename={`clone_${clonedVoiceId}.mp3`}
                   onDownload={handleDownloadAudio}
                 />
@@ -691,6 +708,14 @@ export const VoiceLab: React.FC = () => {
                 <button className="btn btn-secondary btn-xs" onClick={() => handleUseVoice(clonedVoiceId)}>
                   <ArrowRight size={14} /> 去配音使用
                 </button>
+                {clonePreviewAudioUrl && (
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => setPickerAsset({ url: clonePreviewAudioUrl, field: 'voice' })}
+                  >
+                    <Send size={12} /> {t('segmentPicker.sendToSegment', '发送到分镜')}
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -738,7 +763,7 @@ export const VoiceLab: React.FC = () => {
 
           <button
             className="btn btn-primary btn-generate"
-            style={{ background: '#8b5cf6' }}
+            style={{ background: 'var(--lab-color-image)' }}
             disabled={!designPrompt.trim() || !designPreviewText.trim() || isDesigning}
             onClick={handleDesignVoice}
           >
@@ -747,13 +772,13 @@ export const VoiceLab: React.FC = () => {
           </button>
 
           {designResult && (
-            <div className="success-banner" style={{ background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.3)' }}>
-              <p style={{ color: '#8b5cf6' }}>音色设计成功！Voice ID: <strong>{designResult.voiceId}</strong></p>
+            <div className="success-banner" style={{ background: 'color-mix(in srgb, var(--lab-color-music) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--lab-color-music) 30%, transparent)' }}>
+              <p style={{ color: 'var(--lab-color-music)' }}>音色设计成功！Voice ID: <strong>{designResult.voiceId}</strong></p>
               <AudioPreviewPlayer
                 key={designResult.audioUrl}
                 src={designResult.audioUrl}
                 autoPlay
-                accentColor="#8b5cf6"
+                accentColor="var(--lab-color-image)"
                 downloadFilename={`design_${designResult.voiceId}.mp3`}
                 onDownload={handleDownloadAudio}
               />
@@ -805,7 +830,7 @@ export const VoiceLab: React.FC = () => {
 
           <button
             className="btn btn-primary btn-generate"
-            style={{ background: '#f59e0b' }}
+            style={{ background: 'var(--color-warning)' }}
             disabled={!asyncText.trim() || isCreatingAsyncTask}
             onClick={handleCreateAsyncTask}
           >
@@ -814,7 +839,9 @@ export const VoiceLab: React.FC = () => {
           </button>
 
           {/* 任务列表 */}
-          {asyncTasks.length > 0 && (
+          {asyncTasks.length === 0 ? (
+            <AsyncState empty emptyText="暂无异步任务" />
+          ) : (
             <div>
               <label className="form-label">任务列表</label>
               {asyncTasks.map((task, idx) => (
@@ -823,19 +850,19 @@ export const VoiceLab: React.FC = () => {
                     任务 #{idx + 1}: "{task.text}..."
                   </span>
                   {task.status === 'processing' && (
-                    <span style={{ color: '#f59e0b', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                    <span style={{ color: 'var(--color-warning)', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                       <RefreshCw size={14} className="spin" /> 处理中...
                     </span>
                   )}
                   {task.status === 'success' && (
                     <>
-                      <span style={{ color: '#34d399', fontSize: '0.85rem' }}>已完成</span>
+                      <span style={{ color: 'var(--color-success)', fontSize: '0.85rem' }}>已完成</span>
                       {task.audioUrl && (
                         <AudioPreviewPlayer
                           key={task.audioUrl}
                           src={task.audioUrl}
                           compact
-                          accentColor="#f59e0b"
+                          accentColor="var(--color-warning)"
                           showWaveform={false}
                           downloadFilename={`async_${task.taskId}.mp3`}
                           onDownload={handleDownloadAudio}
@@ -845,7 +872,7 @@ export const VoiceLab: React.FC = () => {
                     </>
                   )}
                   {task.status === 'failed' && (
-                    <span style={{ color: '#ef4444', fontSize: '0.85rem' }}>失败: {task.error}</span>
+                    <span style={{ color: 'var(--color-danger)', fontSize: '0.85rem' }}>失败: {task.error}</span>
                   )}
                 </div>
               ))}
@@ -905,11 +932,11 @@ export const VoiceLab: React.FC = () => {
           {/* 克隆音色 */}
           {voiceList?.clonedVoices && voiceFilter !== 'system' && voiceFilter !== 'voice_generation' && (
             <div>
-              <h3 style={{ fontSize: '0.9rem', margin: '0 0 0.5rem 0', color: '#ec4899' }}>克隆音色 ({voiceList.clonedVoices.length})</h3>
+              <h3 style={{ fontSize: '0.9rem', margin: '0 0 0.5rem 0', color: 'var(--lab-color-voice)' }}>克隆音色 ({voiceList.clonedVoices.length})</h3>
               {voiceList.clonedVoices
                 .filter(v => !voiceSearch || v.voiceId.toLowerCase().includes(voiceSearch.toLowerCase()))
                 .map(v => (
-                <div key={v.voiceId} className="lab-voice-custom-card" style={{ background: 'rgba(236,72,153,0.05)', border: '1px solid rgba(236,72,153,0.15)' }}>
+                <div key={v.voiceId} className="lab-voice-custom-card" style={{ background: 'color-mix(in srgb, var(--lab-color-voice) 5%, transparent)', border: '1px solid color-mix(in srgb, var(--lab-color-voice) 15%, transparent)' }}>
                   <div className="lab-voice-custom-info">
                     <p className="lab-voice-card-name">{v.voiceName || v.voiceId}</p>
                     <p className="lab-voice-card-id">创建: {v.createdTime || '未知'}</p>
@@ -923,7 +950,7 @@ export const VoiceLab: React.FC = () => {
                     onClick={() => handleUseVoice(v.voiceId)}>
                     <ArrowRight size={12} /> 使用
                   </button>
-                  <button className="btn btn-secondary btn-xs" style={{ color: '#ef4444' }}
+                  <button className="btn btn-secondary btn-xs" style={{ color: 'var(--color-danger)' }}
                     disabled={deletingVoiceId === v.voiceId}
                     onClick={() => handleDeleteVoice('voice_cloning', v.voiceId)}>
                     <Trash2 size={12} /> 删除
@@ -936,11 +963,11 @@ export const VoiceLab: React.FC = () => {
           {/* 设计音色 */}
           {voiceList?.designedVoices && voiceFilter !== 'system' && voiceFilter !== 'voice_cloning' && (
             <div>
-              <h3 style={{ fontSize: '0.9rem', margin: '0 0 0.5rem 0', color: '#8b5cf6' }}>设计音色 ({voiceList.designedVoices.length})</h3>
+              <h3 style={{ fontSize: '0.9rem', margin: '0 0 0.5rem 0', color: 'var(--lab-color-music)' }}>设计音色 ({voiceList.designedVoices.length})</h3>
               {voiceList.designedVoices
                 .filter(v => !voiceSearch || v.voiceId.toLowerCase().includes(voiceSearch.toLowerCase()))
                 .map(v => (
-                <div key={v.voiceId} className="lab-voice-custom-card" style={{ background: 'rgba(139,92,246,0.05)', border: '1px solid rgba(139,92,246,0.15)' }}>
+                <div key={v.voiceId} className="lab-voice-custom-card" style={{ background: 'color-mix(in srgb, var(--lab-color-music) 5%, transparent)', border: '1px solid color-mix(in srgb, var(--lab-color-music) 15%, transparent)' }}>
                   <div className="lab-voice-custom-info">
                     <p className="lab-voice-card-name">{v.voiceName || v.voiceId}</p>
                     <p className="lab-voice-card-id">创建: {v.createdTime || '未知'}</p>
@@ -954,7 +981,7 @@ export const VoiceLab: React.FC = () => {
                     onClick={() => handleUseVoice(v.voiceId)}>
                     <ArrowRight size={12} /> 使用
                   </button>
-                  <button className="btn btn-secondary btn-xs" style={{ color: '#ef4444' }}
+                  <button className="btn btn-secondary btn-xs" style={{ color: 'var(--color-danger)' }}
                     disabled={deletingVoiceId === v.voiceId}
                     onClick={() => handleDeleteVoice('voice_generation', v.voiceId)}>
                     <Trash2 size={12} /> 删除
@@ -964,13 +991,21 @@ export const VoiceLab: React.FC = () => {
             </div>
           )}
 
+          {/* 空状态：所有音色为空 */}
+          {voiceList &&
+            (!voiceList.systemVoices || voiceList.systemVoices.length === 0) &&
+            (!voiceList.clonedVoices || voiceList.clonedVoices.length === 0) &&
+            (!voiceList.designedVoices || voiceList.designedVoices.length === 0) && (
+            <AsyncState empty emptyText="暂无音色" />
+          )}
+
           {/* 试听播放器 */}
           {previewAudioUrl && (
             <AudioPreviewPlayer
               key={previewAudioUrl}
               src={previewAudioUrl}
               autoPlay
-              accentColor="#06b6d4"
+              accentColor="var(--lab-color-voice)"
               title={previewingVoiceId || undefined}
               downloadFilename={`preview_${previewingVoiceId || 'voice'}.mp3`}
               onDownload={handleDownloadAudio}
@@ -994,6 +1029,12 @@ export const VoiceLab: React.FC = () => {
             <button className="btn btn-secondary" onClick={() => setShowSaveDialog(true)}>
               <BookmarkPlus size={16} /> {t('assetLibrary.saveBtn', '保存到素材库')}
             </button>
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={() => setPickerAsset({ url: ttsAudioUrl, field: 'voice' })}
+            >
+              <Send size={12} /> {t('segmentPicker.sendToSegment', '发送到分镜')}
+            </button>
           </div>
         </div>
       )}
@@ -1006,6 +1047,13 @@ export const VoiceLab: React.FC = () => {
           onCancel={() => setShowSaveDialog(false)}
         />
       )}
+      <SegmentPicker
+        isOpen={!!pickerAsset}
+        assetUrl={pickerAsset?.url ?? ''}
+        bindField={pickerAsset?.field ?? 'image'}
+        assetPrompt={pickerAsset?.prompt}
+        onClose={() => setPickerAsset(null)}
+      />
     </LabPageLayout>
   );
 };

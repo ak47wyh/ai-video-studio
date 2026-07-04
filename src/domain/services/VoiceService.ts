@@ -2,7 +2,7 @@ import type { IVoicePort, T2AAsyncContext, T2AAsyncStatus, T2ASyncContext, T2ASy
 import type { ICharacterRepository, IStorySegmentRepository } from '../ports/OutboundPorts';
 import type { IFileStoragePort } from '../ports/FileStoragePorts';
 import type { IApiConfigStore } from '../ports/PlatformPorts';
-import type { ILoggerPort } from '../ports/CrossCuttingPorts';
+import type { ILoggerPort, ICostMeter } from '../ports/CrossCuttingPorts';
 import type { StorySegment } from '../entities/models';
 import type { PlatformRouter } from './PlatformRouter';
 
@@ -22,6 +22,7 @@ export interface CloneVoiceOptions {
  * VoiceService
  * - Phase 2 反转：依赖注入 IApiConfigStore + ILoggerPort，移除对
  *   ApiConfigStore 单例和 defaultLogger 的硬编码引用。
+ * - P1-21：注入 ICostMeter 记录语音调用成本。
  */
 export class VoiceService {
   private router: PlatformRouter;
@@ -30,6 +31,7 @@ export class VoiceService {
   characterRepo: ICharacterRepository;
   segmentRepo: IStorySegmentRepository;
   private getFileStorage: () => IFileStoragePort;
+  private costMeter?: ICostMeter;
 
   constructor(
     router: PlatformRouter,
@@ -38,6 +40,7 @@ export class VoiceService {
     fileStorage: IFileStoragePort | (() => IFileStoragePort),
     configStore: IApiConfigStore,
     logger: ILoggerPort,
+    costMeter?: ICostMeter,
   ) {
     this.router = router;
     this.characterRepo = characterRepo;
@@ -45,11 +48,26 @@ export class VoiceService {
     this.getFileStorage = typeof fileStorage === 'function' ? fileStorage : () => fileStorage;
     this.configStore = configStore;
     this._logger = logger;
+    this.costMeter = costMeter;
   }
 
   /** 获取当前配置对应的语音合成适配器 */
   private getVoicePort(): IVoicePort {
     return this.router.resolveVoice(this.configStore.load());
+  }
+
+  /**
+   * 记录一次语音调用到成本计量（P1-21）。
+   * 语音调用无 token 概念，仅记录调用次数。
+   */
+  private recordVoiceCost(model: string): void {
+    if (!this.costMeter) return;
+    const config = this.configStore.load();
+    this.costMeter.record({
+      platform: config.activePlatform,
+      model,
+      callType: 'voice',
+    });
   }
 
   /**
@@ -172,7 +190,9 @@ export class VoiceService {
       ...options,
     };
 
-    return this.getVoicePort().synthesizeSpeechSync(context);
+    const result = await this.getVoicePort().synthesizeSpeechSync(context);
+    this.recordVoiceCost(context.model ?? 'speech-2.8-turbo');
+    return result;
   }
 
   /**
@@ -219,6 +239,7 @@ export class VoiceService {
     };
 
     const result = await this.getVoicePort().createT2ATask(context);
+    this.recordVoiceCost(context.model ?? 'speech-2.8-hd');
     return result.taskId;
   }
 

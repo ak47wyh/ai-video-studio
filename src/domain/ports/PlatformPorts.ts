@@ -25,8 +25,6 @@ export type PlatformCapability =
   | 'music'        // 音乐生成
   | 'threeD'       // 3D 模型
   | 'cache'        // 上下文缓存
-  | 'bot'          // Bot 应用
-  | 'dialog'       // Bot 对话
   | 'modelResponse'; // Responses API
 
 /**
@@ -108,6 +106,8 @@ export interface PlatformMeta {
   description: string;
   /** 申请 Token 的外链 */
   externalLink: string;
+  /** API 文档链接 */
+  docLink: string;
   /** 该平台支持的能力集合 */
   capabilities: PlatformCapability[];
   /** 默认视频模型列表 */

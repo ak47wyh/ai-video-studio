@@ -26,8 +26,8 @@ export const EnhanceLab: React.FC = () => {
   return (
     <LabPageLayout
       icon={<Sparkles size={22} />}
-      iconBg="rgba(99, 102, 241, 0.15)"
-      iconColor="#6366f1"
+      iconBg="color-mix(in srgb, var(--lab-color-enhance) 10%, transparent)"
+      iconColor="var(--lab-color-enhance)"
       title="清晰度提升实验室"
       subtitle="浏览器端本地处理 · 图片 / PDF / 视频画质增强 · 隐私安全零上传"
       tabs={TABS}

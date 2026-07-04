@@ -1,6 +1,6 @@
 import type { ApiConfig, PlatformId } from '../../adapters/outbound/config/ApiConfigStore';
 import type { IVideoGeneratorPort, IImageGeneratorPort, ITextGenerationPort, IVoicePort, IMusicPort } from '../ports/OutboundPorts';
-import type { IThreeDGenerationPort, IContextCachePort, IBotPort, IDialogPort, IModelResponsePort } from '../ports/VolcenginePorts';
+import type { IThreeDGenerationPort, IContextCachePort, IModelResponsePort } from '../ports/VolcenginePorts';
 import type { IApiConfigStore, IPlatformCapabilitiesPort, PlatformCapability } from '../ports/PlatformPorts';
 
 // 导入适配器 —— 已有平台
@@ -16,8 +16,6 @@ import { VolcengineVoiceAdapter } from '../../adapters/outbound/api/volcengine/V
 import { Volcengine3DAdapter } from '../../adapters/outbound/api/volcengine/Volcengine3DAdapter';
 import { VolcengineCacheAdapter } from '../../adapters/outbound/api/volcengine/VolcengineCacheAdapter';
 import { VolcengineResponseAdapter } from '../../adapters/outbound/api/volcengine/VolcengineResponseAdapter';
-import { CozeBotAdapter } from '../../adapters/outbound/api/coze/CozeBotAdapter';
-import { CozeDialogAdapter } from '../../adapters/outbound/api/coze/CozeDialogAdapter';
 
 // 导入适配器 —— 新增 5 个平台
 import { KlingVideoAdapter } from '../../adapters/outbound/api/kling/KlingVideoAdapter';
@@ -49,8 +47,6 @@ let _voiceAdapter: IVoicePort | null = null;
 let _musicAdapter: IMusicPort | null = null;
 let _threeDAdapter: IThreeDGenerationPort | null = null;
 let _cacheAdapter: IContextCachePort | null = null;
-let _botAdapter: IBotPort | null = null;
-let _dialogAdapter: IDialogPort | null = null;
 let _responseAdapter: IModelResponsePort | null = null;
 
 /**
@@ -234,18 +230,6 @@ export class PlatformRouter {
     return _cacheAdapter;
   }
 
-  resolveBot(config: ApiConfig): IBotPort {
-    if (_botAdapter) return _botAdapter;
-    _botAdapter = new CozeBotAdapter(config);
-    return _botAdapter;
-  }
-
-  resolveDialog(config: ApiConfig): IDialogPort {
-    if (_dialogAdapter) return _dialogAdapter;
-    _dialogAdapter = new CozeDialogAdapter(config);
-    return _dialogAdapter;
-  }
-
   resolveResponse(config: ApiConfig): IModelResponsePort {
     if (_responseAdapter) return _responseAdapter;
     _responseAdapter = new VolcengineResponseAdapter(config);
@@ -257,7 +241,6 @@ export class PlatformRouter {
     const platformPrefix: Record<PlatformId, string> = {
       minimax: 'MiniMax',
       volcengine: 'Volcengine',
-      coze: 'Coze',
       kling: 'Kling',
       wan: 'Wan',
       hunyuan: 'Hunyuan',
@@ -283,8 +266,6 @@ export class PlatformRouter {
     _musicAdapter = null;
     _threeDAdapter = null;
     _cacheAdapter = null;
-    _botAdapter = null;
-    _dialogAdapter = null;
     _responseAdapter = null;
   }
 }

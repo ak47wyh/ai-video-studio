@@ -22,8 +22,6 @@ const CAPABILITY_LABELS: Record<PlatformCapability, string> = {
   music: '音乐',
   threeD: '3D',
   cache: '缓存',
-  bot: 'Bot',
-  dialog: '对话',
   modelResponse: 'Responses',
 };
 
@@ -45,8 +43,6 @@ export class PlatformCapabilitiesAdapter implements IPlatformCapabilitiesPort {
     // 特殊能力：基于平台默认规则
     if (capability === 'threeD') return platform === 'volcengine';
     if (capability === 'cache') return platform === 'volcengine';
-    if (capability === 'bot') return platform === 'coze';
-    if (capability === 'dialog') return platform === 'coze';
     if (capability === 'modelResponse') return platform === 'volcengine';
     return false;
   }

@@ -186,9 +186,9 @@ export const PostProductionPanel: React.FC<PostProductionPanelProps> = ({
             style={{
               fontSize: '0.75rem', padding: '0.3rem 0.6rem',
               display: 'flex', alignItems: 'center', gap: '0.3rem',
-              background: activeTool === btn.key ? 'rgba(52,211,153,0.15)' : undefined,
-              borderColor: activeTool === btn.key ? '#34d399' : undefined,
-              color: activeTool === btn.key ? '#34d399' : undefined,
+              background: activeTool === btn.key ? 'color-mix(in srgb, var(--color-success) 15%, transparent)' : undefined,
+              borderColor: activeTool === btn.key ? 'var(--color-success)' : undefined,
+              color: activeTool === btn.key ? 'var(--color-success)' : undefined,
             }}
             disabled={!hasVideo && btn.key !== 'cinematography'}
             onClick={() => setActiveTool(activeTool === btn.key ? 'none' : btn.key)}>

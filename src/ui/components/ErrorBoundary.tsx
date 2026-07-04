@@ -66,7 +66,7 @@ class ErrorBoundaryClass extends React.Component<Props, State> {
           };
       return (
         <div style={containerStyle}>
-          <AlertTriangle size={isRoute ? 36 : 48} style={{ color: '#f87171', marginBottom: '1.5rem' }} />
+          <AlertTriangle size={isRoute ? 36 : 48} style={{ color: 'var(--color-danger)', marginBottom: '1.5rem' }} />
           <h2 style={{ marginBottom: '0.75rem', fontSize: '1.25rem' }}>{t('errorBoundary.title')}</h2>
           <p style={{ color: 'var(--text-muted, #9ca3af)', marginBottom: '1.5rem', maxWidth: '480px', lineHeight: 1.6 }}>
             {this.state.error?.message || t('errorBoundary.defaultMessage')}

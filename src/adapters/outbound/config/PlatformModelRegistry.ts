@@ -10,7 +10,7 @@
  *   - recommendation / translation / splitter: 同上（无更细档位时复用）
  *   - alignment: 同上（轻量任务但无法区分档位时复用）
  *
- * 若平台未配置 textModel（如 coze / kling / vidu），降级到 MiniMax 模型。
+ * 若平台未配置 textModel（如 kling / vidu），降级到 MiniMax 模型。
  */
 
 import type { IModelRegistry, TextModelCategory, IApiConfigStore } from '../../../domain/ports/PlatformPorts';

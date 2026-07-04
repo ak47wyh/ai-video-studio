@@ -2,7 +2,7 @@ import type { IImageGeneratorPort, ImageGenerationContext, ImageAspectRatio } fr
 import type { ICharacterRepository, IBackgroundRepository } from '../ports/OutboundPorts';
 import type { IFileStoragePort } from '../ports/FileStoragePorts';
 import type { IApiConfigStore } from '../ports/PlatformPorts';
-import type { ILoggerPort, LogContext } from '../ports/CrossCuttingPorts';
+import type { ILoggerPort, LogContext, ICostMeter } from '../ports/CrossCuttingPorts';
 import { PlatformRouter } from './PlatformRouter';
 
 /**
@@ -17,6 +17,7 @@ import { PlatformRouter } from './PlatformRouter';
  * - configStore：IApiConfigStore 读取当前配置（替代直接 import ApiConfigStore）
  * - logger：ILoggerPort（替代 static defaultLogger）
  * - fileStorage：IFileStoragePort 或 lazy thunk（保留原 API 兼容性）
+ * - costMeter：可选，成本计量（P1-21）
  */
 export class ImageGenerationService {
   characterRepo: ICharacterRepository;
@@ -25,6 +26,7 @@ export class ImageGenerationService {
   private configStore: IApiConfigStore;
   private logger: ILoggerPort;
   private getFileStorage: () => IFileStoragePort;
+  private costMeter?: ICostMeter;
 
   constructor(
     characterRepo: ICharacterRepository,
@@ -33,6 +35,7 @@ export class ImageGenerationService {
     configStore: IApiConfigStore,
     fileStorage: IFileStoragePort | (() => IFileStoragePort),
     logger: ILoggerPort,
+    costMeter?: ICostMeter,
   ) {
     this.characterRepo = characterRepo;
     this.backgroundRepo = backgroundRepo;
@@ -40,6 +43,7 @@ export class ImageGenerationService {
     this.configStore = configStore;
     this.getFileStorage = typeof fileStorage === 'function' ? fileStorage : () => fileStorage;
     this.logger = logger;
+    this.costMeter = costMeter;
   }
 
   private ctx(extra: LogContext = {}): LogContext {
@@ -50,6 +54,20 @@ export class ImageGenerationService {
   private getImagePort(): IImageGeneratorPort {
     const config = this.configStore.load();
     return this.router.resolve('image', config) as IImageGeneratorPort;
+  }
+
+  /**
+   * 记录一次图片调用到成本计量（P1-21）。
+   * 图片调用无 token 概念，仅记录调用次数。
+   */
+  private recordImageCost(model: string): void {
+    if (!this.costMeter) return;
+    const config = this.configStore.load();
+    this.costMeter.record({
+      platform: config.activePlatform,
+      model,
+      callType: 'image',
+    });
   }
 
   async generateCharacterImage(characterId: string, aspectRatio: string = '1:1'): Promise<string> {
@@ -73,6 +91,7 @@ export class ImageGenerationService {
 
     const imagePort = this.getImagePort();
     const result = await imagePort.generateImage(context);
+    this.recordImageCost('image-default');
 
     const reference = await this.persistImage(
       `images/char_${characterId}.png`,
@@ -100,6 +119,7 @@ export class ImageGenerationService {
 
     const imagePort = this.getImagePort();
     const result = await imagePort.generateImage(context);
+    this.recordImageCost('image-default');
 
     const reference = await this.persistImage(
       `images/bg_${backgroundId}.png`,
@@ -110,6 +130,42 @@ export class ImageGenerationService {
     await this.backgroundRepo.save(background);
 
     return reference.url;
+  }
+
+  /**
+   * 通用图片生成（供 Agent 工具调用）。
+   *
+   * 与 generateCharacterImage / generateBackgroundImage 的区别：
+   * - 不绑定具体实体，接受自由 prompt
+   * - 可选传入 Character / Background 作为参考（保持一致性）
+   * - 返回结构化结果（含 imageDataUri / imageUrls / metadata）
+   *
+   * 设计决策：Agent 的 generate_image 工具需要自由 prompt 生成能力，
+   * 不能强制要求 characterId/backgroundId，因此补此通用方法。
+   */
+  async generateImage(context: {
+    prompt: string;
+    aspectRatio?: ImageAspectRatio;
+    character?: { referenceImageUrl?: string } | null;
+    background?: { referenceImageUrl?: string } | null;
+  }): Promise<{ imageDataUri: string; imageUrls: string[]; metadata?: { successCount?: number } }> {
+    const ctx: ImageGenerationContext = {
+      prompt: context.prompt,
+      aspectRatio: context.aspectRatio ?? '16:9',
+      subjectReferenceUrl: context.character?.referenceImageUrl?.startsWith('http')
+        ? context.character.referenceImageUrl
+        : undefined,
+    };
+
+    const imagePort = this.getImagePort();
+    const result = await imagePort.generateImage(ctx);
+    this.recordImageCost('image-default');
+
+    return {
+      imageDataUri: result.imageDataUri ?? '',
+      imageUrls: result.imageUrls ?? [],
+      metadata: { successCount: result.imageUrls?.length ?? (result.imageDataUri ? 1 : 0) },
+    };
   }
 
   /**

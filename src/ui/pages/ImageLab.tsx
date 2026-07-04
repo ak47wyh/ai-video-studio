@@ -11,8 +11,12 @@ import { ImageUploadField } from '../components/ImageUploadField';
 import { ImageGallery, type GalleryImage } from '../components/ImageGallery';
 import { ImageAdvancedSettings, type ImageAdvancedSettingsValue } from '../components/ImageAdvancedSettings';
 import { LabPageLayout } from '../components/LabPageLayout';
+import { AsyncState } from '../components/AsyncState';
+import { UnsupportedCapabilityNotice } from '../components/UnsupportedCapabilityNotice';
+import { usePlatformCapabilities } from '../hooks/usePlatformCapabilities';
 import { TextAreaWithCounter } from '../components/TextAreaWithCounter';
 import { SavedRecordsPanel } from '../components/SavedRecordsPanel';
+import { SegmentPicker, type SegmentBindField } from '../components/SegmentPicker';
 import type { SavedImage } from '../../domain/entities/models';
 import { TEXT_LIMITS } from '../../domain/constants/textLimits';
 import { validateTextLimit } from '../utils/validateTextLimit';
@@ -42,6 +46,7 @@ export const ImageLab: React.FC = () => {
   const { t } = useTranslation();
   const { showToast } = useToast();
   const { currentSpaceId } = useSpace();
+  const { hasCapability } = usePlatformCapabilities();
 
   const [activeTab, setActiveTab] = useState<ImageLabTab>('t2i');
 
@@ -57,6 +62,9 @@ export const ImageLab: React.FC = () => {
   // 本会话已保存记录（用于底部面板展示）
   const [savedThisSession, setSavedThisSession] = useState<SavedImage[]>([]);
   const [savedPanelExpandKey, setSavedPanelExpandKey] = useState(0);
+
+  // ==================== SegmentPicker (发送到分镜) ====================
+  const [pickerAsset, setPickerAsset] = useState<{ url: string; field: SegmentBindField; prompt?: string } | null>(null);
 
   // ==================== I2I 专用 State ====================
   const [referenceImage, setReferenceImage] = useState<string | null>(null);
@@ -311,17 +319,22 @@ export const ImageLab: React.FC = () => {
 
   // ==================== Tab 配置 ====================
   const tabs: { key: ImageLabTab; label: string; icon: React.ReactNode; color: string }[] = [
-    { key: 't2i', label: t('imageLab.tabT2I', '文生图'), icon: <Type size={16} />, color: '#818cf8' },
-    { key: 'i2i', label: t('imageLab.tabI2I', '图生图'), icon: <ImagePlus size={16} />, color: '#3b82f6' },
+    { key: 't2i', label: t('imageLab.tabT2I', '文生图'), icon: <Type size={16} />, color: 'var(--lab-color-image)' },
+    { key: 'i2i', label: t('imageLab.tabI2I', '图生图'), icon: <ImagePlus size={16} />, color: 'var(--lab-color-video)' },
   ];
 
 
 
+  // P1 平台能力前置检测：图片生成仅部分平台支持，不支持时渲染提示
+  if (!hasCapability('image')) {
+    return <UnsupportedCapabilityNotice capability="image" />;
+  }
+
   return (
     <LabPageLayout
       icon={<ImageIcon size={32} />}
-      iconBg="rgba(99,102,241,0.1)"
-      iconColor="#818cf8"
+      iconBg="color-mix(in srgb, var(--lab-color-image) 10%, transparent)"
+      iconColor="var(--lab-color-image)"
       title={t('imageLab.title', '图片实验室 (Image Lab)')}
       subtitle={t('imageLab.desc', '文生图、图生图，支持多模型、多比例、批量生成')}
       tabs={tabs}
@@ -463,7 +476,7 @@ export const ImageLab: React.FC = () => {
 
           <button
             className="btn btn-primary btn-generate"
-            style={{ background: '#3b82f6' }}
+            style={{ background: 'var(--lab-color-image)' }}
             disabled={!i2iPrompt.trim() || !referenceImage || isGenerating}
             onClick={() => handleGenerate(i2iPrompt, true)}
           >
@@ -474,7 +487,12 @@ export const ImageLab: React.FC = () => {
       )}
 
       {/* ==================== 生成结果画廊 ==================== */}
-      {gallery.length > 0 && (
+      <AsyncState
+        loading={isGenerating && gallery.length === 0}
+        loadingText="正在生成图片..."
+        empty={gallery.length === 0}
+        emptyText="尚未生成图片，填写 Prompt 后点击生成按钮"
+      >
         <div className="result-panel">
           <div className="result-panel-header">
             <h3 className="result-panel-title">{t('imageLab.gallery', '生成结果')} ({gallery.length})</h3>
@@ -488,10 +506,11 @@ export const ImageLab: React.FC = () => {
             onDownload={handleDownload}
             onSave={handleSaveClick}
             onUseAsReference={handleUseAsReference}
+            onSendToSegment={(img) => setPickerAsset({ url: img.url, field: 'image' })}
           />
           <SavedRecordsPanel images={savedThisSession} autoExpandKey={savedPanelExpandKey} />
         </div>
-      )}
+      </AsyncState>
 
       {/* ==================== 保存对话框 ==================== */}
       {showSaveDialog && saveTargetImage && (
@@ -502,6 +521,13 @@ export const ImageLab: React.FC = () => {
           onCancel={() => { setShowSaveDialog(false); setSaveTargetImage(null); }}
         />
       )}
+      <SegmentPicker
+        isOpen={!!pickerAsset}
+        assetUrl={pickerAsset?.url ?? ''}
+        bindField={pickerAsset?.field ?? 'image'}
+        assetPrompt={pickerAsset?.prompt}
+        onClose={() => setPickerAsset(null)}
+      />
     </>
     </LabPageLayout>
   );

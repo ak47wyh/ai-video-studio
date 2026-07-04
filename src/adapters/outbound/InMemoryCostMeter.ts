@@ -12,7 +12,7 @@
  * 未来可扩展为 DexieCostMeter 持久化到 IndexedDB。
  */
 
-import type { ICostMeter, CostRecord, CostSummary } from '../../../domain/ports/CrossCuttingPorts';
+import type { ICostMeter, CostRecord, CostSummary } from '../../domain/ports/CrossCuttingPorts';
 
 const MAX_RECORDS = 1000;
 
