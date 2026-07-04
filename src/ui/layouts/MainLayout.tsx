@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
-  LayoutDashboard, Users, Image as ImageIcon, BookOpen, Settings,
+  LayoutDashboard, Users, Image as ImageIcon, BookOpen,
   FolderOpen, Download, Mic, MessageSquare, Sparkles, Film, Scissors,
   ChevronLeft, ChevronRight, Plus, Zap, Palette, Music as MusicIcon, X, Menu, Eraser,
   Ban
@@ -127,13 +127,6 @@ export const MainLayout: React.FC = () => {
         { to: '/labs/enhance', icon: <Sparkles size={18} />, label: t('nav.enhanceLab', '清晰度提升') },
       ],
     },
-    {
-      key: 'manage',
-      label: t('nav.groupManage', '管理'),
-      items: [
-        { to: '/settings', icon: <Settings size={18} />, label: t('nav.settings') },
-      ],
-    },
   ];
 
   // 根据当前激活平台的能力矩阵，计算每个 Lab 入口的禁用状态
@@ -175,9 +168,12 @@ export const MainLayout: React.FC = () => {
             </div>
             <span className="mobile-topbar-title">AI Video Studio</span>
           </div>
-          <button className="mobile-menu-btn" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-            {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
-          </button>
+          <div className="mobile-topbar-actions">
+            <LanguageSwitcher collapsed dropUp={false} />
+            <button className="mobile-menu-btn" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+              {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+            </button>
+          </div>
         </header>
       )}
 
@@ -346,10 +342,10 @@ export const MainLayout: React.FC = () => {
           ))}
         </nav>
 
-        {/* Footer */}
-        {(!collapsed || isMobile) && (
-          <div className="sidebar-footer">
-            <LanguageSwitcher />
+        {/* Footer — 语言切换(桌面端 footer 图标化,折叠态居中图标) */}
+        {!isMobile && (
+          <div className={`sidebar-footer ${collapsed ? 'sidebar-footer-collapsed' : ''}`}>
+            <LanguageSwitcher collapsed={collapsed} />
           </div>
         )}
       </aside>
