@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Mic, Volume2, Upload, RefreshCw, Save, BookmarkPlus, Palette, FileText, Trash2, Play, Search, ChevronDown, ChevronUp, ArrowRight, Send } from 'lucide-react';
+import { Mic, Volume2, Upload, RefreshCw, Save, BookmarkPlus, Palette, FileText, Trash2, Play, Search, ChevronDown, ChevronUp, ArrowRight, Send, Pencil, Check, X } from 'lucide-react';
 import { voiceService, assetLibraryService } from '../../dependencies';
 import type { T2ASyncModel, VoiceListResult, VoiceInfo } from '../../domain/ports/OutboundPorts';
 import { VOICES_BY_LANGUAGE, LANGUAGE_LABELS } from '../../domain/data/systemVoices';
@@ -101,6 +101,9 @@ export const VoiceLab: React.FC = () => {
   const [previewAudioUrl, setPreviewAudioUrl] = useState<string | null>(null);
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [deletingVoiceId, setDeletingVoiceId] = useState<string | null>(null);
+  // 重命名状态
+  const [renamingVoiceId, setRenamingVoiceId] = useState<string | null>(null);
+  const [renamingValue, setRenamingValue] = useState('');
 
   // ==================== SegmentPicker (发送到分镜) ====================
   const [pickerAsset, setPickerAsset] = useState<{ url: string; field: SegmentBindField; prompt?: string } | null>(null);
@@ -365,22 +368,66 @@ export const VoiceLab: React.FC = () => {
 
   const handleDeleteVoice = async (voiceType: 'voice_cloning' | 'voice_generation', voiceId: string) => {
     const ok = await confirm({
-      title: '删除音色',
-      message: `确认删除音色 ${voiceId}？删除后不可恢复。`,
+      title: t('voiceLab.deleteConfirmTitle', '删除音色'),
+      message: t('voiceLab.deleteConfirmMessage', `确认删除音色 ${voiceId}？删除后不可恢复。`, { voiceId }),
       danger: true,
     });
     if (!ok) return;
     setDeletingVoiceId(voiceId);
     try {
       await voiceService.deleteVoice(voiceType, voiceId);
-      showToast('success', '音色已删除');
+      showToast('success', t('voiceLab.deleteSuccess', '音色已删除'));
       loadVoices();
       loadCustomVoices(); // 同步刷新 TTS 选择器
     } catch (e) {
-      showToast('error', getErrorMessage(e, '删除失败'));
+      showToast('error', getErrorMessage(e, t('voiceLab.deleteFailed', '删除失败')));
     } finally {
       setDeletingVoiceId(null);
     }
+  };
+
+  // 重命名音色
+  const handleStartRename = (voiceId: string, currentName: string) => {
+    setRenamingVoiceId(voiceId);
+    setRenamingValue(currentName);
+  };
+
+  const handleConfirmRename = async (voiceId: string) => {
+    const newName = renamingValue.trim();
+    if (!newName) {
+      showToast('error', t('voiceLab.renameEmpty', '名称不能为空'));
+      return;
+    }
+    if (newName.length > 20) {
+      showToast('error', t('voiceLab.renameTooLong', '名称不能超过20个字符'));
+      return;
+    }
+    try {
+      // 通过 voiceId 查找 SavedVoice 记录
+      if (!currentSpaceId) {
+        showToast('error', t('voiceLab.noSpace', '未选择工作空间'));
+        return;
+      }
+      const savedVoices = await assetLibraryService.queryVoices({ spaceId: currentSpaceId });
+      const target = savedVoices.find(sv => sv.voiceId === voiceId);
+      if (target) {
+        await voiceService.renameVoice(target.id, newName);
+        showToast('success', t('voiceLab.renameSuccess', '音色已重命名'));
+        loadVoices();
+      } else {
+        showToast('error', t('voiceLab.renameNotFound', '未找到对应的音色记录'));
+      }
+    } catch (e) {
+      showToast('error', getErrorMessage(e, t('voiceLab.renameFailed', '重命名失败')));
+    } finally {
+      setRenamingVoiceId(null);
+      setRenamingValue('');
+    }
+  };
+
+  const handleCancelRename = () => {
+    setRenamingVoiceId(null);
+    setRenamingValue('');
   };
 
   // 业务闭环：音色管理中"使用此音色"→ 跳转 TTS Tab
@@ -932,28 +979,50 @@ export const VoiceLab: React.FC = () => {
           {/* 克隆音色 */}
           {voiceList?.clonedVoices && voiceFilter !== 'system' && voiceFilter !== 'voice_generation' && (
             <div>
-              <h3 style={{ fontSize: '0.9rem', margin: '0 0 0.5rem 0', color: 'var(--lab-color-voice)' }}>克隆音色 ({voiceList.clonedVoices.length})</h3>
+              <h3 style={{ fontSize: '0.9rem', margin: '0 0 0.5rem 0', color: 'var(--lab-color-voice)' }}>{t('voiceLab.clonedVoices', '克隆音色')} ({voiceList.clonedVoices.length})</h3>
               {voiceList.clonedVoices
                 .filter(v => !voiceSearch || v.voiceId.toLowerCase().includes(voiceSearch.toLowerCase()))
                 .map(v => (
                 <div key={v.voiceId} className="lab-voice-custom-card" style={{ background: 'color-mix(in srgb, var(--lab-color-voice) 5%, transparent)', border: '1px solid color-mix(in srgb, var(--lab-color-voice) 15%, transparent)' }}>
                   <div className="lab-voice-custom-info">
-                    <p className="lab-voice-card-name">{v.voiceName || v.voiceId}</p>
-                    <p className="lab-voice-card-id">创建: {v.createdTime || '未知'}</p>
+                    {renamingVoiceId === v.voiceId ? (
+                      <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
+                        <input
+                          className="form-input"
+                          style={{ fontSize: '0.85rem', padding: '0.2rem 0.4rem', flex: 1 }}
+                          value={renamingValue}
+                          onChange={e => setRenamingValue(e.target.value)}
+                          maxLength={20}
+                          autoFocus
+                          onKeyDown={e => { if (e.key === 'Enter') handleConfirmRename(v.voiceId); if (e.key === 'Escape') handleCancelRename(); }}
+                        />
+                        <button className="btn btn-secondary btn-xs" onClick={() => handleConfirmRename(v.voiceId)}><Check size={12} /></button>
+                        <button className="btn btn-secondary btn-xs" onClick={handleCancelRename}><X size={12} /></button>
+                      </div>
+                    ) : (
+                      <p className="lab-voice-card-name">{v.voiceName || v.voiceId}</p>
+                    )}
+                    <p className="lab-voice-card-id">{t('voiceLab.createdAt', '创建')}: {v.createdTime || t('voiceLab.unknown', '未知')}</p>
                   </div>
                   <button className="btn btn-secondary btn-xs"
                     disabled={isPreviewing && previewingVoiceId === v.voiceId}
                     onClick={() => handlePreviewVoice(v.voiceId)}>
-                    <Play size={12} /> 试听
+                    <Play size={12} /> {t('voiceLab.preview', '试听')}
                   </button>
                   <button className="btn btn-secondary btn-xs"
                     onClick={() => handleUseVoice(v.voiceId)}>
-                    <ArrowRight size={12} /> 使用
+                    <ArrowRight size={12} /> {t('voiceLab.use', '使用')}
                   </button>
+                  {renamingVoiceId !== v.voiceId && (
+                    <button className="btn btn-secondary btn-xs"
+                      onClick={() => handleStartRename(v.voiceId, v.voiceName || v.voiceId)}>
+                      <Pencil size={12} /> {t('voiceLab.rename', '重命名')}
+                    </button>
+                  )}
                   <button className="btn btn-secondary btn-xs" style={{ color: 'var(--color-danger)' }}
                     disabled={deletingVoiceId === v.voiceId}
                     onClick={() => handleDeleteVoice('voice_cloning', v.voiceId)}>
-                    <Trash2 size={12} /> 删除
+                    <Trash2 size={12} /> {t('voiceLab.delete', '删除')}
                   </button>
                 </div>
               ))}
@@ -963,28 +1032,50 @@ export const VoiceLab: React.FC = () => {
           {/* 设计音色 */}
           {voiceList?.designedVoices && voiceFilter !== 'system' && voiceFilter !== 'voice_cloning' && (
             <div>
-              <h3 style={{ fontSize: '0.9rem', margin: '0 0 0.5rem 0', color: 'var(--lab-color-music)' }}>设计音色 ({voiceList.designedVoices.length})</h3>
+              <h3 style={{ fontSize: '0.9rem', margin: '0 0 0.5rem 0', color: 'var(--lab-color-music)' }}>{t('voiceLab.designedVoices', '设计音色')} ({voiceList.designedVoices.length})</h3>
               {voiceList.designedVoices
                 .filter(v => !voiceSearch || v.voiceId.toLowerCase().includes(voiceSearch.toLowerCase()))
                 .map(v => (
                 <div key={v.voiceId} className="lab-voice-custom-card" style={{ background: 'color-mix(in srgb, var(--lab-color-music) 5%, transparent)', border: '1px solid color-mix(in srgb, var(--lab-color-music) 15%, transparent)' }}>
                   <div className="lab-voice-custom-info">
-                    <p className="lab-voice-card-name">{v.voiceName || v.voiceId}</p>
-                    <p className="lab-voice-card-id">创建: {v.createdTime || '未知'}</p>
+                    {renamingVoiceId === v.voiceId ? (
+                      <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
+                        <input
+                          className="form-input"
+                          style={{ fontSize: '0.85rem', padding: '0.2rem 0.4rem', flex: 1 }}
+                          value={renamingValue}
+                          onChange={e => setRenamingValue(e.target.value)}
+                          maxLength={20}
+                          autoFocus
+                          onKeyDown={e => { if (e.key === 'Enter') handleConfirmRename(v.voiceId); if (e.key === 'Escape') handleCancelRename(); }}
+                        />
+                        <button className="btn btn-secondary btn-xs" onClick={() => handleConfirmRename(v.voiceId)}><Check size={12} /></button>
+                        <button className="btn btn-secondary btn-xs" onClick={handleCancelRename}><X size={12} /></button>
+                      </div>
+                    ) : (
+                      <p className="lab-voice-card-name">{v.voiceName || v.voiceId}</p>
+                    )}
+                    <p className="lab-voice-card-id">{t('voiceLab.createdAt', '创建')}: {v.createdTime || t('voiceLab.unknown', '未知')}</p>
                   </div>
                   <button className="btn btn-secondary btn-xs"
                     disabled={isPreviewing && previewingVoiceId === v.voiceId}
                     onClick={() => handlePreviewVoice(v.voiceId)}>
-                    <Play size={12} /> 试听
+                    <Play size={12} /> {t('voiceLab.preview', '试听')}
                   </button>
                   <button className="btn btn-secondary btn-xs"
                     onClick={() => handleUseVoice(v.voiceId)}>
-                    <ArrowRight size={12} /> 使用
+                    <ArrowRight size={12} /> {t('voiceLab.use', '使用')}
                   </button>
+                  {renamingVoiceId !== v.voiceId && (
+                    <button className="btn btn-secondary btn-xs"
+                      onClick={() => handleStartRename(v.voiceId, v.voiceName || v.voiceId)}>
+                      <Pencil size={12} /> {t('voiceLab.rename', '重命名')}
+                    </button>
+                  )}
                   <button className="btn btn-secondary btn-xs" style={{ color: 'var(--color-danger)' }}
                     disabled={deletingVoiceId === v.voiceId}
                     onClick={() => handleDeleteVoice('voice_generation', v.voiceId)}>
-                    <Trash2 size={12} /> 删除
+                    <Trash2 size={12} /> {t('voiceLab.delete', '删除')}
                   </button>
                 </div>
               ))}

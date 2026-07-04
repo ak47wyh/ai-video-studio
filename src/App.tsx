@@ -29,6 +29,7 @@ const WatermarkLab = lazy(() => import('./ui/pages/WatermarkLab').then(m => ({ d
 const EnhanceLab = lazy(() => import('./ui/pages/EnhanceLab').then(m => ({ default: m.EnhanceLab })));
 const VideoEditor = lazy(() => import('./ui/pages/VideoEditor').then(m => ({ default: m.VideoEditor })));
 const SpaceDetailPage = lazy(() => import('./ui/pages/SpaceDetailPage').then(m => ({ default: m.SpaceDetailPage })));
+const StoryFilmPage = lazy(() => import('./ui/pages/StoryFilmPage').then(m => ({ default: m.StoryFilmPage })));
 
 /**
  * Phase 4 性能优化 —— 首屏空闲时预加载核心页面 chunk
@@ -100,6 +101,7 @@ function App() {
                     <Route path="labs/watermark" element={<WatermarkLab />} />
                     <Route path="labs/enhance" element={<EnhanceLab />} />
                     <Route path="editor" element={<VideoEditor />} />
+                    <Route path="story-film" element={<StoryFilmPage />} />
                     <Route path="settings" element={<Settings />} />
                   </Route>
                 </Routes>

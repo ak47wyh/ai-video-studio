@@ -27,6 +27,7 @@ import type { PromptContextBuilder } from './PromptContextBuilder';
 import type { MusicService } from './MusicService';
 import type { BGMRecommendationService } from './BGMRecommendationService';
 import { PromisePool } from './PromisePool';
+import { getStylePromptSuffix } from '../data/stylePresets';
 
 export type { PipelineTask, PipelineStatus, PipelineStep };
 
@@ -41,6 +42,8 @@ export interface PipelineOptions {
   includeSubtitles?: boolean;
   concurrency?: number;
   onProgress?: (stage: PipelineStatus, percent: number, message: string) => void;
+  /** 画面风格预设（AI 故事成片），追加到图片/视频 prompt 末尾 */
+  videoStyle?: import('../entities/models').VideoStyle;
 }
 
 interface PipelineDeps {
@@ -364,6 +367,7 @@ export class PipelineService {
     };
 
     const { includeNarration = true, includeBGM = true, includeSubtitles = true } = options;
+    const styleSuffix = options.videoStyle ? getStylePromptSuffix(options.videoStyle) : '';
 
     try {
       const story = await this.deps.storyRepo.findById(storyId);
@@ -411,6 +415,7 @@ export class PipelineService {
                 });
               }
             }
+            if (styleSuffix) imagePrompt += styleSuffix;
             const imgResult = await this.getImagePort().generateImage({
               prompt: imagePrompt,
               aspectRatio: '16:9',
@@ -611,10 +616,11 @@ export class PipelineService {
         segPromptOkItems,
         async (item: { seg: StorySegment; prompt: string; buildInfo: string }, _index: number) => {
           try {
+            const videoPrompt = styleSuffix ? item.prompt + styleSuffix : item.prompt;
             const externalTaskId = await this.getVideoPort().submitVideoTask({
               mode: options.videoMode || 't2v',
               model: options.videoModel,
-              prompt: item.prompt,
+              prompt: videoPrompt,
               firstFrameImage: item.seg.firstFrameImage,
               duration: options.videoDuration || 6,
               resolution: options.videoResolution || '768P',

@@ -108,6 +108,7 @@ export const MainLayout: React.FC = () => {
       key: 'creation',
       label: t('nav.groupCreation', '创作'),
       items: [
+        { to: '/story-film', icon: <Zap size={18} />, label: t('nav.storyFilm', 'AI 成片') },
         { to: '/workbench', icon: <BookOpen size={18} />, label: t('nav.workbench') },
         { to: '/editor', icon: <Scissors size={18} />, label: t('nav.editor', '视频剪辑') },
         { to: '/export', icon: <Download size={18} />, label: t('nav.export', '导出中心') },

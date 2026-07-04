@@ -4,6 +4,7 @@ import type { IFileStoragePort } from '../ports/FileStoragePorts';
 import type { IApiConfigStore } from '../ports/PlatformPorts';
 import type { ILoggerPort, ICostMeter } from '../ports/CrossCuttingPorts';
 import type { StorySegment } from '../entities/models';
+import type { ISavedVoiceRepository } from '../ports/AssetLibraryPorts';
 import type { PlatformRouter } from './PlatformRouter';
 
 /** Max text length for synchronous T2A (short text = instant response) */
@@ -32,6 +33,7 @@ export class VoiceService {
   segmentRepo: IStorySegmentRepository;
   private getFileStorage: () => IFileStoragePort;
   private costMeter?: ICostMeter;
+  private savedVoiceRepo?: ISavedVoiceRepository;
 
   constructor(
     router: PlatformRouter,
@@ -41,6 +43,7 @@ export class VoiceService {
     configStore: IApiConfigStore,
     logger: ILoggerPort,
     costMeter?: ICostMeter,
+    savedVoiceRepo?: ISavedVoiceRepository,
   ) {
     this.router = router;
     this.characterRepo = characterRepo;
@@ -49,6 +52,7 @@ export class VoiceService {
     this.configStore = configStore;
     this._logger = logger;
     this.costMeter = costMeter;
+    this.savedVoiceRepo = savedVoiceRepo;
   }
 
   /** 获取当前配置对应的语音合成适配器 */
@@ -510,5 +514,30 @@ export class VoiceService {
       }
     }
     return results;
+  }
+
+  /**
+   * 重命名已保存的音色（本地操作，不调用平台 API）
+   *
+   * @param savedVoiceId SavedVoice 记录的 ID（非 voiceId）
+   * @param newName 新名称（1-20 字符）
+   */
+  async renameVoice(savedVoiceId: string, newName: string): Promise<void> {
+    if (!this.savedVoiceRepo) throw new Error('SavedVoiceRepository not injected');
+    const savedVoice = await this.savedVoiceRepo.getById(savedVoiceId);
+    if (!savedVoice) throw new Error('SavedVoice not found');
+
+    if (!newName.trim()) throw new Error('Voice name cannot be empty');
+    if (newName.length > 20) throw new Error('Voice name too long');
+
+    savedVoice.name = newName.trim();
+    await this.savedVoiceRepo.save(savedVoice);
+
+    this._logger.info('Voice renamed', {
+      service: 'VoiceService',
+      method: 'renameVoice',
+      savedVoiceId,
+      newName,
+    });
   }
 }

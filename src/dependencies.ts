@@ -54,6 +54,7 @@ import { TimelineRenderService } from './domain/services/TimelineRenderService';
 import { TimelineService } from './domain/services/TimelineService';
 import { PromptContextBuilder } from './domain/services/PromptContextBuilder';
 import { ToolRegistry } from './domain/services/ToolRegistry';
+import { StoryFilmService } from './domain/services/StoryFilmService';
 
 // ==================== 平台路由 ====================
 import { platformRouter } from './domain/services/PlatformRouter';
@@ -92,6 +93,9 @@ export const snapshotRepo = new SnapshotRepositoryAdapter();
 export const timelineRepo = new TimelineRepositoryAdapter();
 // M3.1: Pipeline 任务仓储（持久化到 IndexedDB）
 export const pipelineTaskRepo = new PipelineTaskRepositoryAdapter();
+// 素材库仓储（提前声明，供 VoiceService 等服务注入）
+import { SavedVoiceRepository } from './adapters/outbound/repositories/AssetLibraryRepositories';
+export const savedVoiceRepo = new SavedVoiceRepository();
 
 // ========================================
 // 文件存储层（OPFS / IndexedDB）
@@ -231,6 +235,7 @@ export const voiceService = new VoiceService(
   platformRouter, characterRepo, segmentRepo, getFileStorage,
   apiConfigStoreAdapter, defaultLogger.child({ service: 'VoiceService' }),
   costMeter, // P1-21：成本计量
+  savedVoiceRepo, // 克隆音色重命名
 );
 
 export const musicService = new MusicService(platformRouter, apiConfigStoreAdapter, segmentRepo, getFileStorage, defaultLogger.child({ service: 'MusicService' }),
@@ -301,6 +306,14 @@ export const pipelineService = new PipelineService({
 });
 
 // ========================================
+// AI 故事成片
+// ========================================
+export const storyFilmService = new StoryFilmService(
+  textGenerationService, pipelineService, storyService,
+  defaultLogger.child({ service: 'StoryFilmService' }),
+);
+
+// ========================================
 // 空间管理
 // ========================================
 export const storySpaceService = new StorySpaceService(
@@ -357,10 +370,10 @@ agentService.setToolRegistry(toolRegistry);
 
 // ==================== 素材库（离线存储） ====================
 import { AssetLibraryService } from './domain/services/AssetLibraryService';
-import { SavedImageRepository, SavedVoiceRepository, SavedPromptRepository, SavedVideoRepository } from './adapters/outbound/repositories/AssetLibraryRepositories';
+import { SavedImageRepository, SavedPromptRepository, SavedVideoRepository } from './adapters/outbound/repositories/AssetLibraryRepositories';
 
 export const savedImageRepo = new SavedImageRepository();
-export const savedVoiceRepo = new SavedVoiceRepository();
+// savedVoiceRepo 已在仓储实例区域提前声明
 export const savedPromptRepo = new SavedPromptRepository();
 export const savedVideoRepo = new SavedVideoRepository();
 

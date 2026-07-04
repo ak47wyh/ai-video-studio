@@ -158,6 +158,19 @@ export interface FinalCut {
 /** 成片来源类型 */
 export type FinalCutSource = 'pipeline' | 'timeline' | 'manual';
 
+// --- 视频风格预设（AI 故事成片） ---
+
+/** 画面风格预设 */
+export type VideoStyle =
+  | 'cinematic'     // 电影质感
+  | 'anime'         // 日系动漫
+  | 'watercolor'    // 水彩绘本
+  | 'gufeng'        // 古风国潮
+  | '3dcartoon'     // 3D 卡通
+  | 'scifi'         // 科幻未来
+  | 'documentary'   // 纪录片
+  | 'fairy_tale';   // 梦幻童话
+
 // --- Asset Library (v8) ---
 
 export type SavedImageSource = 'lab' | 'pipeline' | 'character' | 'background';
