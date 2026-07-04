@@ -1,5 +1,5 @@
 import type { ITextGenerationPort, RefineResult } from '../ports/OutboundPorts';
-import type { IApiConfigStore } from '../ports/PlatformPorts';
+import type { IApiConfigStore, IModelRegistry } from '../ports/PlatformPorts';
 import type { ILoggerPort, ICostMeter } from '../ports/CrossCuttingPorts';
 import type { PlatformRouter } from './PlatformRouter';
 import { recordTextGenUsage } from '../../utils/cacheMonitor';
@@ -7,6 +7,7 @@ import { recordTextGenUsage } from '../../utils/cacheMonitor';
 export class TextGenerationService {
   private router: PlatformRouter;
   private configStore: IApiConfigStore;
+  private modelRegistry: IModelRegistry;
   private costMeter?: ICostMeter;
   // @ts-expect-error Logger injected for future use
   private _logger: ILoggerPort;
@@ -16,11 +17,17 @@ export class TextGenerationService {
     configStore: IApiConfigStore,
     logger: ILoggerPort,
     costMeter?: ICostMeter,
+    modelRegistry?: IModelRegistry,
   ) {
     this.router = router;
     this.configStore = configStore;
     this.costMeter = costMeter;
     this._logger = logger;
+    this.modelRegistry = modelRegistry ?? {
+      resolveTextModel: () => 'MiniMax-M2.5-highspeed',
+      resolveImageModel: () => 'image-01',
+      resolveVideoModel: () => 'T2V-01-Director',
+    };
   }
 
   /**
@@ -67,9 +74,10 @@ export class TextGenerationService {
       background: '场景环境',
     };
 
+    const model = this.modelRegistry.resolveTextModel('recommendation');
     const textPort = this.getTextPort();
     const result = await textPort.chatCompletion({
-      model: 'MiniMax-M2.5-highspeed',
+      model,
       messages: [
         {
           role: 'system',
@@ -89,11 +97,10 @@ export class TextGenerationService {
       ],
       temperature: 0.7,
       maxTokens: 512,
-      useAnthropicEndpoint: true,
     });
 
     recordTextGenUsage(`refine_${type}`, result.usage);
-    this.recordTextCost('MiniMax-M2.5-highspeed', result.usage);
+    this.recordTextCost(model, result.usage);
 
     return {
       content: result.content.trim(),
@@ -106,9 +113,10 @@ export class TextGenerationService {
    * Refine story text to be more cinematic and visual.
    */
   async refineText(rawText: string): Promise<RefineResult> {
+    const model = this.modelRegistry.resolveTextModel('recommendation');
     const textPort = this.getTextPort();
     const result = await textPort.chatCompletion({
-      model: 'MiniMax-M2.5-highspeed',
+      model,
       messages: [
         {
           role: 'system',
@@ -128,11 +136,10 @@ export class TextGenerationService {
       ],
       temperature: 0.6,
       maxTokens: 4096,
-      useAnthropicEndpoint: true,
     });
 
     recordTextGenUsage('refine_text', result.usage);
-    this.recordTextCost('MiniMax-M2.5-highspeed', result.usage);
+    this.recordTextCost(model, result.usage);
 
     return {
       content: result.content.trim(),
@@ -145,9 +152,10 @@ export class TextGenerationService {
    * Suggest a BGM style description based on segment content.
    */
   async suggestBGMStyle(segmentContent: string): Promise<RefineResult> {
+    const model = this.modelRegistry.resolveTextModel('recommendation');
     const textPort = this.getTextPort();
     const result = await textPort.chatCompletion({
-      model: 'MiniMax-M2.5-highspeed',
+      model,
       messages: [
         {
           role: 'system',
@@ -167,11 +175,10 @@ export class TextGenerationService {
       ],
       temperature: 0.8,
       maxTokens: 128,
-      useAnthropicEndpoint: true,
     });
 
     recordTextGenUsage('bgm_style', result.usage);
-    this.recordTextCost('MiniMax-M2.5-highspeed', result.usage);
+    this.recordTextCost(model, result.usage);
 
     return {
       content: result.content.trim(),
@@ -199,9 +206,10 @@ export class TextGenerationService {
         : '',
     ].filter(Boolean).join('\n');
 
+    const model = this.modelRegistry.resolveTextModel('chat');
     const textPort = this.getTextPort();
     const result = await textPort.chatCompletion({
-      model: 'MiniMax-M2.5',
+      model,
       messages: [
         {
           role: 'system',
@@ -221,11 +229,10 @@ export class TextGenerationService {
       ],
       temperature: 0.6,
       maxTokens: 512,
-      useAnthropicEndpoint: true,
     });
 
     recordTextGenUsage('video_prompt', result.usage);
-    this.recordTextCost('MiniMax-M2.5', result.usage);
+    this.recordTextCost(model, result.usage);
 
     return {
       content: result.content.trim(),

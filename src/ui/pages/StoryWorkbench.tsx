@@ -315,11 +315,11 @@ export const StoryWorkbench: React.FC = () => {
         }
       };
       await Promise.all(Array.from({ length: Math.min(concurrency, queue.length) }, worker));
-      const msg = `旁白完成：成功 ${successCount}，跳过 ${skipCount}（无音色）${failCount > 0 ? `，失败 ${failCount}` : ''}`;
+      const msg = t('workbench.narrateComplete', { success: successCount, skipped: skipCount, failed: failCount });
       showToast(successCount > 0 ? 'success' : 'warning', msg);
     } catch (e: unknown) { showToast('error', getErrorMessage(e)); }
     finally { wsDispatch({ type: 'SET_BATCH_NARRATING', value: false }); }
-  }, [ws.selectedStoryId, segments, ws.narrationUrls, characters, showToast, wsDispatch]);
+  }, [ws.selectedStoryId, segments, ws.narrationUrls, characters, showToast, wsDispatch, t]);
 
   /**
    * P0-1：批量生成 BGM —— 基于段落内容推荐风格后一键生成，并发度 2。
@@ -347,11 +347,11 @@ export const StoryWorkbench: React.FC = () => {
         }
       };
       await Promise.all(Array.from({ length: Math.min(concurrency, queue.length) }, worker));
-      const msg = `BGM 完成：成功 ${successCount}${failCount > 0 ? `，失败 ${failCount}` : ''}`;
+      const msg = t('workbench.bgmComplete', { success: successCount, failed: failCount });
       showToast(successCount > 0 ? 'success' : 'warning', msg);
     } catch (e: unknown) { showToast('error', getErrorMessage(e)); }
     finally { wsDispatch({ type: 'SET_BATCH_BGM_GENERATING', value: false }); }
-  }, [ws.selectedStoryId, segments, showToast, wsDispatch]);
+  }, [ws.selectedStoryId, segments, showToast, wsDispatch, t]);
 
   const handleBatchSetBackground = async () => {
     if (!ws.selectedStoryId || !ws.batchBgId) return;
@@ -384,7 +384,7 @@ export const StoryWorkbench: React.FC = () => {
 
   const handleAssembleFinalVideo = async () => {
     if (!ws.selectedStoryId) return;
-    wsDispatch({ type: 'SET_ASSEMBLING', value: true, progress: { percent: 0, message: '初始化合成任务...' } });
+    wsDispatch({ type: 'SET_ASSEMBLING', value: true, progress: { percent: 0, message: t('workbench.assembleInit') } });
     try {
       await pipelineService.assembleFinalVideo(ws.selectedStoryId, ws.narrationUrls, (percent, message) => {
         wsDispatch({ type: 'SET_ASSEMBLING', value: true, progress: { percent, message } });
@@ -702,18 +702,18 @@ export const StoryWorkbench: React.FC = () => {
                 className="btn btn-secondary btn-xs"
                 onClick={handleBatchNarrate}
                 disabled={ws.isBatchNarrating || segments.length === 0}
-                title="为所有缺旁白且角色已绑定音色的段落自动生成旁白"
+                title={t('workbench.batchNarrateTitle')}
               >
-                {ws.isBatchNarrating ? '生成中...' : '批量旁白'}
+                {ws.isBatchNarrating ? t('workbench.generating') : t('workbench.batchNarrate')}
               </button>
               {/* P0-1：批量生成 BGM */}
               <button
                 className="btn btn-secondary btn-xs"
                 onClick={handleBatchBGM}
                 disabled={ws.isBatchBgmGenerating || segments.length === 0}
-                title="基于段落内容自动推荐 BGM 风格并生成"
+                title={t('workbench.batchBGMTitle')}
               >
-                {ws.isBatchBgmGenerating ? '生成中...' : '批量 BGM'}
+                {ws.isBatchBgmGenerating ? t('workbench.generating') : t('workbench.batchBGM')}
               </button>
               <button className="btn btn-primary btn-xs" onClick={handleAssembleFinalVideo}
                 disabled={ws.isAssembling || progressStats?.success !== progressStats?.total}>

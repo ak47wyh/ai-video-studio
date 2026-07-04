@@ -188,8 +188,8 @@ export interface CostRecord {
   platform: string;
   /** 模型 ID */
   model: string;
-  /** 调用类型（text / image / video / voice / music） */
-  callType: 'text' | 'image' | 'video' | 'voice' | 'music';
+  /** 调用类型（text / image / video / voice / music / agent_chat / bgm_recommendation / cinematography / subtitle_align / subtitle_translate） */
+  callType: 'text' | 'image' | 'video' | 'voice' | 'music' | 'agent_chat' | 'bgm_recommendation' | 'cinematography' | 'subtitle_align' | 'subtitle_translate';
   /** Token 用量（仅 text 类型有值） */
   usage?: TokenUsageInfo;
   /** 调用时间戳 */

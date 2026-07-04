@@ -75,7 +75,7 @@ export const StoryListPanel: React.FC<StoryListPanelProps> = ({
         <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.4rem' }}>
           <button
             className="btn btn-secondary btn-xs"
-            style={{ color: '#a78bfa' }}
+            style={{ color: 'var(--lab-color-enhance)' }}
             disabled={refiningStoryText || !originalText.trim()}
             onClick={handleRefineText}
           >

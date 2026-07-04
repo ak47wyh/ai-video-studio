@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Image as ImageIcon, Sparkles, RefreshCw, Type, ImagePlus } from 'lucide-react';
-import { imageAdapter, assetLibraryService } from '../../dependencies';
+import { imageGenerationService, assetLibraryService } from '../../dependencies';
 import type { ImageModel, ImageAspectRatio, ImageGenerationContext } from '../../domain/ports/OutboundPorts';
 import { useToast } from '../contexts/ToastContext';
 import { getErrorMessage } from '../utils/errorUtils';
@@ -135,7 +135,7 @@ export const ImageLab: React.FC = () => {
     setIsGenerating(true);
     try {
       const context = buildContext(prompt, isI2I);
-      const res = await imageAdapter.generateImage(context);
+      const res = await imageGenerationService.generateImage(context);
 
       const urls = res.imageUrls || (res.imageDataUri ? [res.imageDataUri] : []);
       if (urls.length === 0) {

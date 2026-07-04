@@ -3,7 +3,12 @@
     "cancel": "取消",
     "confirm": "确认",
     "expand": "展开",
-    "collapse": "收起"
+    "collapse": "收起",
+    "noData": "暂无数据",
+    "loading": "加载中...",
+    "operationFailed": "操作失败",
+    "retry": "重试",
+    "unknownError": "发生未知错误"
   },
   "errorBoundary": {
     "title": "页面出现问题",
@@ -36,7 +41,12 @@
     "flowGenerate": "生成",
     "flowExport": "导出",
     "expand": "展开侧边栏",
-    "collapse": "收起侧边栏"
+    "collapse": "收起侧边栏",
+    "active": "激活",
+    "capabilityNotSupported": "该平台不支持此能力（当前：{{platform}}）",
+    "capabilityNotSupportedDefault": "该平台不支持此能力",
+    "activePlatformInfo": "当前激活平台：{{name}}（{{brand}}）\n能力：{{capabilities}}",
+    "activePlatformBrief": "当前激活平台：{{name}}（{{brand}}）"
   },
   "dashboard": {
     "title": "控制台",
@@ -290,7 +300,15 @@
     "assembleSuccess": "合成成功，已保存至导出中心！",
     "assembleFailed": "合成失败",
     "videoConfig": "视频配置",
-    "openEditor": "剪辑"
+    "openEditor": "剪辑",
+    "batchNarrate": "批量旁白",
+    "batchBGM": "批量 BGM",
+    "generating": "生成中...",
+    "narrateComplete": "旁白完成：成功 {{success}}，跳过 {{skipped}}（无音色）{{failed}}",
+    "bgmComplete": "BGM 完成：成功 {{success}}，失败 {{failed}}",
+    "batchNarrateTitle": "为所有缺旁白且角色已绑定音色的段落自动生成旁白",
+    "batchBGMTitle": "基于段落内容自动推荐 BGM 风格并生成",
+    "assembleInit": "初始化合成任务..."
   },
   "space": {
     "title": "故事空间管理",
@@ -348,7 +366,9 @@
       "maxUpload": "单次上传上限：{{size}}MB（可在 vite.config.ts 调整）",
       "probeBtn": "重新探测",
       "saveAndReloadBtn": "保存并刷新",
-      "whyHint": "为什么需要本地保存？\n外部图片 URL（如 OSS 签名链接）通常被浏览器 CORS 策略拦截，无法直接 fetch 到 Blob。本适配器把生成的图片/音频/视频 Blob 直接 POST 到本地 Vite 服务，由服务端写到磁盘，完全不调用任何外部接口。"
+      "whyHint": "为什么需要本地保存？\n外部图片 URL（如 OSS 签名链接）通常被浏览器 CORS 策略拦截，无法直接 fetch 到 Blob。本适配器把生成的图片/音频/视频 Blob 直接 POST 到本地 Vite 服务，由服务端写到磁盘，完全不调用任何外部接口。",
+      "directorySwitched": "目录已切换到 {{path}}，迁移 {{count}} 文件，请刷新页面",
+      "switchFailed": "切换失败：{{error}}"
     },
     "mediaCache": {
       "title": "媒体缓存（Service Worker）",
@@ -411,7 +431,33 @@
     "platformCache": "上下文缓存",
     "platformResponse": "模型响应",
     "appearanceSection": "外观主题",
-    "appearanceSectionDesc": "选择应用的主题风格，切换后立即生效。"
+    "appearanceSectionDesc": "选择应用的主题风格，切换后立即生效。",
+    "developerTools": "开发者工具",
+    "vconsoleToggle": "启用 vConsole 调试面板",
+    "vconsoleDesc": "开启后页面右下角出现调试按钮，可查看 Console / Network / Element / Storage 等信息。修改后需刷新页面生效。",
+    "platformConfig": "平台配置",
+    "fullModalPlatforms": "全模态平台",
+    "fullModalHint": "视频/图片/文本/语音/音乐",
+    "verticalPlatforms": "垂直生成平台",
+    "verticalHint": "视频/图片为主",
+    "statusActivated": "已激活",
+    "statusReady": "已就绪",
+    "statusNotConfigured": "未配置",
+    "activatePlatform": "激活此平台",
+    "docLink": "文档",
+    "platformSwitched": "已切换到{{name}}平台",
+    "validateBtn": "验证",
+    "getKeyLink": "获取 Key",
+    "noValidationNeeded": "无需验证",
+    "validateViaLab": "保存配置后在{{platform}}实验室发起任务即可验证",
+    "autosaveEnabled": "自动保存已开启",
+    "capVideo": "视频",
+    "capVideoFl2v": "首尾帧",
+    "capVideoS2v": "参考生",
+    "capImage": "图片",
+    "capText": "文本",
+    "capVoice": "语音",
+    "capMusic": "音乐"
   },
   "models": {
     "title": "可用模型",

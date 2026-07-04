@@ -187,6 +187,15 @@ export const storyService = new StoryService(
   smartTextSplitter, smartStoryBreakdown, videoTaskRepo
 );
 
+// ========================================
+// M3.3 模型注册表（EVOLUTION_DESIGN.md §7.3）
+// 必须先于所有业务服务实例化（TextGenerationService等依赖）
+// ========================================
+export const modelRegistry = new PlatformModelRegistry(
+  apiConfigStoreAdapter,
+  defaultLogger.child({ service: 'ModelRegistry' })
+);
+
 export const imageGenerationService = new ImageGenerationService(
   characterRepo, backgroundRepo, platformRouter, apiConfigStoreAdapter, getFileStorage, defaultLogger.child({ service: 'ImageGenerationService' }),
   costMeter, // P1-21：成本计量
@@ -196,6 +205,7 @@ export const textGenerationService = new TextGenerationService(
   platformRouter, apiConfigStoreAdapter,
   defaultLogger.child({ service: 'TextGenerationService' }),
   costMeter, // P1-21：成本计量
+  modelRegistry, // P0-1：模型 ID 走 PlatformRouter
 );
 
 export const textLabService = new TextLabService(
@@ -241,18 +251,10 @@ export const timelineService = new TimelineService({
   videoTaskRepo,
 });
 
-// ========================================
-// M3.3 模型注册表（EVOLUTION_DESIGN.md §7.3）
-// 必须先于所有业务服务实例化（subtitleService/cinematographyService 等依赖）
-// ========================================
-export const modelRegistry = new PlatformModelRegistry(
-  apiConfigStoreAdapter,
-  defaultLogger.child({ service: 'ModelRegistry' })
-);
-
 export const subtitleService = new SubtitleService(
   whisperAdapter, platformRouter, apiConfigStoreAdapter,
   defaultLogger.child({ service: 'SubtitleService' }),
+  costMeter, // P1-21：成本计量
   modelRegistry, // M3.3: 注入模型注册表
 );
 
@@ -265,11 +267,13 @@ export const subtitleService = new SubtitleService(
 export const cinematographyService = new CinematographyService(
   platformRouter, apiConfigStoreAdapter,
   defaultLogger.child({ service: 'CinematographyService' }),
+  costMeter, // P1-21：成本计量
   modelRegistry, // M3.3: 注入模型注册表
 );
 export const bgmRecommendationService = new BGMRecommendationService(
   platformRouter, apiConfigStoreAdapter,
   defaultLogger.child({ service: 'BGMRecommendationService' }),
+  costMeter, // P1-21：成本计量
   modelRegistry, // M3.3: 注入模型注册表
 );
 
@@ -321,6 +325,7 @@ export const modelManagementService = new ModelManagementService(modelAdapter, m
 export const agentService = new AgentService(
   platformRouter, apiConfigStoreAdapter,
   defaultLogger.child({ service: 'AgentService' }),
+  costMeter, // P1-21：成本计量
   modelRegistry, // M3.3: 注入模型注册表
 );
 export const autoEditService = new AutoEditService(ffmpegAdapter);

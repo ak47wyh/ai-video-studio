@@ -95,6 +95,10 @@ export class PlatformRouter {
 
   resolveVideo(config: ApiConfig): IVideoGeneratorPort {
     this.ensureCap(config.activePlatform, 'video');
+    // P0-3: 火山方舟 Anthropic 协议仅支持 text 能力，video/image/voice 应拦截
+    if (config.activePlatform === 'volcengine' && config.volcArkProtocol === 'anthropic') {
+      throw new UnsupportedCapabilityError('volcengine', 'video');
+    }
     if (_videoAdapter && this.isMatchingPlatform(_videoAdapter, config.activePlatform)) {
       return _videoAdapter;
     }
@@ -127,6 +131,9 @@ export class PlatformRouter {
 
   resolveImage(config: ApiConfig): IImageGeneratorPort {
     this.ensureCap(config.activePlatform, 'image');
+    if (config.activePlatform === 'volcengine' && config.volcArkProtocol === 'anthropic') {
+      throw new UnsupportedCapabilityError('volcengine', 'image');
+    }
     if (_imageAdapter && this.isMatchingPlatform(_imageAdapter, config.activePlatform)) {
       return _imageAdapter;
     }
@@ -185,6 +192,9 @@ export class PlatformRouter {
 
   resolveVoice(config: ApiConfig): IVoicePort {
     this.ensureCap(config.activePlatform, 'voice');
+    if (config.activePlatform === 'volcengine' && config.volcArkProtocol === 'anthropic') {
+      throw new UnsupportedCapabilityError('volcengine', 'voice');
+    }
     if (_voiceAdapter && this.isMatchingPlatform(_voiceAdapter, config.activePlatform)) {
       return _voiceAdapter;
     }

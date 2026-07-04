@@ -31,9 +31,6 @@
   --radius-xl: 16px;
   --radius-full: 9999px;
 
-  --transition-fast: 0.15s ease-in-out;
-  --transition-normal: 0.3s ease-in-out;
-
   /* ===== 设计令牌（V3 §6.1）：间距系统 ===== */
   --space-xs: 4px;
   --space-sm: 8px;
@@ -364,7 +361,7 @@ p {
   font-weight: 500;
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all var(--motion-fast) var(--ease-standard);
   border: none;
   outline: none;
   text-decoration: none;
@@ -446,7 +443,7 @@ p {
   color: var(--text-main);
   font-family: inherit;
   font-size: 0.875rem;
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  transition: border-color var(--motion-fast) var(--ease-standard), box-shadow var(--motion-fast) var(--ease-standard);
 }
 
 .form-input:focus, .form-textarea:focus, .form-select:focus {
@@ -790,7 +787,7 @@ p {
   font-weight: 500;
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all var(--motion-fast) var(--ease-standard);
   border: 1px solid var(--border-color);
   background: transparent;
   color: var(--text-main);
@@ -1063,7 +1060,7 @@ p {
   border: 1px solid var(--border-color);
   color: var(--text-muted);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all var(--motion-fast) var(--ease-standard);
   font-family: inherit;
 }
 
@@ -1736,7 +1733,7 @@ p {
 }
 
 .character-card-action-btn.sparkle {
-  color: #a78bfa;
+  color: var(--lab-color-enhance, #a78bfa);
 }
 
 .character-card-copy-row {
@@ -1799,7 +1796,7 @@ p {
   display: inline-flex;
   align-items: center;
   gap: 0.2rem;
-  color: #a78bfa;
+  color: var(--lab-color-enhance, #a78bfa);
 }
 
 .character-form-image-preview {
@@ -2009,7 +2006,7 @@ p {
 .segment-error {
   margin-top: 0.75rem;
   font-size: 0.8rem;
-  color: #f87171;
+  color: var(--color-danger, #f87171);
 }
 
 .segment-narration {
@@ -2040,13 +2037,13 @@ p {
 }
 
 .segment-bgm-header-icon {
-  color: #f472b6;
+  color: var(--lab-color-music, #f472b6);
 }
 
 .segment-bgm-header-text {
   font-size: 0.8rem;
   font-weight: 600;
-  color: #f472b6;
+  color: var(--lab-color-music, #f472b6);
 }
 
 .segment-bgm-info {
@@ -2722,7 +2719,7 @@ p {
   inset: 0;
   background: var(--border-color);
   border-radius: var(--radius-full);
-  transition: background var(--transition-fast);
+  transition: background var(--motion-fast) var(--ease-standard);
   cursor: pointer;
 }
 
@@ -2734,7 +2731,7 @@ p {
   height: 16px;
   background: #fff;
   border-radius: 50%;
-  transition: transform var(--transition-fast);
+  transition: transform var(--motion-fast) var(--ease-standard);
   box-shadow: var(--shadow-sm);
 }
 

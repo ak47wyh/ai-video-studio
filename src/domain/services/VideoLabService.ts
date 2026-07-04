@@ -56,17 +56,24 @@ export class VideoLabService {
     taskId: string,
     isAgent: boolean,
     onUpdate: (result: VideoTaskResult | VideoAgentTaskResult) => void,
+    maxRetries: number = 60,
   ): () => void {
+    let retryCount = 0;
     const interval = setInterval(async () => {
+      retryCount++;
       try {
         const result = isAgent
           ? await this.queryAgentTask(taskId)
           : await this.queryTask(taskId);
 
         const status = result.status.toUpperCase();
-        if (status === 'SUCCESS' || status === 'FAIL' || status === 'FAILED') {
+        if (status === 'SUCCESS' || status === 'FAIL' || status === 'FAILED' || retryCount >= maxRetries) {
           clearInterval(interval);
           this.activePollers.delete(taskId);
+          if (retryCount >= maxRetries && status !== 'SUCCESS') {
+            onUpdate({ ...result, status: 'FAILED', errorMessage: `Polling timed out after ${maxRetries} retries` });
+            return;
+          }
         }
         onUpdate(result);
       } catch {

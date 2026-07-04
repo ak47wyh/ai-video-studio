@@ -1,7 +1,7 @@
 import type { IWhisperPort } from '../ports/PostProcessPorts';
 import type { ITextGenerationPort } from '../ports/OutboundPorts';
 import type { IApiConfigStore, IModelRegistry } from '../ports/PlatformPorts';
-import type { ILoggerPort } from '../ports/CrossCuttingPorts';
+import type { ILoggerPort, ICostMeter } from '../ports/CrossCuttingPorts';
 import type { StorySegment } from '../entities/models';
 import type { PlatformRouter } from './PlatformRouter';
 
@@ -26,6 +26,7 @@ export class SubtitleService {
   private whisperPort: IWhisperPort;
   private router: PlatformRouter;
   private configStore: IApiConfigStore;
+  private costMeter?: ICostMeter;
   private modelRegistry?: IModelRegistry;
   // @ts-expect-error Logger injected for future use
   private _logger: ILoggerPort;
@@ -35,12 +36,14 @@ export class SubtitleService {
     router: PlatformRouter,
     configStore: IApiConfigStore,
     logger: ILoggerPort,
+    costMeter?: ICostMeter,
     modelRegistry?: IModelRegistry,
   ) {
     this.whisperPort = whisperPort;
     this.router = router;
     this.configStore = configStore;
     this._logger = logger;
+    this.costMeter = costMeter;
     this.modelRegistry = modelRegistry;
   }
 
@@ -117,6 +120,19 @@ Output JSON array of objects: { "segmentIndex": number, "startMs": number, "endM
       temperature: 0.1,
       maxTokens: 2048,
       useAnthropicEndpoint: true
+    });
+
+    this.costMeter?.record({
+      platform: this.configStore.load().activePlatform,
+      model: this.resolveAlignmentModel(),
+      callType: 'subtitle_align',
+      usage: result.usage
+        ? {
+            inputTokens: result.usage.promptTokens ?? 0,
+            outputTokens: result.usage.completionTokens ?? 0,
+            totalTokens: (result.usage.promptTokens ?? 0) + (result.usage.completionTokens ?? 0),
+          }
+        : undefined,
     });
 
     try {
@@ -236,6 +252,19 @@ Output JSON array of objects: { "segmentIndex": number, "startMs": number, "endM
       temperature: 0.3,
       maxTokens: 4096,
       useAnthropicEndpoint: true,
+    });
+
+    this.costMeter?.record({
+      platform: this.configStore.load().activePlatform,
+      model: this.resolveAlignmentModel(),
+      callType: 'subtitle_translate',
+      usage: result.usage
+        ? {
+            inputTokens: result.usage.promptTokens ?? 0,
+            outputTokens: result.usage.completionTokens ?? 0,
+            totalTokens: (result.usage.promptTokens ?? 0) + (result.usage.completionTokens ?? 0),
+          }
+        : undefined,
     });
 
     const translatedEntries = this.parseTranslatedResult(result.content, entries);

@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { DollarSign, Trash2, RefreshCw, TrendingUp, Cpu, Mic, Music, Film, Image as ImageIcon } from 'lucide-react';
+import { DollarSign, Trash2, RefreshCw, TrendingUp, Cpu, Mic, Music, Film, Image as ImageIcon, Bot, Clapperboard, Captions } from 'lucide-react';
 import { SettingsSection } from './SettingsSection';
 import { costMeter } from '../../../dependencies';
 import type { CostSummary, CostRecord } from '../../../domain/ports/CrossCuttingPorts';
@@ -12,6 +12,11 @@ const CALL_TYPE_META: Record<CostRecord['callType'], { icon: React.ReactNode; co
   video: { icon: <Film size={14} />, color: 'var(--lab-color-video)', label: '视频' },
   voice: { icon: <Mic size={14} />, color: 'var(--lab-color-voice)', label: '语音' },
   music: { icon: <Music size={14} />, color: 'var(--lab-color-music)', label: '音乐' },
+  agent_chat: { icon: <Bot size={14} />, color: 'var(--lab-color-text)', label: 'Agent' },
+  bgm_recommendation: { icon: <Music size={14} />, color: 'var(--lab-color-music)', label: 'BGM推荐' },
+  cinematography: { icon: <Clapperboard size={14} />, color: 'var(--lab-color-video)', label: '镜头' },
+  subtitle_align: { icon: <Captions size={14} />, color: 'var(--lab-color-text)', label: '字幕对齐' },
+  subtitle_translate: { icon: <Captions size={14} />, color: 'var(--lab-color-text)', label: '字幕翻译' },
 };
 
 /**

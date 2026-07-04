@@ -1,6 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Film, Image, Layers, User, FileText, RefreshCw, ChevronDown, ChevronUp, AlertCircle, SplitSquareHorizontal } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { videoLabService } from '../../dependencies';
 import type { VideoModel, VideoResolution, VideoGenerationMode, VideoAgentContext } from '../../domain/ports/OutboundPorts';
 import { useToast } from '../contexts/ToastContext';
@@ -154,7 +153,6 @@ const VideoModelConfig: React.FC<VideoModelConfigProps> = ({
 // ==================== 主页面 ====================
 export const VideoLab: React.FC = () => {
   const { showToast } = useToast();
-  const navigate = useNavigate();
   const { hasCapability: hasCap } = usePlatformCapabilities();
 
   const [activeTab, setActiveTab] = useState<VideoLabTab>('t2v');
@@ -229,9 +227,9 @@ export const VideoLab: React.FC = () => {
   // ==================== 业务闭环: 使用视频到分镜 ====================
   const handleUseInStory = useCallback((task: VideoLabTask) => {
     if (!task.videoUrl) return;
-    navigate('/workbench');
-    showToast('success', '已跳转到故事工作台，可在分镜中使用该视频');
-  }, [navigate, showToast]);
+    // P0-5: 统一走 SegmentPicker，与其他 Lab 一致
+    setPickerAsset({ url: task.videoUrl, field: 'video' as SegmentBindField });
+  }, []);
 
   // ==================== 业务闭环: 跨Tab使用图片 ====================
   const handleUseAsInput = useCallback((url: string, target: 'i2v-first' | 'fl2v-first' | 'fl2v-last' | 's2v-subject') => {

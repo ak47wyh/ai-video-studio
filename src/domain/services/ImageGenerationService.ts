@@ -148,7 +148,7 @@ export class ImageGenerationService {
     aspectRatio?: ImageAspectRatio;
     character?: { referenceImageUrl?: string } | null;
     background?: { referenceImageUrl?: string } | null;
-  }): Promise<{ imageDataUri: string; imageUrls: string[]; metadata?: { successCount?: number } }> {
+  }): Promise<{ imageDataUri: string; imageUrls: string[]; metadata?: { successCount?: number; failedCount?: number } }> {
     const ctx: ImageGenerationContext = {
       prompt: context.prompt,
       aspectRatio: context.aspectRatio ?? '16:9',
@@ -164,7 +164,7 @@ export class ImageGenerationService {
     return {
       imageDataUri: result.imageDataUri ?? '',
       imageUrls: result.imageUrls ?? [],
-      metadata: { successCount: result.imageUrls?.length ?? (result.imageDataUri ? 1 : 0) },
+      metadata: { successCount: result.imageUrls?.length ?? (result.imageDataUri ? 1 : 0), failedCount: result.metadata?.failedCount },
     };
   }
 

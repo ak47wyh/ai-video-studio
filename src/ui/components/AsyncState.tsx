@@ -1,5 +1,6 @@
 import React from 'react';
 import { AlertCircle, RefreshCw, Inbox } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 /** 加载子态（V3 §6.2）：骨架屏(首次) / 内联 spinner(刷新) / 进度条(批量) */
 export type LoadingVariant = 'spinner' | 'skeleton' | 'progress';
@@ -47,14 +48,17 @@ export const AsyncState: React.FC<AsyncStateProps> = ({
   loading,
   error,
   empty,
-  emptyText = '暂无数据',
+  emptyText,
   onRetry,
   children,
-  loadingText = '加载中...',
+  loadingText,
   minHeight = 200,
   loadingVariant = 'spinner',
   progress,
 }) => {
+  const { t } = useTranslation();
+  const resolvedEmptyText = emptyText ?? t('common.noData');
+  const resolvedLoadingText = loadingText ?? t('common.loading');
   // 加载状态
   if (loading) {
     // 骨架子态：用 shimmer 灰块占位，适合首次加载
@@ -81,7 +85,7 @@ export const AsyncState: React.FC<AsyncStateProps> = ({
           aria-valuemin={0}
           aria-valuemax={100}
         >
-          <span className="async-state-text">{loadingText}</span>
+          <span className="async-state-text">{resolvedLoadingText}</span>
           <div className="async-state-progress-track">
             <div className="async-state-progress-fill" style={{ width: `${pct}%` }} />
           </div>
@@ -94,25 +98,25 @@ export const AsyncState: React.FC<AsyncStateProps> = ({
     return (
       <div className="glass-panel async-state-spinner" style={{ minHeight }} role="status" aria-live="polite">
         <RefreshCw size={28} className="spin async-state-icon" />
-        <span className="async-state-text">{loadingText}</span>
+        <span className="async-state-text">{resolvedLoadingText}</span>
       </div>
     );
   }
 
   // 错误状态
   if (error) {
-    const message = typeof error === 'string' ? error : error.message || '发生未知错误';
+    const message = typeof error === 'string' ? error : error.message || t('common.unknownError');
     return (
       <div className="glass-panel async-state-error" style={{ minHeight }}>
         <AlertCircle size={32} className="async-state-error-icon" />
         <div className="async-state-error-body">
-          <p className="async-state-error-title">操作失败</p>
+          <p className="async-state-error-title">{t('common.operationFailed')}</p>
           <p className="async-state-error-detail">{message}</p>
         </div>
         {onRetry && (
           <button className="btn btn-secondary async-state-retry" onClick={onRetry}>
             <RefreshCw size={14} />
-            重试
+            {t('common.retry')}
           </button>
         )}
       </div>
@@ -124,7 +128,7 @@ export const AsyncState: React.FC<AsyncStateProps> = ({
     return (
       <div className="glass-panel async-state-empty" style={{ minHeight }}>
         <Inbox size={36} className="async-state-empty-icon" />
-        <span className="async-state-text">{emptyText}</span>
+        <span className="async-state-text">{resolvedEmptyText}</span>
       </div>
     );
   }
@@ -168,16 +172,17 @@ interface EmptyStateProps {
  */
 export const EmptyState: React.FC<EmptyStateProps> = ({
   icon,
-  title = '暂无数据',
+  title,
   description,
   actionText,
   onAction,
   minHeight = 200,
 }) => {
+  const { t } = useTranslation();
   return (
     <div className="glass-panel empty-state" style={{ minHeight }}>
       {icon ?? <Inbox size={48} />}
-      <p className="empty-state-title">{title}</p>
+      <p className="empty-state-title">{title ?? t('common.noData')}</p>
       {description && <p className="empty-state-desc">{description}</p>}
       {actionText && onAction && (
         <button className="btn btn-primary empty-state-action" onClick={onAction}>

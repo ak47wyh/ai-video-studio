@@ -38,7 +38,7 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
           border: 'none',
           cursor: 'pointer',
           textAlign: 'left',
-          transition: 'background var(--transition-fast)',
+          transition: 'background var(--motion-fast) var(--ease-standard)',
         }}
         onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-panel-hover)'; }}
         onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
@@ -78,7 +78,7 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
           maxHeight: isExpanded ? '2000px' : '0',
           opacity: isExpanded ? 1 : 0,
           overflow: 'hidden',
-          transition: 'all var(--transition-normal)',
+          transition: 'all var(--motion-normal) var(--ease-standard)',
         }}
       >
         <div style={{ padding: '0 1rem 1rem 1rem' }}>

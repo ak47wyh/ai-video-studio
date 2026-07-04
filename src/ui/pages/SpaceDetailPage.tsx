@@ -687,7 +687,7 @@ const StoriesTab: React.FC<StoriesTabProps> = ({ spaceId }) => {
           key={story.id}
           className="glass-panel"
           style={{ padding: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem' }}
-          onClick={() => navigate(`/workbench?storyId=${story.id}`)}
+          onClick={() => navigate(`/workbench?story=${story.id}`)}
         >
           <BookOpen size={18} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
           <div style={{ flex: 1 }}>

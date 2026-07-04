@@ -14,7 +14,7 @@
 
 import type { ITextGenerationPort, TextGenerationMessage, TextGenerationContext } from '../ports/OutboundPorts';
 import type { IApiConfigStore, IModelRegistry } from '../ports/PlatformPorts';
-import type { ILoggerPort } from '../ports/CrossCuttingPorts';
+import type { ILoggerPort, ICostMeter } from '../ports/CrossCuttingPorts';
 import type { PlatformRouter } from './PlatformRouter';
 import { ToolRegistry, type ToolContext, type ToolEvent, type ToolResult } from './ToolRegistry';
 
@@ -111,6 +111,7 @@ export class AgentService {
   private router: PlatformRouter;
   private configStore: IApiConfigStore;
   private logger: ILoggerPort;
+  private costMeter?: ICostMeter;
   private modelRegistry?: IModelRegistry;
   private toolRegistry: ToolRegistry | null = null;
 
@@ -118,11 +119,13 @@ export class AgentService {
     router: PlatformRouter,
     configStore: IApiConfigStore,
     logger: ILoggerPort,
+    costMeter?: ICostMeter,
     modelRegistry?: IModelRegistry,
   ) {
     this.router = router;
     this.configStore = configStore;
     this.logger = logger;
+    this.costMeter = costMeter;
     this.modelRegistry = modelRegistry;
   }
 
@@ -176,6 +179,19 @@ export class AgentService {
       messages: [...systemMessages, ...conversationMessages],
       maxTokens: 4096,
       temperature: 0.7,
+    });
+
+    this.costMeter?.record({
+      platform: this.configStore.load().activePlatform,
+      model: this.resolveChatModel(),
+      callType: 'agent_chat',
+      usage: result.usage
+        ? {
+            inputTokens: result.usage.promptTokens ?? 0,
+            outputTokens: result.usage.completionTokens ?? 0,
+            totalTokens: (result.usage.promptTokens ?? 0) + (result.usage.completionTokens ?? 0),
+          }
+        : undefined,
     });
 
     return result.content;
@@ -261,6 +277,18 @@ export class AgentService {
       let llmResult;
       try {
         llmResult = await this.getTextPort().chatCompletion(context);
+        this.costMeter?.record({
+          platform: this.configStore.load().activePlatform,
+          model: this.resolveChatModel(),
+          callType: 'agent_chat',
+          usage: llmResult.usage
+            ? {
+                inputTokens: llmResult.usage.promptTokens ?? 0,
+                outputTokens: llmResult.usage.completionTokens ?? 0,
+                totalTokens: (llmResult.usage.promptTokens ?? 0) + (llmResult.usage.completionTokens ?? 0),
+              }
+            : undefined,
+        });
       } catch (e) {
         const errorMsg = e instanceof Error ? e.message : String(e);
         this.logger.error('LLM chatCompletion failed', e, {
@@ -437,6 +465,19 @@ export class AgentService {
       ],
       maxTokens: 128,
       temperature: 0.3,
+    });
+
+    this.costMeter?.record({
+      platform: this.configStore.load().activePlatform,
+      model: this.resolveChatModel(),
+      callType: 'agent_chat',
+      usage: result.usage
+        ? {
+            inputTokens: result.usage.promptTokens ?? 0,
+            outputTokens: result.usage.completionTokens ?? 0,
+            totalTokens: (result.usage.promptTokens ?? 0) + (result.usage.completionTokens ?? 0),
+          }
+        : undefined,
     });
 
     return result.content.trim().split(/[,，、\n]/).map(s => s.trim()).filter(Boolean);

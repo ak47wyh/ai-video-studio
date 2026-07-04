@@ -48,7 +48,7 @@ async function validateArkToken(
       });
       if (!response.ok) {
         const errText = await response.text();
-        return { ok: false, error: `校验失败 (HTTP ${response.status})：${errText}` };
+        return { ok: false, error: `HTTP ${response.status}: ${errText}` };
       }
       return { ok: true };
     }
@@ -58,27 +58,28 @@ async function validateArkToken(
     });
     if (!response.ok) {
       const errText = await response.text();
-      return { ok: false, error: `校验失败 (HTTP ${response.status})：${errText}` };
+      return { ok: false, error: `HTTP ${response.status}: ${errText}` };
     }
     return { ok: true };
   } catch (err) {
-    return { ok: false, error: `网络错误：${err instanceof Error ? err.message : String(err)}` };
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
 }
 
 // ===== 能力标签映射 =====
-const CAPABILITY_LABELS: Record<Capability, string> = {
-  video: '视频',
-  videoFl2v: '首尾帧',
-  videoS2v: '参考生',
-  image: '图片',
-  text: '文本',
-  voice: '语音',
-  music: '音乐',
+const CAPABILITY_LABEL_KEYS: Record<Capability, string> = {
+  video: 'settings.capVideo',
+  videoFl2v: 'settings.capVideoFl2v',
+  videoS2v: 'settings.capVideoS2v',
+  image: 'settings.capImage',
+  text: 'settings.capText',
+  voice: 'settings.capVoice',
+  music: 'settings.capMusic',
 };
 
 /** 能力小标签 */
 const CapabilityChips: React.FC<{ platform: PlatformId; accentColor: string }> = ({ platform, accentColor }) => {
+  const { t } = useTranslation();
   const caps = PLATFORM_METADATA[platform]?.capabilities ?? [];
   if (caps.length === 0) return null;
   return (
@@ -99,7 +100,7 @@ const CapabilityChips: React.FC<{ platform: PlatformId; accentColor: string }> =
             border: `1px solid ${accentColor}33`,
           }}
         >
-          {CAPABILITY_LABELS[c]}
+          {t(CAPABILITY_LABEL_KEYS[c])}
         </span>
       ))}
     </div>
@@ -145,6 +146,7 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
   docLink,
   accentColor = 'var(--primary-color)',
 }) => {
+  const { t } = useTranslation();
   return (
     <div
       className="glass-panel"
@@ -152,7 +154,7 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
         padding: 0,
         border: isActive ? `1px solid ${accentColor}` : '1px solid var(--border-color)',
         borderLeft: `3px solid ${isActive ? accentColor : 'transparent'}`,
-        transition: 'all var(--transition-normal)',
+        transition: `all var(--motion-normal) var(--ease-standard)`,
         boxShadow: isActive ? `0 4px 16px ${accentColor}22` : 'var(--shadow-md)',
         overflow: 'hidden',
       }}
@@ -166,7 +168,7 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
           gap: '0.75rem',
           padding: '0.85rem 1rem',
           cursor: 'pointer',
-          transition: 'background var(--transition-fast)',
+          transition: 'background var(--motion-fast) var(--ease-standard)',
         }}
         onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-panel-hover)'; }}
         onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
@@ -193,9 +195,9 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
             <h3 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 600, color: 'var(--text-main)' }}>{name}</h3>
-            {isActive && <StatusBadge status="connected" label="已激活" />}
-            {isConfigured && !isActive && <StatusBadge status="ready" label="已就绪" />}
-            {!isConfigured && !isActive && <StatusBadge status="inactive" label="未配置" />}
+            {isActive && <StatusBadge status="connected" label={t('settings.statusActivated')} />}
+            {isConfigured && !isActive && <StatusBadge status="ready" label={t('settings.statusReady')} />}
+            {!isConfigured && !isActive && <StatusBadge status="inactive" label={t('settings.statusNotConfigured')} />}
           </div>
           <p style={{ margin: '0.15rem 0 0', fontSize: '0.72rem', color: 'var(--text-muted)', lineHeight: 1.3 }}>
             {description}
@@ -207,7 +209,7 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
           size={18}
           style={{
             color: 'var(--text-muted)',
-            transition: 'transform var(--transition-fast)',
+            transition: 'transform var(--motion-fast) var(--ease-standard)',
             transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
             flexShrink: 0,
           }}
@@ -251,12 +253,12 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
               {isActive ? (
                 <>
                   <CheckCircle size={14} />
-                  已激活
+                  {t('settings.statusActivated')}
                 </>
               ) : (
                 <>
                   <Zap size={14} />
-                  激活此平台
+                  {t('settings.activatePlatform')}
                 </>
               )}
             </button>
@@ -296,7 +298,7 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
                 }}
               >
                 <BookOpen size={13} />
-                文档
+                {t('settings.docLink')}
               </a>
             )}
           </div>
@@ -339,8 +341,8 @@ export const Settings: React.FC = () => {
     setConfig(prev => ({ ...prev, activePlatform: platform }));
     setExpandedPlatform(platform); // 激活后自动展开该平台
     const meta = PLATFORM_METADATA[platform];
-    showToast('success', `已切换到${meta?.name ?? platform}平台`);
-  }, [showToast]);
+    showToast('success', t('settings.platformSwitched', { name: meta?.name ?? platform }));
+  }, [showToast, t]);
 
   // Model management state
   const [textModels, setTextModels] = useState<ModelInfo[]>([]);
@@ -434,7 +436,7 @@ export const Settings: React.FC = () => {
       {/* ── Developer Tools Section ────────────────────────── */}
       <SettingsSection
         icon={<Bug size={20} />}
-        title="开发者工具"
+        title={t('settings.developerTools')}
         badge={undefined}
         defaultExpanded={false}
       >
@@ -459,10 +461,10 @@ export const Settings: React.FC = () => {
             </span>
             <div>
               <div style={{ fontSize: '0.88rem', fontWeight: 500, color: 'var(--text-main)' }}>
-                启用 vConsole 调试面板
+                {t('settings.vconsoleToggle')}
               </div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
-                开启后页面右下角出现调试按钮，可查看 Console / Network / Element / Storage 等信息。修改后需刷新页面生效。
+                {t('settings.vconsoleDesc')}
               </div>
             </div>
           </label>
@@ -479,14 +481,14 @@ export const Settings: React.FC = () => {
           textTransform: 'uppercase',
           letterSpacing: '0.05em'
         }}>
-          平台配置
+          {t('settings.platformConfig')}
         </h2>
 
 
         {/* ── 分组① 全模态平台 ── */}
         <div className="settings-platform-group-title">
-          <span>全模态平台</span>
-          <span className="settings-platform-group-hint">视频/图片/文本/语音/音乐</span>
+          <span>{t('settings.fullModalPlatforms')}</span>
+          <span className="settings-platform-group-hint">{t('settings.fullModalHint')}</span>
         </div>
         <div className="settings-platform-grid" style={{
           display: 'grid',
@@ -504,10 +506,10 @@ export const Settings: React.FC = () => {
             expanded={expandedPlatform === 'minimax'}
             onToggleExpand={() => toggleExpand('minimax')}
             onActivate={() => handleActivate('minimax')}
-            onValidate={async () => showToast('info', 'MiniMax 无需验证')}
-            validateLabel="验证"
+            onValidate={async () => showToast('info', t('settings.noValidationNeeded'))}
+            validateLabel={t('settings.validateBtn')}
             externalLink="https://platform.minimaxi.com/user-center/basic-information/interface-key"
-            externalLinkLabel="获取 Token"
+            externalLinkLabel={t('settings.getTokenLink')}
             docLink={PLATFORM_METADATA.minimax.docLink}
             accentColor="#6366f1"
           >
@@ -567,7 +569,7 @@ export const Settings: React.FC = () => {
             onValidate={handleVolcValidate}
             validateLabel={t('settings.volcValidateBtn')}
             externalLink="https://console.volcengine.com/ark"
-            externalLinkLabel="获取 Token"
+            externalLinkLabel={t('settings.getTokenLink')}
             docLink={PLATFORM_METADATA.volcengine.docLink}
             accentColor="#f97316"
           >
@@ -636,8 +638,8 @@ export const Settings: React.FC = () => {
 
         {/* ── 分组② 垂直生成平台 ── */}
         <div className="settings-platform-group-title">
-          <span>垂直生成平台</span>
-          <span className="settings-platform-group-hint">视频/图片为主</span>
+          <span>{t('settings.verticalPlatforms')}</span>
+          <span className="settings-platform-group-hint">{t('settings.verticalHint')}</span>
         </div>
         <div className="settings-platform-grid" style={{
           display: 'grid',
@@ -655,10 +657,10 @@ export const Settings: React.FC = () => {
             expanded={expandedPlatform === 'kling'}
             onToggleExpand={() => toggleExpand('kling')}
             onActivate={() => handleActivate('kling')}
-            onValidate={async () => showToast('info', '可灵：保存配置后在视频实验室发起任务即可验证')}
-            validateLabel="验证"
+            onValidate={async () => showToast('info', t('settings.validateViaLab', { platform: t('settings.capVideo') }))}
+            validateLabel={t('settings.validateBtn')}
             externalLink={PLATFORM_METADATA.kling.externalLink}
-            externalLinkLabel="获取 Key"
+            externalLinkLabel={t('settings.getKeyLink')}
             docLink={PLATFORM_METADATA.kling.docLink}
             accentColor={PLATFORM_METADATA.kling.accentColor}
           >
@@ -701,10 +703,10 @@ export const Settings: React.FC = () => {
             expanded={expandedPlatform === 'wan'}
             onToggleExpand={() => toggleExpand('wan')}
             onActivate={() => handleActivate('wan')}
-            onValidate={async () => showToast('info', '万相：保存配置后在视频实验室发起任务即可验证')}
-            validateLabel="验证"
+            onValidate={async () => showToast('info', t('settings.validateViaLab', { platform: t('settings.capVideo') }))}
+            validateLabel={t('settings.validateBtn')}
             externalLink={PLATFORM_METADATA.wan.externalLink}
-            externalLinkLabel="获取 Key"
+            externalLinkLabel={t('settings.getKeyLink')}
             docLink={PLATFORM_METADATA.wan.docLink}
             accentColor={PLATFORM_METADATA.wan.accentColor}
           >
@@ -737,10 +739,10 @@ export const Settings: React.FC = () => {
             expanded={expandedPlatform === 'hunyuan'}
             onToggleExpand={() => toggleExpand('hunyuan')}
             onActivate={() => handleActivate('hunyuan')}
-            onValidate={async () => showToast('info', '混元：保存配置后在视频实验室发起任务即可验证')}
-            validateLabel="验证"
+            onValidate={async () => showToast('info', t('settings.validateViaLab', { platform: t('settings.capVideo') }))}
+            validateLabel={t('settings.validateBtn')}
             externalLink={PLATFORM_METADATA.hunyuan.externalLink}
-            externalLinkLabel="获取 Key"
+            externalLinkLabel={t('settings.getKeyLink')}
             docLink={PLATFORM_METADATA.hunyuan.docLink}
             accentColor={PLATFORM_METADATA.hunyuan.accentColor}
           >
@@ -784,10 +786,10 @@ export const Settings: React.FC = () => {
             expanded={expandedPlatform === 'zhipu'}
             onToggleExpand={() => toggleExpand('zhipu')}
             onActivate={() => handleActivate('zhipu')}
-            onValidate={async () => showToast('info', '智谱：保存配置后在视频实验室发起任务即可验证')}
-            validateLabel="验证"
+            onValidate={async () => showToast('info', t('settings.validateViaLab', { platform: t('settings.capVideo') }))}
+            validateLabel={t('settings.validateBtn')}
             externalLink={PLATFORM_METADATA.zhipu.externalLink}
-            externalLinkLabel="获取 Key"
+            externalLinkLabel={t('settings.getKeyLink')}
             docLink={PLATFORM_METADATA.zhipu.docLink}
             accentColor={PLATFORM_METADATA.zhipu.accentColor}
           >
@@ -820,10 +822,10 @@ export const Settings: React.FC = () => {
             expanded={expandedPlatform === 'vidu'}
             onToggleExpand={() => toggleExpand('vidu')}
             onActivate={() => handleActivate('vidu')}
-            onValidate={async () => showToast('info', 'Vidu：保存配置后在视频实验室发起任务即可验证')}
-            validateLabel="验证"
+            onValidate={async () => showToast('info', t('settings.validateViaLab', { platform: t('settings.capVideo') }))}
+            validateLabel={t('settings.validateBtn')}
             externalLink={PLATFORM_METADATA.vidu.externalLink}
-            externalLinkLabel="获取 Key"
+            externalLinkLabel={t('settings.getKeyLink')}
             docLink={PLATFORM_METADATA.vidu.docLink}
             accentColor={PLATFORM_METADATA.vidu.accentColor}
           >
@@ -846,17 +848,7 @@ export const Settings: React.FC = () => {
           </PlatformCard>
         </div>
 
-        {/* ── 分组③ 应用与编排 ── */}
-        <div className="settings-platform-group-title">
-          <span>应用与编排</span>
-          <span className="settings-platform-group-hint">Bot 应用 · 对话管理</span>
-        </div>
-        <div className="settings-platform-grid" style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
-          gap: '0.75rem',
-        }}>
-        </div>
+
       </div>
 
       {/* ── Available Models Section ────────────────────── */}
@@ -971,7 +963,7 @@ export const Settings: React.FC = () => {
         boxShadow: 'var(--shadow-lg)',
       }}>
         <CheckCircle size={12} style={{ color: 'var(--primary-color)' }} />
-        自动保存已开启
+        {t('settings.autosaveEnabled')}
       </div>
     </div>
   );
@@ -992,6 +984,7 @@ function formatBytes(bytes: number): string {
 
 function LocalStorageSettingsSection() {
   const { t } = useTranslation();
+  const { showToast } = useToast();
 
   // 用户偏好：local（默认）/ opfs / auto —— 已移除 indexeddb 选项（文件不存入 IndexedDB）
   const [preference, setPreference] = useState<'local' | 'opfs' | 'auto'>(() => {
@@ -1094,18 +1087,18 @@ function LocalStorageSettingsSection() {
       });
       const data = await r.json();
       if (r.ok && data.success) {
-        alert(`目录已切换到 ${data.absoluteRoot}\n迁移文件数：${data.migratedFiles ?? 0}\n错误：${data.errors?.length ?? 0} 条\n\n请刷新页面使所有组件生效。`);
+        showToast('success', t('settings.localStorage.directorySwitched', { path: data.absoluteRoot, count: data.migratedFiles ?? 0 }));
         setServerRootEditing(false);
         window.location.reload();
       } else {
-        alert(`切换失败：${data.error ?? '未知错误'}`);
+        showToast('error', t('settings.localStorage.switchFailed', { error: data.error ?? t('common.unknownError') }));
       }
     } catch (e) {
-      alert(`切换失败：${e instanceof Error ? e.message : String(e)}`);
+      showToast('error', t('settings.localStorage.switchFailed', { error: e instanceof Error ? e.message : String(e) }));
     } finally {
       setApplyingRoot(false);
     }
-  }, [apiBase, serverRoot, migrateOnSwitch]);
+  }, [apiBase, serverRoot, migrateOnSwitch, showToast, t]);
 
   // 持久化
   const persist = useCallback((next: { preference?: typeof preference; apiBase?: string; publicPath?: string }) => {

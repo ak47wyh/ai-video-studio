@@ -1,6 +1,6 @@
 import type { ITextGenerationPort } from '../ports/OutboundPorts';
 import type { IApiConfigStore, IModelRegistry } from '../ports/PlatformPorts';
-import type { ILoggerPort } from '../ports/CrossCuttingPorts';
+import type { ILoggerPort, ICostMeter } from '../ports/CrossCuttingPorts';
 import type { PlatformRouter } from './PlatformRouter';
 
 export type BGMCategory =
@@ -47,6 +47,7 @@ const CATEGORY_DESCRIPTIONS: Record<BGMCategory, { emotion: string; tempo: strin
 export class BGMRecommendationService {
   private router: PlatformRouter;
   private configStore: IApiConfigStore;
+  private costMeter?: ICostMeter;
   private modelRegistry?: IModelRegistry;
   // @ts-expect-error Logger injected for future use
   private _logger: ILoggerPort;
@@ -54,11 +55,13 @@ export class BGMRecommendationService {
     router: PlatformRouter,
     configStore: IApiConfigStore,
     logger: ILoggerPort,
+    costMeter?: ICostMeter,
     modelRegistry?: IModelRegistry,
   ) {
     this.router = router;
     this.configStore = configStore;
     this._logger = logger;
+    this.costMeter = costMeter;
     this.modelRegistry = modelRegistry;
   }
 
@@ -107,6 +110,19 @@ export class BGMRecommendationService {
       useAnthropicEndpoint: true,
     });
 
+    this.costMeter?.record({
+      platform: this.configStore.load().activePlatform,
+      model: this.resolveRecommendationModel(),
+      callType: 'bgm_recommendation',
+      usage: result.usage
+        ? {
+            inputTokens: result.usage.promptTokens ?? 0,
+            outputTokens: result.usage.completionTokens ?? 0,
+            totalTokens: (result.usage.promptTokens ?? 0) + (result.usage.completionTokens ?? 0),
+          }
+        : undefined,
+    });
+
     return this.parseRecommendation(result.content);
   }
 
@@ -135,6 +151,19 @@ export class BGMRecommendationService {
       temperature: 0.5,
       maxTokens: 2048,
       useAnthropicEndpoint: true,
+    });
+
+    this.costMeter?.record({
+      platform: this.configStore.load().activePlatform,
+      model: 'MiniMax-M2.5',
+      callType: 'bgm_recommendation',
+      usage: result.usage
+        ? {
+            inputTokens: result.usage.promptTokens ?? 0,
+            outputTokens: result.usage.completionTokens ?? 0,
+            totalTokens: (result.usage.promptTokens ?? 0) + (result.usage.completionTokens ?? 0),
+          }
+        : undefined,
     });
 
     return this.parseSequence(result.content, segments.length);

@@ -51,7 +51,7 @@
   justify-content: center;
   cursor: pointer;
   z-index: 20;
-  transition: all var(--transition-fast);
+  transition: all var(--motion-fast) var(--ease-standard);
 }
 
 .sidebar-collapse-btn:hover {
@@ -125,7 +125,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all var(--motion-fast) var(--ease-standard);
   flex-shrink: 0;
 }
 
@@ -178,7 +178,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all var(--transition-fast);
+  transition: all var(--motion-fast) var(--ease-standard);
 }
 
 .flow-step.done .flow-dot {
@@ -221,7 +221,7 @@
   background: rgba(255, 255, 255, 0.1);
   margin: 0 0.2rem;
   margin-bottom: 1rem;
-  transition: background var(--transition-fast);
+  transition: background var(--motion-fast) var(--ease-standard);
 }
 
 .flow-connector.completed {
@@ -265,7 +265,7 @@
   text-decoration: none;
   font-weight: 500;
   font-size: 0.85rem;
-  transition: all var(--transition-fast);
+  transition: all var(--motion-fast) var(--ease-standard);
   border: 1px solid transparent;
   position: relative;
 }
@@ -449,7 +449,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all var(--transition-fast);
+  transition: all var(--motion-fast) var(--ease-standard);
 }
 
 .mobile-menu-btn:hover {
@@ -544,7 +544,7 @@
   text-decoration: none;
   font-size: 0.65rem;
   font-weight: 500;
-  transition: all var(--transition-fast);
+  transition: all var(--motion-fast) var(--ease-standard);
   border-radius: var(--radius-md);
   min-width: 56px;
   min-height: 44px;

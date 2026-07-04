@@ -96,11 +96,18 @@ export const MainLayout: React.FC = () => {
       ],
     },
     {
-      key: 'creation',
-      label: t('nav.groupCreation', '创作'),
+      key: 'assets',
+      label: t('nav.groupAssets', '素材'),
       items: [
         { to: '/characters', icon: <Users size={18} />, label: t('nav.characters') },
         { to: '/backgrounds', icon: <Palette size={18} />, label: t('nav.backgrounds') },
+        { to: '/spaces', icon: <FolderOpen size={18} />, label: t('nav.spaces') },
+      ],
+    },
+    {
+      key: 'creation',
+      label: t('nav.groupCreation', '创作'),
+      items: [
         { to: '/workbench', icon: <BookOpen size={18} />, label: t('nav.workbench') },
         { to: '/editor', icon: <Scissors size={18} />, label: t('nav.editor', '视频剪辑') },
         { to: '/export', icon: <Download size={18} />, label: t('nav.export', '导出中心') },
@@ -123,7 +130,6 @@ export const MainLayout: React.FC = () => {
       key: 'manage',
       label: t('nav.groupManage', '管理'),
       items: [
-        { to: '/spaces', icon: <FolderOpen size={18} />, label: t('nav.spaces') },
         { to: '/settings', icon: <Settings size={18} />, label: t('nav.settings') },
       ],
     },
@@ -138,7 +144,7 @@ export const MainLayout: React.FC = () => {
       return {
         ...item,
         disabled: !supported,
-        disabledReason: supported ? undefined : `该平台不支持此能力（当前：${activeMeta?.name ?? activePlatform}）`,
+        disabledReason: supported ? undefined : t('nav.capabilityNotSupported', { platform: activeMeta?.name ?? activePlatform }),
       };
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -224,13 +230,13 @@ export const MainLayout: React.FC = () => {
               color: activeMeta.accentColor,
               fontWeight: 600,
             }}
-            title={`当前激活平台：${activeMeta.name}（${activeMeta.brand}）\n能力：${getCapabilitySummary(activePlatform)}`}
+            title={t('nav.activePlatformInfo', { name: activeMeta.name, brand: activeMeta.brand, capabilities: getCapabilitySummary(activePlatform) })}
           >
             <span style={{ fontSize: '1rem', lineHeight: 1 }}>{activeMeta.icon}</span>
             <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {activeMeta.name}
             </span>
-            <span style={{ fontSize: '0.65rem', opacity: 0.8, fontWeight: 500 }}>激活</span>
+            <span style={{ fontSize: '0.65rem', opacity: 0.8, fontWeight: 500 }}>{t('nav.active')}</span>
           </div>
         )}
         {collapsed && !isMobile && activeMeta && (
@@ -248,7 +254,7 @@ export const MainLayout: React.FC = () => {
               border: `1px solid ${activeMeta.accentColor}40`,
               fontSize: '1.1rem',
             }}
-            title={`当前激活平台：${activeMeta.name}（${activeMeta.brand}）`}
+            title={t('nav.activePlatformBrief', { name: activeMeta.name, brand: activeMeta.brand })}
           >
             {activeMeta.icon}
           </div>
@@ -310,7 +316,7 @@ export const MainLayout: React.FC = () => {
                     <span
                       key={item.to}
                       className={`nav-item nav-item-disabled ${collapsed && !isMobile ? 'nav-item-collapsed' : ''}`}
-                      title={item.disabledReason ?? '该平台不支持此能力'}
+                      title={item.disabledReason ?? t('nav.capabilityNotSupportedDefault')}
                       aria-disabled={true}
                     >
                       <span className="nav-icon" style={{ position: 'relative' }}>

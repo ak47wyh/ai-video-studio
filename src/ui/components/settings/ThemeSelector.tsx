@@ -33,7 +33,7 @@ export const ThemeSelector: React.FC = () => {
                 ? 'var(--primary-color)'
                 : 'var(--border-color)'}`,
               cursor: 'pointer',
-              transition: 'all var(--transition-fast)',
+              transition: 'all var(--motion-fast) var(--ease-standard)',
               outline: 'none',
             }}
           >

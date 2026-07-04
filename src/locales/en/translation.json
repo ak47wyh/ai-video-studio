@@ -3,7 +3,12 @@
     "cancel": "Cancel",
     "confirm": "Confirm",
     "expand": "Expand",
-    "collapse": "Collapse"
+    "collapse": "Collapse",
+    "noData": "No Data",
+    "loading": "Loading...",
+    "operationFailed": "Operation Failed",
+    "retry": "Retry",
+    "unknownError": "An unknown error occurred"
   },
   "errorBoundary": {
     "title": "Something went wrong",
@@ -36,7 +41,12 @@
     "flowGenerate": "Generate",
     "flowExport": "Export",
     "expand": "Expand Sidebar",
-    "collapse": "Collapse Sidebar"
+    "collapse": "Collapse Sidebar",
+    "active": "Active",
+    "capabilityNotSupported": "This capability is not supported on the current platform ({{platform}})",
+    "capabilityNotSupportedDefault": "This capability is not supported on the current platform",
+    "activePlatformInfo": "Active platform: {{name}} ({{brand}})\nCapabilities: {{capabilities}}",
+    "activePlatformBrief": "Active platform: {{name}} ({{brand}})"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -290,7 +300,15 @@
     "assembling": "Assembling...",
     "assembleSuccess": "Assembly succeeded, saved to Export Center!",
     "assembleFailed": "Assembly failed",
-    "videoConfig": "Video Configuration"
+    "videoConfig": "Video Configuration",
+    "batchNarrate": "Batch Narrate",
+    "batchBGM": "Batch BGM",
+    "generating": "Generating...",
+    "narrateComplete": "Narration complete: {{success}} succeeded, {{skipped}} skipped (no voice), {{failed}} failed",
+    "bgmComplete": "BGM complete: {{success}} succeeded, {{failed}} failed",
+    "batchNarrateTitle": "Auto-generate narration for segments missing narration where characters have voices",
+    "batchBGMTitle": "Auto-recommend BGM style based on segment content and generate",
+    "assembleInit": "Initializing assembly task..."
   },
   "space": {
     "title": "Story Space Management",
@@ -348,7 +366,9 @@
       "maxUpload": "Max upload size: {{size}}MB (configurable in vite.config.ts)",
       "probeBtn": "Re-probe",
       "saveAndReloadBtn": "Save & Reload",
-      "whyHint": "Why local save?\nExternal image URLs (e.g. OSS signed links) are typically blocked by browser CORS, so they cannot be fetched into a Blob. This adapter POSTs generated image/audio/video Blobs to the local Vite server, which writes them to disk — no external API call needed."
+      "whyHint": "Why local save?\nExternal image URLs (e.g. OSS signed links) are typically blocked by browser CORS, so they cannot be fetched into a Blob. This adapter POSTs generated image/audio/video Blobs to the local Vite server, which writes them to disk — no external API call needed.",
+      "directorySwitched": "Directory switched to {{path}}, {{count}} file(s) migrated, please reload the page",
+      "switchFailed": "Switch failed: {{error}}"
     },
     "mediaCache": {
       "title": "Media Cache (Service Worker)",
@@ -411,7 +431,33 @@
     "platformCache": "Context Cache",
     "platformResponse": "Model Response",
     "appearanceSection": "Appearance",
-    "appearanceSectionDesc": "Choose the visual theme for the application. Changes take effect immediately."
+    "appearanceSectionDesc": "Choose the visual theme for the application. Changes take effect immediately.",
+    "developerTools": "Developer Tools",
+    "vconsoleToggle": "Enable vConsole Debug Panel",
+    "vconsoleDesc": "A debug button will appear in the bottom-right corner. You can inspect Console / Network / Element / Storage. Page reload required after changes.",
+    "platformConfig": "Platform Configuration",
+    "fullModalPlatforms": "Full-Modal Platforms",
+    "fullModalHint": "Video/Image/Text/Voice/Music",
+    "verticalPlatforms": "Vertical Generation Platforms",
+    "verticalHint": "Video/Image focused",
+    "statusActivated": "Activated",
+    "statusReady": "Ready",
+    "statusNotConfigured": "Not Configured",
+    "activatePlatform": "Activate Platform",
+    "docLink": "Docs",
+    "platformSwitched": "Switched to {{name}} platform",
+    "validateBtn": "Validate",
+    "getKeyLink": "Get Key",
+    "noValidationNeeded": "No validation needed",
+    "validateViaLab": "Save config and submit a task in the {{platform}} lab to validate",
+    "autosaveEnabled": "Auto-save enabled",
+    "capVideo": "Video",
+    "capVideoFl2v": "First-Last Frame",
+    "capVideoS2v": "Subject Reference",
+    "capImage": "Image",
+    "capText": "Text",
+    "capVoice": "Voice",
+    "capMusic": "Music"
   },
   "models": {
     "title": "Available Models",
