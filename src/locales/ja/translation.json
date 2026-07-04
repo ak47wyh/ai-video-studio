@@ -797,7 +797,16 @@
     "deleteConfirmTitle": "音色を削除",
     "deleteConfirmMessage": "音色を削除しますか？削除後は元に戻せません。",
     "deleteSuccess": "音色を削除しました",
-    "deleteFailed": "削除に失敗しました"
+    "deleteFailed": "削除に失敗しました",
+    "tabTTS": "テキスト音声",
+    "tabClone": "音声クローン",
+    "tabDesign": "音声デザイン",
+    "tabAsync": "長文本合成",
+    "tabManage": "音声管理",
+    "title": "ボイスラボ",
+    "subtitle": "テキスト音声合成、音声クローン、音声デザインと長テキスト合成",
+    "voiceSwitched": "音声 {{voiceId}} に切り替えました。TTSで使用できます",
+    "startDownload": "ダウンロード開始"
   },
   "storyFilm": {
     "title": "AI ストーリー動画作成",
@@ -846,6 +855,27 @@
     "stageBurnSubs": "字幕焼き込み",
     "stageComplete": "完了",
     "duration6s": "6 秒",
-    "duration10s": "10 秒"
+    "duration10s": "10 秒",
+    "cancelConfirmTitle": "生成をキャンセル",
+    "cancelConfirmMessage": "生成された素材は保持されますが、やり直しになります。キャンセルしますか？",
+    "modeAI": "AI生成",
+    "modePaste": "手動入力",
+    "generatingText": "生成中...",
+    "generateText": "AIテキスト生成",
+    "storyTextPlaceholder": "AI生成テキスト、編集可能",
+    "pastePlaceholder": "ここにストーリーテキストを入力または貼り付け...",
+    "voiceAndBgm": "音声と音楽",
+    "narrationVoice": "ナレーション音声",
+    "defaultVoice": "デフォルト音声",
+    "includeBgm": "BGMを含む",
+    "totalProgress": "総合進捗",
+    "tabConfig": "設定",
+    "tabGenerating": "生成中",
+    "tabPreview": "プレビュー",
+    "previewHint": "ワークベンチでビデオを編集するか、再生成できます。"
+  },
+  "notFound": {
+    "message": "お探しのページは存在しません",
+    "backHome": "ホームに戻る"
   }
 }

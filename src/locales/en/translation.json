@@ -843,7 +843,16 @@
     "deleteConfirmTitle": "Delete Voice",
     "deleteConfirmMessage": "Confirm delete voice? This cannot be undone.",
     "deleteSuccess": "Voice deleted",
-    "deleteFailed": "Delete failed"
+    "deleteFailed": "Delete failed",
+    "tabTTS": "Text to Speech",
+    "tabClone": "Voice Clone",
+    "tabDesign": "Voice Design",
+    "tabAsync": "Long Text Synthesis",
+    "tabManage": "Voice Management",
+    "title": "Voice Lab",
+    "subtitle": "Text-to-speech, voice cloning, voice design and long text synthesis",
+    "voiceSwitched": "Switched to voice {{voiceId}}, available in TTS",
+    "startDownload": "Start download"
   },
   "storyFilm": {
     "title": "AI Story to Film",
@@ -892,6 +901,27 @@
     "stageBurnSubs": "Burn Subs",
     "stageComplete": "Complete",
     "duration6s": "6 sec",
-    "duration10s": "10 sec"
+    "duration10s": "10 sec",
+    "cancelConfirmTitle": "Cancel Generation",
+    "cancelConfirmMessage": "Generated assets will be kept, but you'll need to start over. Confirm cancel?",
+    "modeAI": "AI Generate",
+    "modePaste": "Manual Input",
+    "generatingText": "Generating...",
+    "generateText": "AI Generate Text",
+    "storyTextPlaceholder": "AI generated text, editable",
+    "pastePlaceholder": "Paste or enter your story text here...",
+    "voiceAndBgm": "Voice & Music",
+    "narrationVoice": "Narration Voice",
+    "defaultVoice": "Default Voice",
+    "includeBgm": "Include BGM",
+    "totalProgress": "Total Progress",
+    "tabConfig": "Config",
+    "tabGenerating": "Generating",
+    "tabPreview": "Preview",
+    "previewHint": "You can edit the video in workbench or regenerate."
+  },
+  "notFound": {
+    "message": "The page you are looking for does not exist",
+    "backHome": "Back to Home"
   }
 }

@@ -434,7 +434,7 @@ export const VoiceLab: React.FC = () => {
   const handleUseVoice = (voiceId: string) => {
     setTtsVoiceId(voiceId);
     setActiveTab('tts');
-    showToast('success', `已切换到音色 ${voiceId}，可在文本配音中使用`);
+    showToast('success', t('voiceLab.voiceSwitched', { voiceId }));
   };
 
   // ==================== Save to Library ====================
@@ -467,17 +467,17 @@ export const VoiceLab: React.FC = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    showToast('success', '开始下载');
+    showToast('success', t('voiceLab.startDownload', '开始下载'));
   };
 
   // ==================== Tab Buttons ====================
   // P1 修复：补齐 design/async/manage 三个 Tab 入口（渲染分支已存在但无按钮入口）
   const tabs = [
-    { key: 'tts', label: '文本配音', icon: <Volume2 size={16} /> },
-    { key: 'clone', label: '音色克隆', icon: <Mic size={16} />, color: 'var(--lab-color-voice)' },
-    { key: 'design', label: '音色设计', icon: <Palette size={16} />, color: 'var(--lab-color-image)' },
-    { key: 'async', label: '长文本合成', icon: <FileText size={16} />, color: 'var(--lab-color-text)' },
-    { key: 'manage', label: '音色管理', icon: <Search size={16} />, color: 'var(--lab-color-watermark)' },
+    { key: 'tts', label: t('voiceLab.tabTTS', '文本配音'), icon: <Volume2 size={16} /> },
+    { key: 'clone', label: t('voiceLab.tabClone', '音色克隆'), icon: <Mic size={16} />, color: 'var(--lab-color-voice)' },
+    { key: 'design', label: t('voiceLab.tabDesign', '音色设计'), icon: <Palette size={16} />, color: 'var(--lab-color-image)' },
+    { key: 'async', label: t('voiceLab.tabAsync', '长文本合成'), icon: <FileText size={16} />, color: 'var(--lab-color-text)' },
+    { key: 'manage', label: t('voiceLab.tabManage', '音色管理'), icon: <Search size={16} />, color: 'var(--lab-color-watermark)' },
   ];
 
   // 合并系统音色 + 自定义音色供 TTS/异步选择器使用
@@ -504,8 +504,8 @@ export const VoiceLab: React.FC = () => {
       icon={<Mic size={32} />}
       iconBg="color-mix(in srgb, var(--lab-color-voice) 10%, transparent)"
       iconColor="var(--lab-color-voice)"
-      title="音色实验室 (Voice Lab)"
-      subtitle="文本转语音、声音克隆、音色设计、长文本合成与音色管理"
+      title={t('voiceLab.title', '音色实验室')}
+      subtitle={t('voiceLab.subtitle', '文本转语音、声音克隆、音色设计与长文本合成')}
       tabs={tabs}
       activeTab={activeTab}
       onTabChange={(tab) => handleTabChange(tab as VoiceLabTab)}

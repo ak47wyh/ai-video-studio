@@ -516,7 +516,16 @@
     "deleteConfirmTitle": "Stimme löschen",
     "deleteConfirmMessage": "Stimme wirklich löschen? Dies kann nicht rückgängig gemacht werden.",
     "deleteSuccess": "Stimme gelöscht",
-    "deleteFailed": "Löschen fehlgeschlagen"
+    "deleteFailed": "Löschen fehlgeschlagen",
+    "tabTTS": "Text-zu-Sprache",
+    "tabClone": "Stimme klonen",
+    "tabDesign": "Stimme designen",
+    "tabAsync": "Lange Text-Synthese",
+    "tabManage": "Stimmenverwaltung",
+    "title": "Stimmlabor",
+    "subtitle": "Text-zu-Sprache, Stimmenklonen, Stimmdesign und lange Text-Synthese",
+    "voiceSwitched": "Zur Stimme {{voiceId}} gewechselt, in TTS verfügbar",
+    "startDownload": "Download starten"
   },
   "storyFilm": {
     "title": "KI-Story zum Film",
@@ -565,6 +574,27 @@
     "stageBurnSubs": "Untertitel einbrennen",
     "stageComplete": "Fertig",
     "duration6s": "6 Sek",
-    "duration10s": "10 Sek"
+    "duration10s": "10 Sek",
+    "cancelConfirmTitle": "Generierung abbrechen",
+    "cancelConfirmMessage": "Generierte Inhalte werden behalten, aber Sie müssen neu beginnen. Abbrechen bestätigen?",
+    "modeAI": "KI-Generierung",
+    "modePaste": "Manuelle Eingabe",
+    "generatingText": "Generierung...",
+    "generateText": "KI-Text generieren",
+    "storyTextPlaceholder": "KI-generierter Text, bearbeitbar",
+    "pastePlaceholder": "Fügen Sie hier Ihren Story-Text ein oder geben Sie ihn ein...",
+    "voiceAndBgm": "Stimme und Musik",
+    "narrationVoice": "Erzählerstimme",
+    "defaultVoice": "Standardstimme",
+    "includeBgm": "Musik einbeziehen",
+    "totalProgress": "Gesamtfortschritt",
+    "tabConfig": "Konfiguration",
+    "tabGenerating": "Generierung",
+    "tabPreview": "Vorschau",
+    "previewHint": "Sie können das Video im Arbeitsbereich bearbeiten oder neu generieren."
+  },
+  "notFound": {
+    "message": "Die gesuchte Seite existiert nicht",
+    "backHome": "Zurück zur Startseite"
   }
 }

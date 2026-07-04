@@ -516,7 +516,16 @@
     "deleteConfirmTitle": "Excluir voz",
     "deleteConfirmMessage": "Confirmar exclusão da voz? Esta ação não pode ser desfeita.",
     "deleteSuccess": "Voz excluída",
-    "deleteFailed": "Falha ao excluir"
+    "deleteFailed": "Falha ao excluir",
+    "tabTTS": "Texto para voz",
+    "tabClone": "Clonar voz",
+    "tabDesign": "Design de voz",
+    "tabAsync": "Síntese de texto longo",
+    "tabManage": "Gestão de vozes",
+    "title": "Laboratório de vozes",
+    "subtitle": "Texto para voz, clonagem de voz, design de voz e síntese de texto longo",
+    "voiceSwitched": "Alterado para a voz {{voiceId}}, disponível em TTS",
+    "startDownload": "Iniciar download"
   },
   "storyFilm": {
     "title": "História IA para Filme",
@@ -565,6 +574,27 @@
     "stageBurnSubs": "Gravar legendas",
     "stageComplete": "Concluído",
     "duration6s": "6 seg",
-    "duration10s": "10 seg"
+    "duration10s": "10 seg",
+    "cancelConfirmTitle": "Cancelar geração",
+    "cancelConfirmMessage": "Os recursos gerados serão mantidos, mas você precisará recomeçar. Confirmar cancelamento?",
+    "modeAI": "Geração IA",
+    "modePaste": "Entrada manual",
+    "generatingText": "Gerando...",
+    "generateText": "Gerar texto IA",
+    "storyTextPlaceholder": "Texto gerado por IA, editável",
+    "pastePlaceholder": "Cole ou insira o texto da sua história aqui...",
+    "voiceAndBgm": "Voz e música",
+    "narrationVoice": "Voz de narração",
+    "defaultVoice": "Voz padrão",
+    "includeBgm": "Incluir música",
+    "totalProgress": "Progresso total",
+    "tabConfig": "Configuração",
+    "tabGenerating": "Gerando",
+    "tabPreview": "Visualização",
+    "previewHint": "Você pode editar o vídeo na bancada ou regenerá-lo."
+  },
+  "notFound": {
+    "message": "A página que você procura não existe",
+    "backHome": "Voltar ao início"
   }
 }

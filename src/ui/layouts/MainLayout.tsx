@@ -152,7 +152,7 @@ export const MainLayout: React.FC = () => {
   })), [activePlatform, t]);
 
   // 判断当前路径属于哪个创作步骤（用于流程指示器）
-  const creationSteps = ['/characters', '/backgrounds', '/workbench', '/export'];
+  const creationSteps = ['/story-film', '/characters', '/backgrounds', '/workbench', '/export'];
   const currentStepIndex = creationSteps.indexOf(location.pathname);
 
   // Bottom nav items (mobile) — most important 5
@@ -225,8 +225,8 @@ export const MainLayout: React.FC = () => {
               padding: '0.4rem 0.6rem',
               marginBottom: '0.75rem',
               borderRadius: '8px',
-              background: `${activeMeta.accentColor}1a`, // 10% 透明度背景
-              border: `1px solid ${activeMeta.accentColor}40`,
+              background: `color-mix(in srgb, ${activeMeta.accentColor} 10%, transparent)`, // 10% 透明度背景
+              border: `1px solid color-mix(in srgb, ${activeMeta.accentColor} 25%, transparent)`,
               fontSize: '0.78rem',
               color: activeMeta.accentColor,
               fontWeight: 600,
@@ -251,8 +251,8 @@ export const MainLayout: React.FC = () => {
               height: 32,
               margin: '0 auto 0.75rem',
               borderRadius: '8px',
-              background: `${activeMeta.accentColor}1a`,
-              border: `1px solid ${activeMeta.accentColor}40`,
+              background: `color-mix(in srgb, ${activeMeta.accentColor} 10%, transparent)`,
+              border: `1px solid color-mix(in srgb, ${activeMeta.accentColor} 25%, transparent)`,
               fontSize: '1.1rem',
             }}
             title={t('nav.activePlatformBrief', { name: activeMeta.name, brand: activeMeta.brand })}

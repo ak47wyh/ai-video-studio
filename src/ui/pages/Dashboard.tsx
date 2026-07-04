@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, Image as ImageIcon, BookOpen, Settings, ArrowRight, CheckCircle, XCircle, Clock, Film, Mic, MessageSquare, Sparkles, Music } from 'lucide-react';
+import { Users, Image as ImageIcon, BookOpen, Settings, ArrowRight, CheckCircle, XCircle, Clock, Film, Mic, MessageSquare, Sparkles, Music, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useSpaceScopedCharacters, useSpaceScopedBackgrounds, useSpaceScopedStories, useSpaceVideoTaskStats, useRecentStories } from '../hooks/useSpaceScopedQuery';
 import { AgentChatPanel } from '../components/AgentChatPanel';
@@ -22,6 +22,9 @@ export const Dashboard: React.FC = () => {
 
   // Recent stories in current space
   const recentStories = useRecentStories(3);
+
+  // AI 故事成片 Hero 卡片状态
+  const [heroTheme, setHeroTheme] = useState('');
 
   const steps = [
     {
@@ -91,6 +94,37 @@ export const Dashboard: React.FC = () => {
           <p className="dashboard-subtitle">{t('dashboard.welcome')}</p>
         </div>
       </div>
+
+      {/* AI 故事成片 Hero 卡片 */}
+      <section className="dashboard-hero glass-panel" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+          <Zap size={20} style={{ color: 'var(--primary-color)' }} />
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
+            {t('storyFilm.title', 'AI 故事成片')}
+          </h2>
+        </div>
+        <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+          {t('storyFilm.subtitle', '输入故事文案，一键生成完整视频')}
+        </p>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <input
+            className="input"
+            placeholder={t('storyFilm.themePlaceholder', '输入故事主题，如：小猫的太空冒险')}
+            value={heroTheme}
+            onChange={e => setHeroTheme(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && heroTheme.trim() && navigate('/story-film', { state: { theme: heroTheme } })}
+            style={{ flex: 1 }}
+          />
+          <button
+            className="btn btn-primary"
+            onClick={() => navigate('/story-film', { state: { theme: heroTheme } })}
+            disabled={!heroTheme.trim()}
+          >
+            <Sparkles size={16} /> {t('storyFilm.startCreate', '开始创作')}
+            <ArrowRight size={14} style={{ marginLeft: '0.25rem' }} />
+          </button>
+        </div>
+      </section>
 
       {/* Workflow guide cards */}
       <div className="dashboard-section">

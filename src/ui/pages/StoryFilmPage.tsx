@@ -1,4 +1,5 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   Film, Sparkles, Pencil, RefreshCw, ArrowRight, Check, X,
@@ -8,11 +9,12 @@ import { useStoryFilm } from '../hooks/useStoryFilm';
 import { VIDEO_STYLE_PRESETS } from '../../domain/data/stylePresets';
 import { useSpace } from '../contexts/SpaceContext';
 import { usePlatformCapabilities } from '../hooks/usePlatformCapabilities';
+import { useConfirm } from '../contexts/ConfirmContext';
 import { AsyncState } from '../components/AsyncState';
 import { LabPageLayout } from '../components/LabPageLayout';
-import type { VideoStyle } from '../../domain/entities/models';
+import type { VideoStyle, PipelineTask } from '../../domain/entities/models';
 import type { VoiceInfo, VoiceListResult } from '../../domain/ports/OutboundPorts';
-import { voiceService } from '../../dependencies';
+import { voiceService, pipelineService } from '../../dependencies';
 
 /** 管线阶段显示配置 */
 const PIPELINE_STAGES: { key: string; i18nKey: string; fallback: string }[] = [
@@ -31,6 +33,8 @@ export const StoryFilmPage: React.FC = () => {
   const { t } = useTranslation();
   const { currentSpaceId } = useSpace();
   const { hasCapability } = usePlatformCapabilities();
+  const navigate = useNavigate();
+  const { confirm } = useConfirm();
 
   const {
     step, progress, result, isGeneratingText, generatedText,
@@ -53,15 +57,29 @@ export const StoryFilmPage: React.FC = () => {
   const [voiceList, setVoiceList] = useState<VoiceListResult | null>(null);
   const [isLoadingVoices, setIsLoadingVoices] = useState(false);
   const [voicesLoaded, setVoicesLoaded] = useState(false);
+  const [pipelineTask, setPipelineTask] = useState<PipelineTask | null>(null);
 
   // 首次进入 config 步骤时加载音色
-  if (step === 'config' && !voicesLoaded && !isLoadingVoices) {
+  useEffect(() => {
+    if (step !== 'config' || voicesLoaded) return;
+    let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 加载态标记，异步回调中更新
     setIsLoadingVoices(true);
     voiceService.getAvailableVoices('all')
-      .then(result => { setVoiceList(result); setVoicesLoaded(true); })
-      .catch(() => { setVoiceList(null); setVoicesLoaded(true); })
-      .finally(() => setIsLoadingVoices(false));
-  }
+      .then(result => { if (!cancelled) { setVoiceList(result); setVoicesLoaded(true); } })
+      .catch(() => { if (!cancelled) { setVoiceList(null); setVoicesLoaded(true); } })
+      .finally(() => { if (!cancelled) setIsLoadingVoices(false); });
+    return () => { cancelled = true; };
+  }, [step, voicesLoaded]);
+
+  // 加载管线任务以获取最终视频 URL
+  useEffect(() => {
+    if (result?.pipelineTaskId) {
+      const task = pipelineService.getTask(result.pipelineTaskId);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- 同步读取，非异步回调
+      setPipelineTask(task);
+    }
+  }, [result]);
 
   const allVoices: VoiceInfo[] = [
     ...(voiceList?.systemVoices ?? []),
@@ -390,7 +408,14 @@ export const StoryFilmPage: React.FC = () => {
       </div>
 
       {/* 取消按钮 */}
-      <button className="btn btn-secondary" onClick={cancelFilm} style={{ width: '100%' }}>
+      <button className="btn btn-secondary" onClick={async () => {
+        const ok = await confirm({
+          title: t('storyFilm.cancelConfirmTitle', '取消生成'),
+          message: t('storyFilm.cancelConfirmMessage', '取消后已生成的素材将保留，但需重新开始。确认取消？'),
+          danger: true,
+        });
+        if (ok) cancelFilm();
+      }} style={{ width: '100%' }}>
         <X size={14} /> {t('storyFilm.cancel', '取消生成')}
       </button>
     </div>
@@ -399,9 +424,18 @@ export const StoryFilmPage: React.FC = () => {
   // ===== 渲染：预览步骤 =====
   const renderPreviewStep = () => (
     <div className="glass-panel fade-in" style={{ padding: '1.5rem', textAlign: 'center' }}>
+      {pipelineTask?.finalVideoUrl && (
+        <div style={{ marginBottom: '1rem' }}>
+          <video
+            src={pipelineTask.finalVideoUrl}
+            controls
+            style={{ width: '100%', borderRadius: 'var(--radius-lg)', maxHeight: '400px' }}
+          />
+        </div>
+      )}
       <div style={{
         width: '64px', height: '64px', borderRadius: '50%',
-        background: 'rgba(52,211,153,0.15)', color: '#34d399',
+        background: 'color-mix(in srgb, var(--color-success) 15%, transparent)', color: 'var(--color-success)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         margin: '0 auto 1rem', fontSize: '1.5rem',
       }}>
@@ -442,9 +476,7 @@ export const StoryFilmPage: React.FC = () => {
       <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
         <button
           className="btn btn-primary"
-          onClick={() => {
-            // 导航到工作台 — 后续路由接入
-          }}
+          onClick={() => result && navigate(`/workbench?story=${result.storyId}`)}
         >
           <ChevronRight size={14} /> {t('storyFilm.goToWorkbench', '进入工作台编辑')}
         </button>
@@ -460,8 +492,8 @@ export const StoryFilmPage: React.FC = () => {
     return (
       <LabPageLayout
         icon={<Film size={24} />}
-        iconBg="rgba(99,102,241,0.15)"
-        iconColor="#818cf8"
+        iconBg="color-mix(in srgb, var(--primary-color) 15%, transparent)"
+        iconColor="var(--primary-color)"
         title={t('storyFilm.title', 'AI 故事成片')}
         subtitle={t('storyFilm.subtitle', '从故事文本到完整视频，一键生成')}
         tabs={[]}
@@ -478,8 +510,8 @@ export const StoryFilmPage: React.FC = () => {
   return (
     <LabPageLayout
       icon={<Film size={24} />}
-      iconBg="rgba(99,102,241,0.15)"
-      iconColor="#818cf8"
+      iconBg="color-mix(in srgb, var(--primary-color) 15%, transparent)"
+      iconColor="var(--primary-color)"
       title={t('storyFilm.title', 'AI 故事成片')}
       subtitle={t('storyFilm.subtitle', '从故事文本到完整视频，一键生成')}
       tabs={[

@@ -30,6 +30,7 @@ const EnhanceLab = lazy(() => import('./ui/pages/EnhanceLab').then(m => ({ defau
 const VideoEditor = lazy(() => import('./ui/pages/VideoEditor').then(m => ({ default: m.VideoEditor })));
 const SpaceDetailPage = lazy(() => import('./ui/pages/SpaceDetailPage').then(m => ({ default: m.SpaceDetailPage })));
 const StoryFilmPage = lazy(() => import('./ui/pages/StoryFilmPage').then(m => ({ default: m.StoryFilmPage })));
+const NotFoundPage = lazy(() => import('./ui/pages/NotFoundPage').then(m => ({ default: m.NotFoundPage })));
 
 /**
  * Phase 4 性能优化 —— 首屏空闲时预加载核心页面 chunk
@@ -103,6 +104,7 @@ function App() {
                     <Route path="editor" element={<VideoEditor />} />
                     <Route path="story-film" element={<StoryFilmPage />} />
                     <Route path="settings" element={<Settings />} />
+                    <Route path="*" element={<NotFoundPage />} />
                   </Route>
                 </Routes>
                 </Suspense>

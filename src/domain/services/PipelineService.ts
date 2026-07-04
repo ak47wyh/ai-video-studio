@@ -714,21 +714,20 @@ export class PipelineService {
       this.completeStage(task, 'post_processing');
       emitProgress('post_processing', 90, '后期完成');
 
-      // 阶段 7: 字幕 (92%)
+      // 阶段 7-8: 字幕生成与烧录
       // 说明：assembleFinalVideo 内部已包含字幕生成与烧录逻辑
-      // 此处仅作为独立阶段状态标记，便于 UI 进度展示
+      // P2-6: 当 includeSubtitles=false 时合并跳过，避免进度条卡顿
       if (includeSubtitles) {
         this.startStage(task.id, 'generating_srt', '生成字幕', 91);
         this.completeStage(task, 'generating_srt');
         emitProgress('generating_srt', 92, '字幕就绪');
+        this.completeStage(task, 'burning_subtitles');
+        emitProgress('burning_subtitles', 95, '字幕烧录完成');
       } else {
         this.completeStage(task, 'generating_srt');
-        emitProgress('generating_srt', 92, '跳过字幕');
+        this.completeStage(task, 'burning_subtitles');
+        emitProgress('burning_subtitles', 95, '跳过字幕');
       }
-
-      // 阶段 8: 字幕烧录 (95%)
-      this.completeStage(task, 'burning_subtitles');
-      emitProgress('burning_subtitles', 95, '字幕烧录完成');
 
       // 阶段 9: 完成
       // Phase 1 改造（EVOLUTION_DESIGN.md §5.1.8）：使用真实成片 URL

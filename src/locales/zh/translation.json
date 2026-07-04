@@ -843,7 +843,16 @@
     "deleteConfirmTitle": "删除音色",
     "deleteConfirmMessage": "确认删除音色？删除后不可恢复。",
     "deleteSuccess": "音色已删除",
-    "deleteFailed": "删除失败"
+    "deleteFailed": "删除失败",
+    "tabTTS": "文本配音",
+    "tabClone": "音色克隆",
+    "tabDesign": "音色设计",
+    "tabAsync": "长文本合成",
+    "tabManage": "音色管理",
+    "title": "音色实验室",
+    "subtitle": "文本转语音、声音克隆、音色设计与长文本合成",
+    "voiceSwitched": "已切换到音色 {{voiceId}}，可在文本配音中使用",
+    "startDownload": "开始下载"
   },
   "storyFilm": {
     "title": "AI 故事成片",
@@ -892,6 +901,27 @@
     "stageBurnSubs": "字幕烧录",
     "stageComplete": "完成",
     "duration6s": "6 秒",
-    "duration10s": "10 秒"
+    "duration10s": "10 秒",
+    "cancelConfirmTitle": "取消生成",
+    "cancelConfirmMessage": "取消后已生成的素材将保留，但需重新开始。确认取消？",
+    "modeAI": "AI 生成",
+    "modePaste": "手动输入",
+    "generatingText": "生成中...",
+    "generateText": "AI 生成文案",
+    "storyTextPlaceholder": "AI 生成的文案，可编辑修改",
+    "pastePlaceholder": "在此粘贴或输入您的故事文案...",
+    "voiceAndBgm": "配音与配乐",
+    "narrationVoice": "旁白音色",
+    "defaultVoice": "默认音色",
+    "includeBgm": "包含配乐",
+    "totalProgress": "总进度",
+    "tabConfig": "配置",
+    "tabGenerating": "生成",
+    "tabPreview": "预览",
+    "previewHint": "您可以在工作台中进一步编辑视频，或重新生成。"
+  },
+  "notFound": {
+    "message": "您访问的页面不存在",
+    "backHome": "返回首页"
   }
 }
