@@ -4,7 +4,7 @@ import type {
 } from '../../../../domain/ports/OutboundPorts';
 import type { ApiConfig } from '../../config/ApiConfigStore';
 import { VolcengineHttpClient } from './VolcengineHttpClient';
-import { withRetry } from './VolcengineErrorUtils';
+import { withRetry, isCorsError, classifyNetworkError } from './VolcengineErrorUtils';
 
 /**
  * 火山引擎文本生成适配器。
@@ -151,23 +151,46 @@ export class VolcengineTextAdapter implements ITextGenerationPort {
 
   private async chatCompletionAnthropic(context: TextGenerationContext): Promise<TextGenerationResult> {
     const payload = this.buildAnthropicPayload(context);
-    const result = await withRetry(() =>
-      this.http.post<AnthropicMessagesResponse>('/v1/messages', payload),
-    );
+    try {
+      const result = await withRetry(() =>
+        this.http.post<AnthropicMessagesResponse>('/v1/messages', payload),
+      );
 
-    // Anthropic 响应：content[] 数组，每项含 type + text
-    const content = (result.content ?? [])
-      .filter(block => block.type === 'text')
-      .map(block => block.text)
-      .join('');
+      // Anthropic 响应：content[] 数组，每项含 type + text
+      const content = (result.content ?? [])
+        .filter(block => block.type === 'text')
+        .map(block => block.text)
+        .join('');
 
-    return {
-      content,
-      usage: result.usage ? {
-        promptTokens: result.usage.input_tokens,
-        completionTokens: result.usage.output_tokens,
-      } : undefined,
-    };
+      return {
+        content,
+        usage: result.usage ? {
+          promptTokens: result.usage.input_tokens,
+          completionTokens: result.usage.output_tokens,
+        } : undefined,
+      };
+    } catch (error) {
+      // CORS 拦截降级：Anthropic 端点预检失败时，尝试切换到 OpenAI 协议
+      if (isCorsError(error) && this.canFallbackToOpenAI()) {
+        console.warn('[VolcengineTextAdapter] Anthropic CORS 拦截，降级到 OpenAI 协议');
+        return this.chatCompletionOpenAI(context);
+      }
+      throw classifyNetworkError(error);
+    }
+  }
+
+  /**
+   * 判断是否允许从 Anthropic 协议降级到 OpenAI 协议。
+   *
+   * 条件：
+   *  - 用户在设置页开启了 volcArkAutoFallback（默认 true）
+   *  - OpenAI 协议 Base URL 非空（默认配置即满足）
+   *  - API Key 非空（Anthropic 已配置，Key 可能通用也可能不通用，让上游用 401 兜底）
+   */
+  private canFallbackToOpenAI(): boolean {
+    return this.config.volcArkAutoFallback
+      && !!this.config.volcArkBaseUrl.trim()
+      && !!this.config.volcArkApiKey.trim();
   }
 
   private async runStreamAnthropic(
@@ -231,7 +254,13 @@ export class VolcengineTextAdapter implements ITextGenerationPort {
       }
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') return;
-      callbacks.onError(error instanceof Error ? error : new Error(String(error)));
+      // CORS 拦截降级：Anthropic 端点预检失败时，切换到 OpenAI 流式
+      if (isCorsError(error) && this.canFallbackToOpenAI()) {
+        console.warn('[VolcengineTextAdapter] Anthropic 流式 CORS 拦截，降级到 OpenAI 流式');
+        this.runStreamOpenAI(context, callbacks, abortController);
+        return;
+      }
+      callbacks.onError(classifyNetworkError(error));
     }
   }
 

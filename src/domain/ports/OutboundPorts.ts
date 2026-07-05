@@ -224,7 +224,11 @@ export interface IImageGeneratorPort {
 
 // --- Voice ---
 
-export type T2ASyncModel = 'speech-2.8-hd' | 'speech-2.8-turbo' | 'speech-02-hd' | 'speech-02-turbo' | 'speech-01-hd' | 'speech-01-turbo';
+export type T2ASyncModel =
+  // MiniMax 系列
+  | 'speech-2.8-hd' | 'speech-2.8-turbo' | 'speech-02-hd' | 'speech-02-turbo' | 'speech-01-hd' | 'speech-01-turbo'
+  // 火山引擎豆包 TTS 系列
+  | 'doubao-tts-base' | 'doubao-tts-pro' | 'doubao-tts-pro-max';
 
 export interface VoiceModify {
   pitch?: number;

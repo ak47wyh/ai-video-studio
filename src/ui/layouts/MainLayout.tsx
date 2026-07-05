@@ -10,10 +10,11 @@ import { useTranslation } from 'react-i18next';
 import { useAllSpaces } from '../hooks/useSpaceScopedQuery';
 import { useSpace } from '../contexts/SpaceContext';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
+import { PlatformSwitcher } from '../components/PlatformSwitcher';
 import { storySpaceService } from '../../dependencies';
 import { useToast } from '../contexts/ToastContext';
 import { ApiConfigStore, type PlatformId } from '../../adapters/outbound/config/ApiConfigStore';
-import { PLATFORM_METADATA, hasCapability, getCapabilitySummary, type Capability } from '../../domain/services/platformCapabilities';
+import { PLATFORM_METADATA, hasCapability, type Capability } from '../../domain/services/platformCapabilities';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import './MainLayout.css';
 
@@ -49,13 +50,22 @@ export const MainLayout: React.FC = () => {
     () => typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches,
   );
 
-  // 当前激活平台（路由变化时刷新，确保 Settings 切换后立即生效）
-  const activePlatform: PlatformId = useMemo(
+  // 当前激活平台（订阅 ApiConfigStore 平台变更事件，Settings 切换后即时刷新）
+  const [activePlatform, setActivePlatform] = useState<PlatformId>(
     () => ApiConfigStore.getActivePlatform(),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [location.pathname],
   );
+  useEffect(() => {
+    // 订阅平台变更：Settings 页 save() 后通过发布订阅通知，无需路由跳转
+    return ApiConfigStore.subscribePlatform(setActivePlatform);
+  }, []);
   const activeMeta = PLATFORM_METADATA[activePlatform];
+
+  // 注入平台品牌色 CSS 变量（供 .platform-badge 等组件复用，避免 inline style 硬编码）
+  useEffect(() => {
+    if (activeMeta?.accentColor) {
+      document.documentElement.style.setProperty('--platform-accent', activeMeta.accentColor);
+    }
+  }, [activeMeta?.accentColor]);
 
   // Detect mobile viewport — V3 §6.6：用 matchMedia 替代 resize 监听，
   // 性能更优且响应系统偏好变化（如响应式模式切换）
@@ -210,52 +220,7 @@ export const MainLayout: React.FC = () => {
           {(!collapsed || isMobile) && <h2 className="logo-text">AI Video Studio</h2>}
         </div>
 
-        {/* Active Platform Badge — 当前激活平台徽标 */}
-        {(!collapsed || isMobile) && activeMeta && (
-          <div
-            className="active-platform-badge"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              padding: '0.4rem 0.6rem',
-              marginBottom: '0.75rem',
-              borderRadius: '8px',
-              background: `color-mix(in srgb, ${activeMeta.accentColor} 10%, transparent)`, // 10% 透明度背景
-              border: `1px solid color-mix(in srgb, ${activeMeta.accentColor} 25%, transparent)`,
-              fontSize: '0.78rem',
-              color: activeMeta.accentColor,
-              fontWeight: 600,
-            }}
-            title={t('nav.activePlatformInfo', { name: activeMeta.name, brand: activeMeta.brand, capabilities: getCapabilitySummary(activePlatform) })}
-          >
-            <span style={{ fontSize: '1rem', lineHeight: 1 }}>{activeMeta.icon}</span>
-            <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {activeMeta.name}
-            </span>
-            <span style={{ fontSize: '0.65rem', opacity: 0.8, fontWeight: 500 }}>{t('nav.active')}</span>
-          </div>
-        )}
-        {collapsed && !isMobile && activeMeta && (
-          <div
-            className="active-platform-badge-collapsed"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 32,
-              height: 32,
-              margin: '0 auto 0.75rem',
-              borderRadius: '8px',
-              background: `color-mix(in srgb, ${activeMeta.accentColor} 10%, transparent)`,
-              border: `1px solid color-mix(in srgb, ${activeMeta.accentColor} 25%, transparent)`,
-              fontSize: '1.1rem',
-            }}
-            title={t('nav.activePlatformBrief', { name: activeMeta.name, brand: activeMeta.brand })}
-          >
-            {activeMeta.icon}
-          </div>
-        )}
+        {/* 激活平台徽标已移至 sidebar-footer，与语言切换器并排显示 */}
 
         {/* Space Switcher */}
         {(!collapsed || isMobile) && (
@@ -342,10 +307,22 @@ export const MainLayout: React.FC = () => {
           ))}
         </nav>
 
-        {/* Footer — 语言切换(桌面端 footer 图标化,折叠态居中图标) */}
+        {/* Footer — 激活平台徽标 + 语言切换器并排工具条（桌面端） */}
         {!isMobile && (
           <div className={`sidebar-footer ${collapsed ? 'sidebar-footer-collapsed' : ''}`}>
-            <LanguageSwitcher collapsed={collapsed} />
+            {collapsed ? (
+              // 折叠态：平台图标按钮 + 语言图标按钮垂直堆叠
+              <div className="sidebar-footer-stack">
+                <PlatformSwitcher collapsed />
+                <LanguageSwitcher collapsed />
+              </div>
+            ) : (
+              // 展开态：平台徽标 + 语言切换器横向并排
+              <div className="sidebar-footer-toolbar">
+                <PlatformSwitcher />
+                <LanguageSwitcher />
+              </div>
+            )}
           </div>
         )}
       </aside>

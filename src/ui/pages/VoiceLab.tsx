@@ -14,6 +14,8 @@ import { LabPageLayout } from '../components/LabPageLayout';
 import { AsyncState } from '../components/AsyncState';
 import { UnsupportedCapabilityNotice } from '../components/UnsupportedCapabilityNotice';
 import { usePlatformCapabilities } from '../hooks/usePlatformCapabilities';
+import { useVoiceCapabilities } from '../hooks/useVoiceCapabilities';
+import { ApiConfigStore } from '../../adapters/outbound/config/ApiConfigStore';
 import { TextAreaWithCounter } from '../components/TextAreaWithCounter';
 import { InputWithCounter } from '../components/InputWithCounter';
 import { SegmentPicker, type SegmentBindField } from '../components/SegmentPicker';
@@ -41,6 +43,8 @@ export const VoiceLab: React.FC = () => {
   const { confirm } = useConfirm();
   const { currentSpaceId } = useSpace();
   const { hasCapability } = usePlatformCapabilities();
+  const { capabilities: voiceCaps, volcVoiceConfigured } = useVoiceCapabilities();
+  const activePlatform = ApiConfigStore.getActivePlatform();
 
   const [activeTab, setActiveTab] = useState<VoiceLabTab>('tts');
 
@@ -471,12 +475,39 @@ export const VoiceLab: React.FC = () => {
   };
 
   // ==================== Tab Buttons ====================
-  // P1 修复：补齐 design/async/manage 三个 Tab 入口（渲染分支已存在但无按钮入口）
+  // Tab 按子能力置灰：火山引擎不支持音色设计/异步合成；克隆需额外配置语音技术三件套
+  const isVolcEngine = activePlatform === 'volcengine';
+  const cloneDisabled = !voiceCaps.supportsClone || (isVolcEngine && !volcVoiceConfigured);
+  const cloneDisabledReason = !voiceCaps.supportsClone
+    ? t('voiceLab.tabDisabledPlatform', { defaultValue: '当前平台不支持此能力' })
+    : t('voiceLab.tabDisabledNotConfigured', { defaultValue: '请先在配置中心填写火山引擎语音技术 AppID/Token/Cluster' });
+
   const tabs = [
     { key: 'tts', label: t('voiceLab.tabTTS', '文本配音'), icon: <Volume2 size={16} /> },
-    { key: 'clone', label: t('voiceLab.tabClone', '音色克隆'), icon: <Mic size={16} />, color: 'var(--lab-color-voice)' },
-    { key: 'design', label: t('voiceLab.tabDesign', '音色设计'), icon: <Palette size={16} />, color: 'var(--lab-color-image)' },
-    { key: 'async', label: t('voiceLab.tabAsync', '长文本合成'), icon: <FileText size={16} />, color: 'var(--lab-color-text)' },
+    {
+      key: 'clone',
+      label: t('voiceLab.tabClone', '音色克隆'),
+      icon: <Mic size={16} />,
+      color: 'var(--lab-color-voice)',
+      disabled: cloneDisabled,
+      disabledReason: cloneDisabledReason,
+    },
+    {
+      key: 'design',
+      label: t('voiceLab.tabDesign', '音色设计'),
+      icon: <Palette size={16} />,
+      color: 'var(--lab-color-image)',
+      disabled: !voiceCaps.supportsDesign,
+      disabledReason: t('voiceLab.tabDisabledPlatform', { defaultValue: '当前平台不支持此能力' }),
+    },
+    {
+      key: 'async',
+      label: t('voiceLab.tabAsync', '长文本合成'),
+      icon: <FileText size={16} />,
+      color: 'var(--lab-color-text)',
+      disabled: isVolcEngine,
+      disabledReason: t('voiceLab.tabDisabledVolcAsync', { defaultValue: '火山引擎暂不支持长文本异步合成，请使用文本配音（流式合成）' }),
+    },
     { key: 'manage', label: t('voiceLab.tabManage', '音色管理'), icon: <Search size={16} />, color: 'var(--lab-color-watermark)' },
   ];
 

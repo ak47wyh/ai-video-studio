@@ -1,4 +1,4 @@
-import type { IVoicePort, T2AAsyncContext, T2AAsyncStatus, T2ASyncContext, T2ASyncResult, T2AStreamCallbacks, T2AStreamHandle, VoiceDesignResult, VoiceType, VoiceListResult } from '../ports/OutboundPorts';
+import type { IVoicePort, T2AAsyncContext, T2AAsyncStatus, T2ASyncContext, T2ASyncModel, T2ASyncResult, T2AStreamCallbacks, T2AStreamHandle, VoiceDesignResult, VoiceType, VoiceListResult } from '../ports/OutboundPorts';
 import type { ICharacterRepository, IStorySegmentRepository } from '../ports/OutboundPorts';
 import type { IFileStoragePort } from '../ports/FileStoragePorts';
 import type { IApiConfigStore } from '../ports/PlatformPorts';
@@ -58,6 +58,32 @@ export class VoiceService {
   /** 获取当前配置对应的语音合成适配器 */
   private getVoicePort(): IVoicePort {
     return this.router.resolveVoice(this.configStore.load());
+  }
+
+  /**
+   * 查询当前激活平台的语音子能力声明。
+   * UI 层（VoiceLab）据此动态置灰不支持的 Tab，避免用户点击后才发现不支持。
+   * 失败时返回全 false 的降级值，保证 UI 不中断。
+   */
+  async getVoiceCapabilities(): Promise<import('../ports/OutboundPorts').VoiceCapabilities> {
+    try {
+      return this.getVoicePort().voiceCapabilities;
+    } catch {
+      return { supportsClone: false, supportsDesign: false, supportsDelete: false, supportsStream: false };
+    }
+  }
+
+  /**
+   * 按平台解析默认 TTS 模型，避免硬编码 MiniMax 模型名导致火山引擎激活时无效。
+   * - volcengine: doubao-tts-base（同步）/ doubao-tts-pro（异步）
+   * - 其他平台: speech-2.8-turbo / speech-2.8-hd（MiniMax 命名）
+   */
+  private resolveDefaultModel(scenario: 'sync' | 'async'): T2ASyncModel {
+    const platform = this.configStore.getActivePlatform();
+    if (platform === 'volcengine') {
+      return scenario === 'async' ? 'doubao-tts-pro' : 'doubao-tts-base';
+    }
+    return scenario === 'async' ? 'speech-2.8-hd' : 'speech-2.8-turbo';
   }
 
   /**
@@ -182,7 +208,7 @@ export class VoiceService {
     options?: Partial<Omit<T2ASyncContext, 'text' | 'voiceId' | 'model'>>
   ): Promise<T2ASyncResult> {
     const context: T2ASyncContext = {
-      model: model || 'speech-2.8-turbo',
+      model: model || this.resolveDefaultModel('sync'),
       text,
       voiceId,
       speed: options?.speed ?? 1,
@@ -195,7 +221,7 @@ export class VoiceService {
     };
 
     const result = await this.getVoicePort().synthesizeSpeechSync(context);
-    this.recordVoiceCost(context.model ?? 'speech-2.8-turbo');
+    this.recordVoiceCost(context.model ?? this.resolveDefaultModel('sync'));
     return result;
   }
 
@@ -209,7 +235,7 @@ export class VoiceService {
     options?: Partial<Omit<T2ASyncContext, 'text' | 'voiceId'>>
   ): T2AStreamHandle {
     const context: T2ASyncContext = {
-      model: options?.model || 'speech-2.8-turbo',
+      model: options?.model || this.resolveDefaultModel('sync'),
       text,
       voiceId,
       speed: options?.speed ?? 1,
@@ -235,7 +261,7 @@ export class VoiceService {
     const context: T2AAsyncContext = {
       text,
       voiceId,
-      model: options?.model || 'speech-2.8-hd',
+      model: options?.model || this.resolveDefaultModel('async'),
       speed: options?.speed ?? 1,
       audioFormat: options?.audioFormat || 'mp3',
       sampleRate: options?.sampleRate ?? 32000,
@@ -243,7 +269,7 @@ export class VoiceService {
     };
 
     const result = await this.getVoicePort().createT2ATask(context);
-    this.recordVoiceCost(context.model ?? 'speech-2.8-hd');
+    this.recordVoiceCost(context.model ?? this.resolveDefaultModel('async'));
     return result.taskId;
   }
 
@@ -258,7 +284,7 @@ export class VoiceService {
     const context: T2AAsyncContext = {
       textFileId: fileId,
       voiceId,
-      model: options?.model || 'speech-2.8-hd',
+      model: options?.model || this.resolveDefaultModel('async'),
       speed: options?.speed ?? 1,
       audioFormat: options?.audioFormat || 'mp3',
       sampleRate: options?.sampleRate ?? 32000,
@@ -300,7 +326,7 @@ export class VoiceService {
    * 激活克隆/设计音色（用该音色调用一次 T2A）
    */
   async activateVoice(voiceId: string): Promise<void> {
-    await this.synthesizeSync('音色激活测试', voiceId, 'speech-2.8-turbo');
+    await this.synthesizeSync('音色激活测试', voiceId, this.resolveDefaultModel('sync'));
   }
 
   /**

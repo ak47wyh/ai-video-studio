@@ -24,12 +24,23 @@ import { CostMeterSection } from '../components/settings/CostMeterSection';
 
 // ===== Token 校验函数 =====
 
+/** CORS 拦截特征：浏览器原生 fetch 抛 TypeError + 经典文案 */
+const CORS_PATTERNS = /Failed to fetch|NetworkError when attempting to fetch resource/i;
+
+interface ValidationResult {
+  ok: boolean;
+  /** 通用错误文案（用于 toast 兜底） */
+  error?: string;
+  /** CORS 拦截专属标记，UI 据此展示反代引导卡片 */
+  corsBlocked?: boolean;
+}
+
 async function validateArkToken(
   apiKey: string,
   protocol: VolcArkProtocol,
   baseUrl: string,
   anthropicModel?: string,
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<ValidationResult> {
   try {
     if (protocol === 'anthropic') {
       // Anthropic 协议校验：POST /v1/messages 最小请求
@@ -62,6 +73,14 @@ async function validateArkToken(
     }
     return { ok: true };
   } catch (err) {
+    // CORS 拦截识别：浏览器原生 fetch 在预检失败时抛 TypeError
+    if (err instanceof TypeError && CORS_PATTERNS.test(err.message)) {
+      return {
+        ok: false,
+        corsBlocked: true,
+        error: 'CORS_BLOCKED',
+      };
+    }
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
 }
@@ -386,6 +405,9 @@ export const Settings: React.FC = () => {
     );
     if (result.ok) {
       showToast('success', t('settings.volcValidateSuccess'));
+    } else if (result.corsBlocked) {
+      // CORS 拦截专属提示：引导用户配置反代或开启自动降级
+      showToast('error', t('settings.volcCorsBlockedToast', { defaultValue: '跨域请求被拦截，请配置反代地址或开启自动降级' }));
     } else {
       showToast('error', t('settings.volcValidateFailed', { error: result.error }));
     }
@@ -631,8 +653,130 @@ export const Settings: React.FC = () => {
                   placeholder="doubao-seed-2.0-pro"
                   hint={t('settings.volcArkAnthropicModelHint', { defaultValue: '可选：doubao-seed-2.0-mini/lite/pro/code, deepseek-v4-flash/pro, glm-5.2, kimi-k2.6 等' })}
                 />
+
+                {/* CORS 反代警告卡片：直连官方端点时浏览器预检会因 anthropic-version 头被拒 */}
+                {config.volcArkAnthropicBaseUrl.includes('ark.cn-beijing.volces.com') && (
+                  <div className="settings-alert settings-alert-warning" role="status" aria-live="polite">
+                    <AlertTriangle size={14} className="settings-alert-icon" />
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                      <span>{t('settings.volcCorsWarning', { defaultValue: 'Anthropic 协议端点不支持浏览器直连 CORS（预检会拒绝 anthropic-version 头）。如遇跨域错误，可将 Base URL 改为您的反代地址，或开启下方自动降级。' })}</span>
+                      <details style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                        <summary style={{ cursor: 'pointer' }}>
+                          {t('settings.volcProxyGuide', { defaultValue: '查看反代示例（Cloudflare Worker）' })}
+                        </summary>
+                        <pre style={{
+                          marginTop: '0.5rem',
+                          padding: '0.5rem',
+                          background: 'var(--bg-overlay)',
+                          borderRadius: '0.375rem',
+                          overflowX: 'auto',
+                          fontSize: '0.7rem',
+                          lineHeight: 1.4,
+                        }}>
+{`export default {
+  async fetch(request) {
+    const url = new URL(request.url);
+    url.hostname = 'ark.cn-beijing.volces.com';
+    const resp = await fetch(url, request);
+    const r = new Response(resp.body, resp);
+    r.headers.set('Access-Control-Allow-Origin', '*');
+    r.headers.set('Access-Control-Allow-Headers', '*');
+    r.headers.set('Access-Control-Allow-Methods', '*');
+    return r;
+  },
+};`}
+                        </pre>
+                      </details>
+                    </div>
+                  </div>
+                )}
+
+                {/* 自动降级开关：Anthropic CORS 拦截时自动切换到 OpenAI 协议 */}
+                <label style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '0.75rem',
+                  cursor: 'pointer',
+                  padding: '0.5rem 0',
+                }}>
+                  <span className="settings-toggle">
+                    <input
+                      type="checkbox"
+                      role="switch"
+                      aria-checked={config.volcArkAutoFallback}
+                      checked={config.volcArkAutoFallback}
+                      onChange={e => handleChange('volcArkAutoFallback', e.target.checked)}
+                    />
+                    <span className="settings-toggle-track">
+                      <span className="settings-toggle-thumb" />
+                    </span>
+                  </span>
+                  <div>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 500, color: 'var(--text-main)' }}>
+                      {t('settings.volcAutoFallbackToggle', { defaultValue: 'CORS 拦截时自动降级到 OpenAI 协议' })}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                      {t('settings.volcAutoFallbackDesc', { defaultValue: 'Anthropic 端点被浏览器预检拦截时，自动改用 OpenAI 协议发起请求。注意：OpenAI 协议按量计费，且 Agent Plan Key 不一定开通 OpenAI 接口权限。' })}
+                    </div>
+                  </div>
+                </label>
               </>
             )}
+
+            {/* ── 语音技术配置（声音复刻 + 大模型 TTS，独立于方舟 Ark 体系）── */}
+            <div className="settings-section-divider" style={{
+              marginTop: '1rem',
+              marginBottom: '0.75rem',
+              padding: '0.5rem 0',
+              borderTop: '1px dashed var(--border-color)',
+            }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+                {t('settings.volcVoiceSectionTitle', { defaultValue: '语音技术配置（声音复刻 + 大模型 TTS）' })}
+              </div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                {t('settings.volcVoiceHelpText', { defaultValue: '声音复刻需单独开通语音技术服务，与方舟 API Key 不同体系。鉴权格式：Bearer;<Token>' })}
+              </div>
+            </div>
+
+            <FormField
+              label={t('settings.volcVoiceAppIdLabel', { defaultValue: '语音技术 AppID' })}
+              value={config.volcVoiceAppId}
+              onChange={v => handleChange('volcVoiceAppId', v)}
+              placeholder={t('settings.volcVoiceAppIdPlaceholder', { defaultValue: '从火山引擎控制台「语音技术」获取' })}
+              autoComplete="off"
+            />
+            <FormField
+              label={t('settings.volcVoiceAccessTokenLabel', { defaultValue: '语音技术 Access Token' })}
+              value={config.volcVoiceAccessToken}
+              onChange={v => handleChange('volcVoiceAccessToken', v)}
+              placeholder={t('settings.volcVoiceAccessTokenPlaceholder', { defaultValue: '鉴权头格式：Bearer;<Token>' })}
+              autoComplete="off"
+              showKeyIcon
+            />
+            <FormField
+              label={t('settings.volcVoiceClusterLabel', { defaultValue: '业务集群' })}
+              value={config.volcVoiceCluster}
+              onChange={v => handleChange('volcVoiceCluster', v)}
+              placeholder="volcano_icl"
+              hint={t('settings.volcVoiceClusterHint', { defaultValue: '标准音色：volcano_tts / 复刻字符版：volcano_icl / 复刻并发版：volcano_icl_concurr' })}
+            />
+            <div className="settings-form-row" style={{ marginBottom: '0.75rem' }}>
+              <label style={{ fontSize: '0.78rem', color: 'var(--text-main)', display: 'block', marginBottom: '0.35rem' }}>
+                {t('settings.volcVoiceCloneModelTypeLabel', { defaultValue: '复刻模型版本' })}
+              </label>
+              <select
+                className="settings-select"
+                value={config.volcVoiceCloneModelType}
+                onChange={e => setConfig(prev => ({ ...prev, volcVoiceCloneModelType: Number(e.target.value) as 0 | 1 | 2 | 3 | 4 }))}
+                style={{ width: '100%', padding: '0.4rem 0.6rem' }}
+              >
+                <option value={1}>{t('settings.volcVoiceModelIcl1', { defaultValue: 'ICL 1.0（推荐，2024.07）' })}</option>
+                <option value={4}>{t('settings.volcVoiceModelIcl2', { defaultValue: 'ICL 2.0（最新，2025.10）' })}</option>
+                <option value={2}>{t('settings.volcVoiceModelDitStandard', { defaultValue: 'DiT 标准版（不还原风格）' })}</option>
+                <option value={3}>{t('settings.volcVoiceModelDitRestore', { defaultValue: 'DiT 还原版（还原口音/语速）' })}</option>
+                <option value={0}>{t('settings.volcVoiceModelMega', { defaultValue: 'MEGA 效果（早期，不推荐）' })}</option>
+              </select>
+            </div>
           </PlatformCard>
         </div>
 

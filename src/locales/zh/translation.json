@@ -15,6 +15,10 @@
     "defaultMessage": "发生了意外错误。",
     "retry": "重试"
   },
+  "cors": {
+    "title": "跨域请求被浏览器拦截",
+    "detail": "服务端预检响应未允许自定义请求头。请前往配置中心配置反代地址,或开启火山引擎「CORS 自动降级」开关。"
+  },
   "nav": {
     "dashboard": "控制台",
     "characters": "角色库",
@@ -47,7 +51,10 @@
     "capabilityNotSupportedDefault": "该平台不支持此能力",
     "activePlatformInfo": "当前激活平台：{{name}}（{{brand}}）\n能力：{{capabilities}}",
     "activePlatformBrief": "当前激活平台：{{name}}（{{brand}}）",
-    "storyFilm": "AI 成片"
+    "storyFilm": "AI 成片",
+    "platformSwitcherTooltip": "切换激活平台",
+    "platformNotConfigured": "平台未配置,请前往配置中心填写 API Key",
+    "languageSwitcherTooltip": "切换语言"
   },
   "dashboard": {
     "title": "控制台",
@@ -458,7 +465,26 @@
     "capImage": "图片",
     "capText": "文本",
     "capVoice": "语音",
-    "capMusic": "音乐"
+    "capMusic": "音乐",
+    "volcCorsWarning": "Anthropic 协议端点不支持浏览器直连 CORS(预检会拒绝 anthropic-version 头)。如遇跨域错误,可将 Base URL 改为您的反代地址,或开启下方自动降级。",
+    "volcProxyGuide": "查看反代示例(Cloudflare Worker)",
+    "volcAutoFallbackToggle": "CORS 拦截时自动降级到 OpenAI 协议",
+    "volcAutoFallbackDesc": "Anthropic 端点被浏览器预检拦截时,自动改用 OpenAI 协议发起请求。注意:OpenAI 协议按量计费,且 Agent Plan Key 不一定开通 OpenAI 接口权限。",
+    "volcCorsBlockedToast": "跨域请求被拦截,请配置反代地址或开启自动降级",
+    "volcVoiceSectionTitle": "语音技术配置(声音复刻 + 大模型 TTS)",
+    "volcVoiceHelpText": "声音复刻需单独开通语音技术服务,与方舟 API Key 不同体系。鉴权格式:Bearer;<Token>",
+    "volcVoiceAppIdLabel": "语音技术 AppID",
+    "volcVoiceAppIdPlaceholder": "从火山引擎控制台「语音技术」获取",
+    "volcVoiceAccessTokenLabel": "语音技术 Access Token",
+    "volcVoiceAccessTokenPlaceholder": "鉴权头格式:Bearer;<Token>",
+    "volcVoiceClusterLabel": "业务集群",
+    "volcVoiceClusterHint": "标准音色:volcano_tts / 复刻字符版:volcano_icl / 复刻并发版:volcano_icl_concurr",
+    "volcVoiceCloneModelTypeLabel": "复刻模型版本",
+    "volcVoiceModelIcl1": "ICL 1.0(推荐,2024.07)",
+    "volcVoiceModelIcl2": "ICL 2.0(最新,2025.10)",
+    "volcVoiceModelDitStandard": "DiT 标准版(不还原风格)",
+    "volcVoiceModelDitRestore": "DiT 还原版(还原口音/语速)",
+    "volcVoiceModelMega": "MEGA 效果(早期,不推荐)"
   },
   "models": {
     "title": "可用模型",
@@ -852,7 +878,10 @@
     "title": "音色实验室",
     "subtitle": "文本转语音、声音克隆、音色设计与长文本合成",
     "voiceSwitched": "已切换到音色 {{voiceId}}，可在文本配音中使用",
-    "startDownload": "开始下载"
+    "startDownload": "开始下载",
+    "tabDisabledPlatform": "当前平台不支持此能力",
+    "tabDisabledNotConfigured": "请先在配置中心填写火山引擎语音技术 AppID/Token/Cluster",
+    "tabDisabledVolcAsync": "火山引擎暂不支持长文本异步合成,请使用文本配音(流式合成)"
   },
   "storyFilm": {
     "title": "AI 故事成片",

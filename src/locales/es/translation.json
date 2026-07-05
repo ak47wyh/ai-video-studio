@@ -5,6 +5,10 @@
     "expand": "Expand",
     "collapse": "Collapse"
   },
+  "cors": {
+    "title": "Solicitud cross-origin bloqueada por el navegador",
+    "detail": "La respuesta de pre-vuelo del servidor no permite encabezados de solicitud personalizados. Configure una URL de proxy inverso en el centro de configuración o habilite el interruptor «CORS auto-fallback» de Volcano Engine."
+  },
   "nav": {
     "dashboard": "Dashboard",
     "characters": "Characters",
@@ -15,7 +19,10 @@
     "export": "Export Center",
     "videoLab": "Generación de vídeo",
     "musicLab": "Generación de música",
-    "storyFilm": "Película IA"
+    "storyFilm": "Película IA",
+    "platformSwitcherTooltip": "Cambiar plataforma activa",
+    "platformNotConfigured": "Plataforma no configurada. Vaya al centro de configuración e ingrese la clave API.",
+    "languageSwitcherTooltip": "Cambiar idioma"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -311,7 +318,26 @@
     "getTokenLink": "Get your MiniMax API Key →",
     "anthropicBaseUrlLabel": "Anthropic-compatible endpoint URL",
     "anthropicBaseUrlPlaceholder": "https://api.minimaxi.com/anthropic",
-    "anthropicBaseUrlHint": "Used for text generation active caching, supports cache_control to reduce costs"
+    "anthropicBaseUrlHint": "Used for text generation active caching, supports cache_control to reduce costs",
+    "volcCorsWarning": "El endpoint del protocolo Anthropic no soporta CORS directo del navegador (el preflight rechaza el encabezado anthropic-version). Si encuentra errores CORS, cambie la URL base a su dirección de proxy inverso o habilite el auto-fallback a continuación.",
+    "volcProxyGuide": "Ver ejemplo de proxy inverso (Cloudflare Worker)",
+    "volcAutoFallbackToggle": "Auto-fallback al protocolo OpenAI en bloqueo CORS",
+    "volcAutoFallbackDesc": "Cuando el endpoint Anthropic es bloqueado por el preflight del navegador, cambia automáticamente al protocolo OpenAI. Nota: El protocolo OpenAI es de pago por uso, y la clave Agent Plan puede no tener acceso a la API de OpenAI.",
+    "volcCorsBlockedToast": "Solicitud cross-origin bloqueada. Configure un proxy inverso o habilite el auto-fallback.",
+    "volcVoiceSectionTitle": "Configuración de tecnología de voz (Clonación de voz + TTS de gran modelo)",
+    "volcVoiceHelpText": "La clonación de voz requiere servicio de tecnología de voz separado, diferente de la clave API Ark. Formato de auth: Bearer;<Token>",
+    "volcVoiceAppIdLabel": "AppID de voz",
+    "volcVoiceAppIdPlaceholder": "Obtener de la consola Volcengine \"Tecnología de voz\"",
+    "volcVoiceAccessTokenLabel": "Token de acceso de voz",
+    "volcVoiceAccessTokenPlaceholder": "Formato de encabezado de auth: Bearer;<Token>",
+    "volcVoiceClusterLabel": "Clúster",
+    "volcVoiceClusterHint": "Estándar: volcano_tts / Clonar carácter: volcano_icl / Clonar concurrente: volcano_icl_concurr",
+    "volcVoiceCloneModelTypeLabel": "Versión del modelo de clonación",
+    "volcVoiceModelIcl1": "ICL 1.0 (Recomendado, 2024.07)",
+    "volcVoiceModelIcl2": "ICL 2.0 (Última, 2025.10)",
+    "volcVoiceModelDitStandard": "DiT Estándar (sin restaurar estilo)",
+    "volcVoiceModelDitRestore": "DiT Restaurar (restaurar acento/velocidad)",
+    "volcVoiceModelMega": "Efecto MEGA (temprano, no recomendado)"
   },
   "models": {
     "title": "Available Models",
@@ -525,7 +551,10 @@
     "title": "Laboratorio de voces",
     "subtitle": "Texto a voz, clonación de voces, diseño de voces y síntesis de texto largo",
     "voiceSwitched": "Cambiado a la voz {{voiceId}}, disponible en TTS",
-    "startDownload": "Iniciar descarga"
+    "startDownload": "Iniciar descarga",
+    "tabDisabledPlatform": "La plataforma actual no admite esta capacidad",
+    "tabDisabledNotConfigured": "Configure Volcengine Voice AppID/Token/Cluster en Configuración primero",
+    "tabDisabledVolcAsync": "Volcengine no admite síntesis asíncrona de texto largo, use TTS (transmisión)"
   },
   "storyFilm": {
     "title": "Historia IA a Película",

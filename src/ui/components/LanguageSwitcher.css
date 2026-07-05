@@ -1,0 +1,115 @@
+/* ========================================
+   Language Switcher
+   ======================================== */
+
+.language-switcher {
+  position: relative;
+  display: inline-block;
+}
+
+/* 触发按钮 */
+.language-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.8rem;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  color: var(--text-main);
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background var(--motion-fast) var(--ease-standard),
+              border-color var(--motion-fast) var(--ease-standard);
+}
+
+.language-trigger:hover {
+  background: var(--bg-panel-hover);
+  border-color: var(--border-color);
+}
+
+.language-trigger-collapsed {
+  padding: 0.4rem;
+  justify-content: center;
+}
+
+.language-current {
+  white-space: nowrap;
+}
+
+.language-chevron {
+  opacity: 0.7;
+  transition: transform var(--motion-fast) var(--ease-standard);
+}
+
+.language-chevron-open {
+  transform: rotate(180deg);
+}
+
+/* 弹出层 */
+.language-dropdown {
+  position: absolute;
+  left: 0;
+  min-width: 180px;
+  background: var(--bg-panel);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.25rem;
+  z-index: 1000;
+  max-height: 320px;
+  overflow-y: auto;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+/* 向上弹出（侧边栏底部场景） */
+.language-dropdown-up {
+  bottom: 100%;
+  margin-bottom: 0.25rem;
+}
+
+/* 向下弹出（移动端顶栏场景） */
+.language-dropdown-down {
+  top: 100%;
+  margin-top: 0.25rem;
+}
+
+/* 选项 */
+.language-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-main);
+  cursor: pointer;
+  font-size: 0.85rem;
+  text-align: left;
+  transition: background var(--motion-fast) var(--ease-standard);
+}
+
+.language-option:hover {
+  background: var(--bg-panel-hover);
+}
+
+.language-option-active {
+  background: color-mix(in srgb, var(--primary-color) 15%, transparent);
+  color: var(--primary-color);
+}
+
+.language-option-native {
+  flex: 1;
+}
+
+.language-option-name {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.language-option-check {
+  flex-shrink: 0;
+}

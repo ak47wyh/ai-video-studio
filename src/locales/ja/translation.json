@@ -10,6 +10,10 @@
     "defaultMessage": "予期しないエラーが発生しました。",
     "retry": "再試行"
   },
+  "cors": {
+    "title": "クロスオリジンリクエストがブラウザにブロックされました",
+    "detail": "サーバーのプリフライトレスポンスがカスタムリクエストヘッダーを許可しませんでした。設定センターでリバースプロキシURLを設定するか、火山エンジンの「CORS自動フォールバック」を有効にしてください。"
+  },
   "nav": {
     "dashboard": "ダッシュボード",
     "characters": "キャラクター",
@@ -37,7 +41,10 @@
     "flowExport": "エクスポート",
     "expand": "サイドバーを展開",
     "collapse": "サイドバーを折りたたむ",
-    "storyFilm": "AI 動画"
+    "storyFilm": "AI 動画",
+    "platformSwitcherTooltip": "アクティブプラットフォームを切り替え",
+    "platformNotConfigured": "プラットフォームが未設定です。設定センターでAPIキーを入力してください。",
+    "languageSwitcherTooltip": "言語を切り替え"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -412,7 +419,26 @@
     "platformCache": "コンテキストキャッシュ",
     "platformResponse": "モデル応答",
     "appearanceSection": "外観テーマ",
-    "appearanceSectionDesc": "アプリのテーマを選択します。切り替え後すぐに有効になります。"
+    "appearanceSectionDesc": "アプリのテーマを選択します。切り替え後すぐに有効になります。",
+    "volcCorsWarning": "Anthropicプロトコルエンドポイントはブラウザ直接CORSをサポートしていません(プリフライトがanthropic-versionヘッダーを拒否します)。CORSエラーが発生した場合は、Base URLをリバースプロキシアドレスに変更するか、下の自動フォールバックを有効にしてください。",
+    "volcProxyGuide": "リバースプロキシ例を表示(Cloudflare Worker)",
+    "volcAutoFallbackToggle": "CORSブロック時にOpenAIプロトコルへ自動フォールバック",
+    "volcAutoFallbackDesc": "Anthropicエンドポイントがブラウザのプリフライトでブロックされた場合、自動的にOpenAIプロトコルに切り替えます。注意:OpenAIプロトコルは従量課金で、Agent PlanキーはOpenAI APIアクセス権がない場合があります。",
+    "volcCorsBlockedToast": "クロスオリジンリクエストがブロックされました。リバースプロキシを設定するか、自動フォールバックを有効にしてください。",
+    "volcVoiceSectionTitle": "音声技術設定(声クローン + 大モデル TTS)",
+    "volcVoiceHelpText": "声クローンは音声技術サービスの個別開通が必要です。方舟 API Key とは別体系。認証形式:Bearer;<Token>",
+    "volcVoiceAppIdLabel": "音声技術 AppID",
+    "volcVoiceAppIdPlaceholder": "火山エンジンコンソール「音声技術」から取得",
+    "volcVoiceAccessTokenLabel": "音声技術 Access Token",
+    "volcVoiceAccessTokenPlaceholder": "認証ヘッダー形式:Bearer;<Token>",
+    "volcVoiceClusterLabel": "ビジネスクラスター",
+    "volcVoiceClusterHint": "標準音色:volcano_tts / クローンボイス:volcano_icl / クローン並発:volcano_icl_concurr",
+    "volcVoiceCloneModelTypeLabel": "クローンモデルバージョン",
+    "volcVoiceModelIcl1": "ICL 1.0(推奨,2024.07)",
+    "volcVoiceModelIcl2": "ICL 2.0(最新,2025.10)",
+    "volcVoiceModelDitStandard": "DiT 標準版(スタイル復元なし)",
+    "volcVoiceModelDitRestore": "DiT 復元版(アクセント/速度復元)",
+    "volcVoiceModelMega": "MEGA 効果(早期,非推奨)"
   },
   "models": {
     "title": "Available Models",
@@ -806,7 +832,10 @@
     "title": "ボイスラボ",
     "subtitle": "テキスト音声合成、音声クローン、音声デザインと長テキスト合成",
     "voiceSwitched": "音声 {{voiceId}} に切り替えました。TTSで使用できます",
-    "startDownload": "ダウンロード開始"
+    "startDownload": "ダウンロード開始",
+    "tabDisabledPlatform": "現在のプラットフォームはこの機能をサポートしていません",
+    "tabDisabledNotConfigured": "設定センターで火山エンジン音声技術 AppID/Token/Cluster を先に設定してください",
+    "tabDisabledVolcAsync": "火山エンジンは非同期長テキスト合成をサポートしていません。テキスト音声合成(ストリーミング)を使用してください"
   },
   "storyFilm": {
     "title": "AI ストーリー動画作成",

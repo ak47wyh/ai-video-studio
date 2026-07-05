@@ -192,9 +192,9 @@ export class PlatformRouter {
 
   resolveVoice(config: ApiConfig): IVoicePort {
     this.ensureCap(config.activePlatform, 'voice');
-    if (config.activePlatform === 'volcengine' && config.volcArkProtocol === 'anthropic') {
-      throw new UnsupportedCapabilityError('volcengine', 'voice');
-    }
+    // 火山引擎语音技术（声音复刻 + 大模型 TTS）独立于方舟 Ark 体系，
+    // 走原生语音端点（openspeech.bytedance.com），与 volcArkProtocol 无关。
+    // 因此 Anthropic 协议（Agent Plan）下语音能力仍然可用，不再拦截。
     if (_voiceAdapter && this.isMatchingPlatform(_voiceAdapter, config.activePlatform)) {
       return _voiceAdapter;
     }

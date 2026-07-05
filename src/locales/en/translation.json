@@ -15,6 +15,10 @@
     "defaultMessage": "An unexpected error occurred.",
     "retry": "Try Again"
   },
+  "cors": {
+    "title": "Cross-origin request blocked by browser",
+    "detail": "Server preflight response did not allow custom request headers. Please configure a reverse proxy URL in Settings, or enable the Volcano Engine \"CORS auto-fallback\" toggle."
+  },
   "nav": {
     "dashboard": "Dashboard",
     "characters": "Characters",
@@ -47,7 +51,10 @@
     "capabilityNotSupportedDefault": "This capability is not supported on the current platform",
     "activePlatformInfo": "Active platform: {{name}} ({{brand}})\nCapabilities: {{capabilities}}",
     "activePlatformBrief": "Active platform: {{name}} ({{brand}})",
-    "storyFilm": "AI Film"
+    "storyFilm": "AI Film",
+    "platformSwitcherTooltip": "Switch active platform",
+    "platformNotConfigured": "Platform not configured. Please go to Settings and fill in the API Key.",
+    "languageSwitcherTooltip": "Switch language"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -458,7 +465,26 @@
     "capImage": "Image",
     "capText": "Text",
     "capVoice": "Voice",
-    "capMusic": "Music"
+    "capMusic": "Music",
+    "volcCorsWarning": "The Anthropic protocol endpoint does not support browser-direct CORS (preflight rejects the anthropic-version header). If you encounter CORS errors, change the Base URL to your reverse proxy address, or enable auto-fallback below.",
+    "volcProxyGuide": "View reverse proxy example (Cloudflare Worker)",
+    "volcAutoFallbackToggle": "Auto-fallback to OpenAI protocol on CORS block",
+    "volcAutoFallbackDesc": "When the Anthropic endpoint is blocked by browser preflight, automatically switch to the OpenAI protocol. Note: OpenAI protocol is pay-as-you-go, and the Agent Plan key may not have OpenAI API access.",
+    "volcCorsBlockedToast": "Cross-origin request blocked. Please configure a reverse proxy or enable auto-fallback.",
+    "volcVoiceSectionTitle": "Voice Technology Config (Voice Clone + TTS)",
+    "volcVoiceHelpText": "Voice clone requires separate voice tech service, different from Ark API Key. Auth format: Bearer;<Token>",
+    "volcVoiceAppIdLabel": "Voice AppID",
+    "volcVoiceAppIdPlaceholder": "Get from Volcengine console \"Voice Technology\"",
+    "volcVoiceAccessTokenLabel": "Voice Access Token",
+    "volcVoiceAccessTokenPlaceholder": "Auth header format: Bearer;<Token>",
+    "volcVoiceClusterLabel": "Cluster",
+    "volcVoiceClusterHint": "Standard: volcano_tts / Clone char: volcano_icl / Clone concurrent: volcano_icl_concurr",
+    "volcVoiceCloneModelTypeLabel": "Clone Model Version",
+    "volcVoiceModelIcl1": "ICL 1.0 (Recommended, 2024.07)",
+    "volcVoiceModelIcl2": "ICL 2.0 (Latest, 2025.10)",
+    "volcVoiceModelDitStandard": "DiT Standard (no style restore)",
+    "volcVoiceModelDitRestore": "DiT Restore (restore accent/speed)",
+    "volcVoiceModelMega": "MEGA (early, not recommended)"
   },
   "models": {
     "title": "Available Models",
@@ -852,7 +878,10 @@
     "title": "Voice Lab",
     "subtitle": "Text-to-speech, voice cloning, voice design and long text synthesis",
     "voiceSwitched": "Switched to voice {{voiceId}}, available in TTS",
-    "startDownload": "Start download"
+    "startDownload": "Start download",
+    "tabDisabledPlatform": "Current platform does not support this capability",
+    "tabDisabledNotConfigured": "Please configure Volcengine Voice AppID/Token/Cluster in Settings first",
+    "tabDisabledVolcAsync": "Volcengine does not support async long-text synthesis, please use TTS (streaming)"
   },
   "storyFilm": {
     "title": "AI Story to Film",

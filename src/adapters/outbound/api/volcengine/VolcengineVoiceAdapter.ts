@@ -1,87 +1,120 @@
 import type {
   IVoicePort, T2ASyncContext, T2ASyncResult, T2AAsyncContext, T2AAsyncResult, T2AAsyncStatus,
   VoiceCloneContext, VoiceCloneResult, VoiceDesignResult, VoiceListResult, VoiceType,
-  FileUploadResult, T2AStreamCallbacks, T2AStreamHandle
+  FileUploadResult, T2AStreamCallbacks, T2AStreamHandle, VoiceCapabilities, VoiceInfo,
 } from '../../../../domain/ports/OutboundPorts';
+import { CapabilityNotSupportedError } from '../../../../domain/ports/OutboundPorts';
 import type { ApiConfig } from '../../config/ApiConfigStore';
+import { ApiConfigStore } from '../../config/ApiConfigStore';
 import { VolcengineHttpClient } from './VolcengineHttpClient';
+import { VolcengineSpeechClient } from './VolcengineSpeechClient';
 import { withRetry } from './VolcengineErrorUtils';
+import { VolcengineApiError } from './VolcengineErrorUtils';
+import { isSpeakerReady } from './VolcengineVoiceErrorUtils';
 import { createTrackedObjectUrl } from '../../../../utils/objectUrlRegistry';
 
 /**
- * 火山引擎语音合成适配器（豆包 TTS）。
+ * 火山引擎语音适配器（组合 Ark TTS + 原生语音技术）。
  *
- * Endpoint：
- *   - 同步：POST /audio/speech（OpenAI 兼容协议）
- *     Body: { model, input, voice }
- *   - 异步：POST /audio/async/create + /audio/async/retrieve
- *     适合长文本 + 流式场景
+ * 设计决策：在单一适配器内部组合两个 Client，对外仍实现 IVoicePort。
+ * 原因：
+ *  1. PlatformRouter.resolveVoice 返回单个 IVoicePort，拆分需改动 Port 接口签名
+ *  2. 用户视角：火山引擎是一个平台，不应暴露内部双体系
+ *  3. 子能力由 voiceCapabilities 声明，UI 层统一处理
  *
- * Model 映射：
- *   - 同步：doubao-tts-base / doubao-tts-pro / doubao-tts-pro-max
- *   - 异步：speech-2.8-hd / speech-2.8-turbo（与 MiniMax 命名一致）
+ * 双体系说明：
+ *  - 方舟 Ark TTS（VolcengineHttpClient）：OpenAI 兼容协议，仅标准音色，Bearer Token 鉴权
+ *  - 原生语音技术（VolcengineSpeechClient）：声音复刻 + 大模型 TTS，Bearer;Token + AppID + Cluster
  *
- * 限制：
- *   - Voice Clone 暂不支持（火山引擎豆包 TTS 不提供克隆能力）
- *   - Voice Design 暂不支持
- *   - 流式 TTS 需要 WebSocket，暂不实现
+ * 能力声明：
+ *  - supportsClone: true  → 走原生语音 mega_tts/audio/upload
+ *  - supportsStream: true → 走原生语音 WebSocket V1 二进制协议
+ *  - supportsDesign: false → 火山引擎无音色设计能力
+ *  - supportsDelete: false → 火山引擎无删除音色 API（仅本地 SavedVoice 可删）
  *
- * 未实现的方法统一抛 NotImplementedError，调用方应通过 UI 入口判断能力可用性。
+ * 错误处理：
+ *  - 不支持的能力抛 CapabilityNotSupportedError（带 platform + capability）
+ *  - 平台错误码归一化为 VolcengineApiError
  */
 export class VolcengineVoiceAdapter implements IVoicePort {
-  readonly voiceCapabilities: import('../../../../domain/ports/OutboundPorts').VoiceCapabilities = {
-    supportsClone: false,
+  readonly voiceCapabilities: VoiceCapabilities = {
+    supportsClone: true,
     supportsDesign: false,
     supportsDelete: false,
-    supportsStream: false,
+    supportsStream: true,
   };
 
-  private http: VolcengineHttpClient;
+  private arkHttp: VolcengineHttpClient;
+  private speechClient: VolcengineSpeechClient;
   private config: ApiConfig;
+  /** fileId → base64 音频字节的内存缓存（火山引擎不需要预上传到服务端，base64 内联到 clone 请求） */
+  private audioBytesCache: Map<string, string> = new Map();
 
   constructor(config: ApiConfig) {
     this.config = config;
-    this.http = new VolcengineHttpClient(config);
+    this.arkHttp = new VolcengineHttpClient(config);
+    this.speechClient = new VolcengineSpeechClient(config);
   }
 
-  // ==================== 同步合成（OpenAI 兼容）====================
+  // ==================== 同步合成 ====================
 
-  /** Anthropic 协议（Agent Plan）不支持语音合成 */
-  private ensureOpenAIProtocol(): void {
-    if (this.config.volcArkProtocol === 'anthropic') {
-      throw new Error('Anthropic 协议（Agent Plan）不支持语音合成，请切换至 OpenAI 协议（标准后付费模式）');
-    }
-    if (!this.config.volcArkApiKey.trim()) {
-      throw new Error('火山引擎语音合成未配置 API Key，请在设置页面配置标准后付费模式 API Key');
-    }
-  }
-
+  /**
+   * 同步 TTS：复刻音色（S_ 开头）走原生语音，标准音色走方舟 Ark。
+   * Anthropic 协议（Agent Plan）下仅原生语音可用（与方舟协议无关）。
+   */
   async synthesizeSpeechSync(context: T2ASyncContext): Promise<T2ASyncResult> {
-    this.ensureOpenAIProtocol();
-
     const text = context.text;
+    const voiceId = context.voiceId;
 
-    console.log('[VolcengineVoiceAdapter] sync TTS 入参', {
+    // 复刻音色（S_ 开头）必须走原生语音技术
+    if (voiceId.startsWith('S_')) {
+      const result = await this.speechClient.synthesizeSync({
+        text,
+        voiceType: voiceId,
+        encoding: context.audioFormat || 'mp3',
+        speedRatio: context.speed ?? 1.0,
+        volumeRatio: context.volume ?? 1.0,
+      });
+      return {
+        audioUrl: `data:audio/${context.audioFormat || 'mp3'};base64,${result.audioBase64}`,
+        audioSize: Math.floor(result.audioBase64.length * 0.75),
+        usageCharacters: text.length,
+      };
+    }
+
+    // 标准音色：优先走方舟 Ark（若配置了 API Key + OpenAI 协议）
+    if (this.config.volcArkApiKey.trim() && this.config.volcArkProtocol === 'openai') {
+      return this.synthesizeViaArk(context);
+    }
+
+    // 降级：走原生语音技术 + 标准音色 cluster
+    // 此时需临时切换 cluster 到 volcano_tts，但配置中是复刻 cluster
+    // 为避免污染配置，直接调用原生 TTS 但用标准音色 ID
+    const result = await this.speechClient.synthesizeSync({
       text,
-      textLength: text.length,
-      voiceId: context.voiceId,
-      model: context.model ?? 'doubao-tts-base',
+      voiceType: voiceId,
+      encoding: context.audioFormat || 'mp3',
+      speedRatio: context.speed ?? 1.0,
+      volumeRatio: context.volume ?? 1.0,
     });
+    return {
+      audioUrl: `data:audio/${context.audioFormat || 'mp3'};base64,${result.audioBase64}`,
+      audioSize: Math.floor(result.audioBase64.length * 0.75),
+      usageCharacters: text.length,
+    };
+  }
 
+  /** 方舟 Ark OpenAI 兼容协议 TTS */
+  private async synthesizeViaArk(context: T2ASyncContext): Promise<T2ASyncResult> {
+    const text = context.text;
     const result = await withRetry(() =>
-      this.http.post<ArrayBuffer>('/audio/speech', {
+      this.arkHttp.post<ArrayBuffer>('/audio/speech', {
         model: context.model ?? 'doubao-tts-base',
         input: text,
-        voice: context.voiceId ?? 'zh_male_narration',
+        voice: context.voiceId,
         response_format: 'mp3',
       }, { responseType: 'arraybuffer' }),
     );
-
-    console.log('[VolcengineVoiceAdapter] sync TTS 出参', {
-      audioSize: result.byteLength,
-      usageCharacters: text.length,
-    });
-
     return {
       audioUrl: createTrackedObjectUrl(new Blob([result], { type: 'audio/mpeg' })),
       audioSize: result.byteLength,
@@ -89,99 +122,237 @@ export class VolcengineVoiceAdapter implements IVoicePort {
     };
   }
 
-  synthesizeSpeechStream(_context: T2ASyncContext, _callbacks: T2AStreamCallbacks): T2AStreamHandle {
-    // 流式 TTS（火山引擎）需要 WebSocket，暂不实现
-    return { close: () => {} };
+  // ==================== 流式合成 ====================
+
+  /**
+   * WebSocket 流式 TTS（火山引擎 V1 二进制协议）。
+   * 走原生语音技术，与方舟协议无关。
+   */
+  synthesizeSpeechStream(context: T2ASyncContext, callbacks: T2AStreamCallbacks): T2AStreamHandle {
+    return this.speechClient.createStreamWebSocket({
+      text: context.text,
+      voiceType: context.voiceId,
+      encoding: context.audioFormat || 'mp3',
+    }, callbacks);
   }
 
-  // ==================== 异步合成 ====================
+  // ==================== 异步合成（不支持，火山引擎方舟无异步端点）====================
 
-  async createT2ATask(context: T2AAsyncContext): Promise<T2AAsyncResult> {
-    this.ensureOpenAIProtocol();
+  async createT2ATask(_context: T2AAsyncContext): Promise<T2AAsyncResult> {
+    throw new CapabilityNotSupportedError('volcengine', 'supportsStream');
+  }
 
-    const text = context.text ?? '';
+  async queryT2ATask(_taskId: string): Promise<T2AAsyncStatus> {
+    throw new CapabilityNotSupportedError('volcengine', 'supportsStream');
+  }
 
-    console.log('[VolcengineVoiceAdapter] async TTS 入参', {
-      text,
-      textLength: text.length,
-      voiceId: context.voiceId,
-      model: context.model ?? 'doubao-tts-pro',
+  // ==================== 音色克隆 ====================
+
+  /**
+   * 上传文件用于声音克隆。
+   * 火山引擎不需要预上传到服务端，base64 直接内联到 clone 请求。
+   * 这里把 File 转 base64 存入内存缓存，返回 fileId 供 cloneVoice 读取。
+   */
+  async uploadFile(file: File, purpose: 'voice_clone' | 'prompt_audio' | 't2a_async_input'): Promise<FileUploadResult> {
+    if (purpose !== 'voice_clone') {
+      throw new CapabilityNotSupportedError('volcengine', 'supportsClone');
+    }
+    const audioBytes = await this.fileToBase64(file);
+    const fileId = `volc_${Date.now()}_${file.name}`;
+    this.audioBytesCache.set(fileId, audioBytes);
+    return { fileId };
+  }
+
+  /**
+   * 声音复刻：上传训练音频 + 轮询训练状态。
+   *
+   * 流程：
+   *  1. 从内存缓存读取 fileId 对应的 base64 音频字节
+   *  2. 调用 mega_tts/audio/upload 上传训练
+   *  3. 轮询 mega_tts/status 直到训练完成（2 秒间隔，最长 2 分钟）
+   *  4. 返回 voiceId + demo_audio 预览
+   *
+   * 注意：火山引擎的训练是异步过程，upload 接口立即返回 success 仅表示上传成功。
+   */
+  async cloneVoice(context: VoiceCloneContext): Promise<VoiceCloneResult> {
+    this.speechClient.ensureConfigured();
+
+    // 从内存缓存读取 base64 音频字节
+    const audioBytes = this.audioBytesCache.get(context.fileId) || '';
+    if (!audioBytes) {
+      throw new VolcengineApiError(0, 'AUDIO_BYTES_MISSING', '声音复刻缺少音频数据，请重新上传音频文件');
+    }
+    // 用完即清，避免内存堆积
+    this.audioBytesCache.delete(context.fileId);
+
+    const speakerId = context.voiceId || `S_${this.generateSpeakerId()}`;
+    const audioFormat = this.detectAudioFormat(context.model);
+
+    // 上传训练
+    const uploadResult = await this.speechClient.uploadSpeakerAudio({
+      speakerId,
+      audioBytes,
+      audioFormat,
+      language: this.mapLanguage(context.languageBoost),
+      modelType: this.config.volcVoiceCloneModelType,
+      extraParams: {
+        enable_audio_denoise: context.needNoiseReduction ?? false,
+      },
     });
 
-    const result = await withRetry(() =>
-      this.http.post<{ id: string }>('/audio/async/create', {
-        model: context.model ?? 'doubao-tts-pro',
-        input: text,
-        voice: context.voiceId ?? 'zh_male_narration',
-        response_format: 'mp3',
-      }),
-    );
+    if (uploadResult.statusCode !== 0) {
+      throw new VolcengineApiError(0, uploadResult.statusMessage || 'CLONE_FAILED', uploadResult.statusMessage);
+    }
 
-    console.log('[VolcengineVoiceAdapter] async TTS 出参', {
-      taskId: result.id,
-      usageCharacters: text.length,
-    });
+    // 轮询训练状态（2 秒间隔，最长 2 分钟 = 60 次）
+    const status = await this.pollSpeakerStatus(speakerId, 60, 2000);
+    if (!isSpeakerReady(status.status)) {
+      throw new VolcengineApiError(
+        0,
+        'CLONE_TRAINING_FAILED',
+        `声音复刻训练失败，最终状态：${status.status}`,
+      );
+    }
 
     return {
-      taskId: result.id,
-      usageCharacters: text.length,
+      voiceId: speakerId,
+      previewAudioUrl: status.demoAudio,
     };
   }
 
-  async queryT2ATask(taskId: string): Promise<T2AAsyncStatus> {
-    const result = await withRetry(() =>
-      this.http.get<{ id: string; status: string; audio_url?: string; error?: string }>(
-        `/audio/async/retrieve?task_id=${encodeURIComponent(taskId)}`,
-      ),
-    );
-    const statusMap: Record<string, T2AAsyncStatus['status']> = {
-      'processing': 'processing',
-      'success': 'success',
-      'failed': 'failed',
-    };
-    return {
-      status: statusMap[result.status] ?? 'processing',
-      audioUrl: result.audio_url,
-      errorMessage: result.error,
-    };
+  /** 轮询训练状态，直到成功/失败/超时 */
+  private async pollSpeakerStatus(
+    speakerId: string,
+    maxAttempts: number,
+    intervalMs: number,
+  ): Promise<{ status: 0 | 1 | 2 | 3 | 4; demoAudio?: string }> {
+    for (let i = 0; i < maxAttempts; i++) {
+      await this.sleep(intervalMs);
+      const status = await this.speechClient.querySpeakerStatus(speakerId);
+      // 0=未找到, 1=训练中, 2=成功, 3=失败, 4=已激活
+      if (status.status === 2 || status.status === 4) {
+        return { status: status.status, demoAudio: status.demoAudio };
+      }
+      if (status.status === 3) {
+        return { status: 3 };
+      }
+      // 0=未找到 或 1=训练中 → 继续轮询
+    }
+    return { status: 1 };  // 超时，仍在训练中
   }
 
-  // ==================== 不支持的能力 ====================
-
-  async uploadFile(_file: File, _purpose: 'voice_clone' | 'prompt_audio' | 't2a_async_input'): Promise<FileUploadResult> {
-    throw new Error('VolcengineVoiceAdapter: voice_clone/prompt_audio upload not supported by Doubao TTS');
-  }
-
-  async cloneVoice(_context: VoiceCloneContext): Promise<VoiceCloneResult> {
-    throw new Error('VolcengineVoiceAdapter: voice cloning is not supported by Doubao TTS');
-  }
+  // ==================== 文件管理（不支持）====================
 
   getFileUrl(_fileId: string): string {
-    throw new Error('VolcengineVoiceAdapter: file URL retrieval not supported by Doubao TTS');
+    throw new CapabilityNotSupportedError('volcengine', 'supportsClone');
   }
 
   async fetchAudioAsBlobUrl(audioUrl: string): Promise<string> {
-    // 直接返回 URL（已经是公网 URL）
+    // 火山引擎返回的 demo_audio 是公网 URL，直接返回
     return audioUrl;
   }
 
-  async designVoice(_prompt: string, _previewText: string, _voiceId?: string, _aigcWatermark?: boolean): Promise<VoiceDesignResult> {
-    throw new Error('VolcengineVoiceAdapter: voice design not supported by Doubao TTS');
+  // ==================== 音色设计（不支持）====================
+
+  async designVoice(
+    _prompt: string,
+    _previewText: string,
+    _voiceId?: string,
+    _aigcWatermark?: boolean,
+  ): Promise<VoiceDesignResult> {
+    throw new CapabilityNotSupportedError('volcengine', 'supportsDesign');
   }
 
+  // ==================== 音色列表 ====================
+
+  /**
+   * 获取可用音色列表。
+   * 火山引擎无「列出已克隆音色」API，speaker_id 需用户自己保存。
+   * 返回硬编码的标准音色（官方公开音色），克隆音色由 VoiceService 从 SavedVoiceRepository 补充。
+   */
   async getAvailableVoices(_voiceType: VoiceType): Promise<VoiceListResult> {
-    // 提供预定义的几个常用声音
     return {
-      systemVoices: [
-        { voiceId: 'zh_male_narration', voiceName: '中文男声 - 旁白', description: '中文男声，旁白风格', type: 'system' as const },
-        { voiceId: 'zh_female_gentle', voiceName: '中文女声 - 温柔', description: '中文女声，温柔风格', type: 'system' as const },
-        { voiceId: 'en_male_narration', voiceName: 'English Male - Narration', description: 'English male, narration style', type: 'system' as const },
-        { voiceId: 'en_female_gentle', voiceName: 'English Female - Gentle', description: 'English female, gentle style', type: 'system' as const },
-      ],
+      systemVoices: VOLCENGINE_SYSTEM_VOICES,
+      clonedVoices: [],  // 由 VoiceService 层从 SavedVoiceRepository 补充
     };
   }
 
-  async deleteVoice(_voiceType: 'voice_cloning' | 'voice_generation', _voiceId: string): Promise<void> {
-    throw new Error('VolcengineVoiceAdapter: voice deletion not supported by Doubao TTS');
+  // ==================== 删除音色（不支持）====================
+
+  async deleteVoice(
+    _voiceType: 'voice_cloning' | 'voice_generation',
+    _voiceId: string,
+  ): Promise<void> {
+    throw new CapabilityNotSupportedError('volcengine', 'supportsDelete');
   }
+
+  // ==================== 辅助方法 ====================
+
+  /** 生成 speaker_id（16 位字母数字） */
+  private generateSpeakerId(): string {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    let id = '';
+    for (let i = 0; i < 16; i++) {
+      id += chars[Math.floor(Math.random() * chars.length)];
+    }
+    return id;
+  }
+
+  /** 读取 File 为 base64 字符串（不含 data:URI 前缀） */
+  private fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        // FileReader.readAsDataURL 返回 "data:audio/wav;base64,xxxx" 形式，去掉前缀
+        const base64 = result.includes(',') ? result.split(',')[1] : result;
+        resolve(base64);
+      };
+      reader.onerror = () => reject(new Error(`读取音频文件失败: ${file.name}`));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  /** 从 model 字段推断音频格式 */
+  private detectAudioFormat(model?: string): string {
+    if (!model) return 'wav';
+    const lower = model.toLowerCase();
+    if (lower.includes('mp3')) return 'mp3';
+    if (lower.includes('ogg')) return 'ogg';
+    if (lower.includes('m4a')) return 'm4a';
+    if (lower.includes('aac')) return 'aac';
+    if (lower.includes('pcm')) return 'pcm';
+    return 'wav';
+  }
+
+  /** languageBoost 字符串映射到火山引擎数字编码 */
+  private mapLanguage(languageBoost?: string): number {
+    if (!languageBoost || languageBoost === 'auto') return 0;
+    const map: Record<string, number> = {
+      'zh': 0, 'cn': 0, 'chinese': 0,
+      'en': 1, 'english': 1,
+      'ja': 2, 'japanese': 2,
+      'ko': 3, 'korean': 3,
+    };
+    return map[languageBoost.toLowerCase()] ?? 0;
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+}
+
+/** 火山引擎公开标准音色（官方文档可查） */
+const VOLCENGINE_SYSTEM_VOICES: VoiceInfo[] = [
+  { voiceId: 'BV001', voiceName: '通用女声', description: '通用场景女声', type: 'system' },
+  { voiceId: 'BV002', voiceName: '通用男声', description: '通用场景男声', type: 'system' },
+  { voiceId: 'BV700_streaming', voiceName: '灿灿', description: '亲和女声，适合旁白', type: 'system' },
+  { voiceId: 'BV701_streaming', voiceName: '擎苍', description: '磁性男声，适合叙事', type: 'system' },
+  { voiceId: 'BV704_streaming', voiceName: '熠彤', description: '活力女声，适合广告', type: 'system' },
+  { voiceId: 'BV405_streaming', voiceName: '奶泡泡', description: '童声，适合儿童内容', type: 'system' },
+];
+
+/** 检查火山引擎语音技术配置是否完整（供 UI 层判断 Tab 是否可用） */
+export function isVolcVoiceConfigured(): boolean {
+  return ApiConfigStore.isVolcVoiceConfigured();
 }

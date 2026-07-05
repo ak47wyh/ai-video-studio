@@ -1,9 +1,24 @@
 import React from 'react';
-import { AlertCircle, RefreshCw, Inbox } from 'lucide-react';
+import { AlertCircle, RefreshCw, Inbox, ShieldOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 /** 加载子态（V3 §6.2）：骨架屏(首次) / 内联 spinner(刷新) / 进度条(批量) */
 export type LoadingVariant = 'spinner' | 'skeleton' | 'progress';
+
+/**
+ * 鸭子类型识别 CORS 拦截错误。
+ *
+ * 不直接 import 适配器层的 CorsBlockedError，保持 UI 层与适配器层解耦
+ * （依赖方向：ui → domain ← adapters，UI 不应反向依赖具体平台错误类）。
+ *
+ * 识别依据：适配器归一化后的 CORS 错误带有 `errorCode === 'CORS_BLOCKED'`
+ * 与 `name === 'CorsBlockedError'` 两个稳定标记。
+ */
+function isCorsBlockedError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const e = error as { name?: string; errorCode?: string };
+  return e.name === 'CorsBlockedError' || e.errorCode === 'CORS_BLOCKED';
+}
 
 interface AsyncStateProps {
   /** 加载中 */
@@ -105,6 +120,26 @@ export const AsyncState: React.FC<AsyncStateProps> = ({
 
   // 错误状态
   if (error) {
+    // CORS 拦截专属卡片：让用户看懂根因，引导前往设置页配置反代或开启自动降级
+    if (isCorsBlockedError(error)) {
+      return (
+        <div className="glass-panel async-state-error async-state-cors" style={{ minHeight }} role="alert" aria-live="assertive">
+          <ShieldOff size={32} className="async-state-error-icon" />
+          <div className="async-state-error-body">
+            <p className="async-state-error-title">{t('cors.title', { defaultValue: '跨域请求被浏览器拦截' })}</p>
+            <p className="async-state-error-detail">
+              {t('cors.detail', { defaultValue: '服务端预检响应未允许自定义请求头。请前往配置中心配置反代地址，或开启火山引擎「CORS 自动降级」开关。' })}
+            </p>
+          </div>
+          {onRetry && (
+            <button className="btn btn-secondary async-state-retry" onClick={onRetry}>
+              <RefreshCw size={14} />
+              {t('common.retry')}
+            </button>
+          )}
+        </div>
+      );
+    }
     const message = typeof error === 'string' ? error : error.message || t('common.unknownError');
     return (
       <div className="glass-panel async-state-error" style={{ minHeight }}>

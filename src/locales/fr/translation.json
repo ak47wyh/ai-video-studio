@@ -5,6 +5,10 @@
     "expand": "Expand",
     "collapse": "Collapse"
   },
+  "cors": {
+    "title": "Requête cross-origin bloquée par le navigateur",
+    "detail": "La réponse de pré-vérification du serveur n'autorise pas les en-têtes de requête personnalisés. Veuillez configurer une URL de proxy inverse dans le centre de configuration ou activer l'option « CORS auto-fallback » de Volcano Engine."
+  },
   "nav": {
     "dashboard": "Dashboard",
     "characters": "Characters",
@@ -15,7 +19,10 @@
     "export": "Export Center",
     "videoLab": "Génération vidéo",
     "musicLab": "Génération musicale",
-    "storyFilm": "Film IA"
+    "storyFilm": "Film IA",
+    "platformSwitcherTooltip": "Changer de plateforme active",
+    "platformNotConfigured": "Plateforme non configurée. Veuillez configurer la clé API dans le centre de configuration.",
+    "languageSwitcherTooltip": "Changer de langue"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -311,7 +318,26 @@
     "getTokenLink": "Get your MiniMax API Key →",
     "anthropicBaseUrlLabel": "Anthropic-compatible endpoint URL",
     "anthropicBaseUrlPlaceholder": "https://api.minimaxi.com/anthropic",
-    "anthropicBaseUrlHint": "Used for text generation active caching, supports cache_control to reduce costs"
+    "anthropicBaseUrlHint": "Used for text generation active caching, supports cache_control to reduce costs",
+    "volcCorsWarning": "L'endpoint du protocole Anthropic ne prend pas en charge CORS direct depuis le navigateur (le preflight rejette l'en-tête anthropic-version). En cas d'erreurs CORS, changez l'URL de base vers votre adresse de proxy inverse ou activez l'auto-fallback ci-dessous.",
+    "volcProxyGuide": "Voir l'exemple de proxy inverse (Cloudflare Worker)",
+    "volcAutoFallbackToggle": "Auto-fallback vers le protocole OpenAI en cas de blocage CORS",
+    "volcAutoFallbackDesc": "Lorsque l'endpoint Anthropic est bloqué par le preflight du navigateur, bascule automatiquement vers le protocole OpenAI. Remarque : Le protocole OpenAI est payant à l'usage, et la clé Agent Plan peut ne pas avoir d'accès API OpenAI.",
+    "volcCorsBlockedToast": "Requête cross-origin bloquée. Veuillez configurer un proxy inverse ou activer l'auto-fallback.",
+    "volcVoiceSectionTitle": "Configuration technologie vocale (Clonage vocal + TTS grand modèle)",
+    "volcVoiceHelpText": "Le clonage vocal nécessite un service vocal séparé, différent de la clé API Ark. Format d'auth: Bearer;<Token>",
+    "volcVoiceAppIdLabel": "AppID vocal",
+    "volcVoiceAppIdPlaceholder": "Obtenir depuis la console Volcengine \"Technologie vocale\"",
+    "volcVoiceAccessTokenLabel": "Token d'accès vocal",
+    "volcVoiceAccessTokenPlaceholder": "Format d'en-tête d'auth: Bearer;<Token>",
+    "volcVoiceClusterLabel": "Cluster",
+    "volcVoiceClusterHint": "Standard: volcano_tts / Clonage caractère: volcano_icl / Clonage concurrent: volcano_icl_concurr",
+    "volcVoiceCloneModelTypeLabel": "Version du modèle de clonage",
+    "volcVoiceModelIcl1": "ICL 1.0 (Recommandé, 2024.07)",
+    "volcVoiceModelIcl2": "ICL 2.0 (Dernière, 2025.10)",
+    "volcVoiceModelDitStandard": "DiT Standard (pas de restauration de style)",
+    "volcVoiceModelDitRestore": "DiT Restauration (restaurer accent/vitesse)",
+    "volcVoiceModelMega": "Effet MEGA (ancien, non recommandé)"
   },
   "models": {
     "title": "Available Models",
@@ -525,7 +551,10 @@
     "title": "Laboratoire vocal",
     "subtitle": "Synthèse vocale, clonage vocal, design vocal et synthèse de texte long",
     "voiceSwitched": "Basculé sur la voix {{voiceId}}, disponible dans la synthèse vocale",
-    "startDownload": "Démarrer le téléchargement"
+    "startDownload": "Démarrer le téléchargement",
+    "tabDisabledPlatform": "La plateforme actuelle ne prend pas en charge cette fonctionnalité",
+    "tabDisabledNotConfigured": "Veuillez configurer Volcengine Voice AppID/Token/Cluster dans les paramètres",
+    "tabDisabledVolcAsync": "Volcengine ne prend pas en charge la synthèse asynchrone de texte long, utilisez TTS (streaming)"
   },
   "storyFilm": {
     "title": "Histoire IA en Film",

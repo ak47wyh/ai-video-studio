@@ -361,6 +361,30 @@
   margin-top: auto;
 }
 
+/* 并排工具条：展开态，平台徽标 + 语言切换器横向排列 */
+.sidebar-footer-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sidebar-footer-toolbar .platform-switcher {
+  flex: 1;
+  min-width: 0;
+}
+
+.sidebar-footer-toolbar .language-switcher {
+  flex: 0 0 auto;
+}
+
+/* 折叠态：平台图标按钮 + 语言图标按钮垂直堆叠 */
+.sidebar-footer-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 /* ========================================
    Main Content
    ======================================== */

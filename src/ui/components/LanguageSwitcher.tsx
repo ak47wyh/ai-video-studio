@@ -2,9 +2,31 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Globe, ChevronDown, Check } from 'lucide-react';
 import { SUPPORTED_LANGUAGES, type LanguageCode } from '../../i18n';
+import './LanguageSwitcher.css';
 
-export const LanguageSwitcher: React.FC = () => {
-  const { i18n } = useTranslation();
+interface LanguageSwitcherProps {
+  /** 折叠态：仅显示 Globe 图标，不显示语言名称与箭头（侧边栏折叠时使用） */
+  collapsed?: boolean;
+  /** 弹出方向：true=向上弹出（默认，侧边栏底部场景），false=向下弹出（移动端顶栏场景） */
+  dropUp?: boolean;
+}
+
+/**
+ * 语言切换器组件。
+ *
+ * 支持两种显示形态：
+ *  - 展开态：`Globe + 当前语言 nativeName + ChevronDown`，完整按钮
+ *  - 折叠态：仅 `Globe` 图标，配合 tooltip 说明
+ *
+ * 弹出方向通过 `dropUp` 控制，避免在移动端顶栏被遮挡。
+ * 颜色全部走 CSS 变量（`--bg-panel` / `--border-color` / `--platform-accent-soft`），
+ * 不再硬编码 `rgba(...)`。
+ */
+export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
+  collapsed = false,
+  dropUp = true,
+}) => {
+  const { i18n, t } = useTranslation();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -19,59 +41,56 @@ export const LanguageSwitcher: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClick);
   }, [open]);
 
+  // Esc 键关闭菜单（键盘可访问性）
+  useEffect(() => {
+    if (!open) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [open]);
+
   const currentLang = SUPPORTED_LANGUAGES.find(l => l.code === i18n.language) ?? SUPPORTED_LANGUAGES[0];
 
   const handleSelect = (code: LanguageCode) => {
-    i18n.changeLanguage(code);
+    void i18n.changeLanguage(code);
     setOpen(false);
   };
 
   return (
-    <div ref={containerRef} style={{ position: 'relative' }}>
+    <div ref={containerRef} className="language-switcher">
       <button
+        type="button"
         onClick={() => setOpen(o => !o)}
-        className="btn btn-secondary"
-        style={{ padding: '0.4rem 0.8rem', border: 'none', gap: '0.5rem', opacity: 0.8 }}
+        className={`language-trigger ${collapsed ? 'language-trigger-collapsed' : ''}`}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        title={collapsed ? t('nav.languageSwitcherTooltip', { defaultValue: '切换语言' }) : undefined}
       >
-        <Globe size={18} />
-        <span>{currentLang.nativeName}</span>
-        <ChevronDown size={12} />
+        <Globe size={collapsed ? 18 : 16} />
+        {!collapsed && <span className="language-current">{currentLang.nativeName}</span>}
+        {!collapsed && <ChevronDown size={12} className={`language-chevron ${open ? 'language-chevron-open' : ''}`} />}
       </button>
       {open && (
-        <div style={{
-          position: 'absolute',
-          bottom: '100%',
-          left: 0,
-          marginBottom: '0.25rem',
-          minWidth: '180px',
-          background: 'rgba(20,20,30,0.95)',
-          backdropFilter: 'blur(12px)',
-          border: '1px solid rgba(255,255,255,0.1)',
-          borderRadius: 'var(--radius-md)',
-          padding: '0.25rem',
-          zIndex: 1000,
-          maxHeight: '320px',
-          overflowY: 'auto',
-        }}>
+        <div
+          className={`language-dropdown ${dropUp ? 'language-dropdown-up' : 'language-dropdown-down'}`}
+          role="listbox"
+        >
           {SUPPORTED_LANGUAGES.map(lang => {
             const active = lang.code === i18n.language;
             return (
               <button
                 key={lang.code}
+                type="button"
+                role="option"
+                aria-selected={active}
                 onClick={() => handleSelect(lang.code as LanguageCode)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '0.5rem',
-                  width: '100%', padding: '0.5rem 0.75rem',
-                  background: active ? 'rgba(129,140,248,0.15)' : 'transparent',
-                  border: 'none', borderRadius: 'var(--radius-sm)',
-                  color: active ? 'var(--primary-color)' : 'inherit',
-                  cursor: 'pointer', fontSize: '0.85rem',
-                  textAlign: 'left',
-                }}
+                className={`language-option ${active ? 'language-option-active' : ''}`}
               >
-                <span style={{ flex: 1 }}>{lang.nativeName}</span>
-                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{lang.name}</span>
-                {active && <Check size={12} />}
+                <span className="language-option-native">{lang.nativeName}</span>
+                <span className="language-option-name">{lang.name}</span>
+                {active && <Check size={12} className="language-option-check" />}
               </button>
             );
           })}

@@ -1,0 +1,164 @@
+/* ========================================
+   Platform Switcher
+   ======================================== */
+
+.platform-switcher {
+  position: relative;
+  display: inline-block;
+}
+
+/* 触发器（平台徽标） */
+.platform-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  background: color-mix(in srgb, var(--platform-accent, var(--primary-color)) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--platform-accent, var(--primary-color)) 35%, transparent);
+  border-radius: var(--radius-md);
+  color: var(--text-main);
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 500;
+  transition: background var(--motion-fast) var(--ease-standard),
+              border-color var(--motion-fast) var(--ease-standard);
+  min-width: 0;
+}
+
+.platform-badge:hover {
+  background: color-mix(in srgb, var(--platform-accent, var(--primary-color)) 22%, transparent);
+  border-color: color-mix(in srgb, var(--platform-accent, var(--primary-color)) 55%, transparent);
+}
+
+.platform-badge-collapsed {
+  padding: 0.4rem;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  flex: 0 0 auto;
+}
+
+.platform-badge-icon {
+  font-size: 1rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.platform-badge-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.platform-badge-chevron {
+  opacity: 0.7;
+  flex-shrink: 0;
+  transition: transform var(--motion-fast) var(--ease-standard);
+}
+
+.platform-badge-chevron-open {
+  transform: rotate(180deg);
+}
+
+/* 弹出菜单 */
+.platform-dropdown {
+  position: absolute;
+  right: 0;
+  min-width: 220px;
+  background: var(--bg-panel);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.25rem;
+  z-index: 1000;
+  max-height: 360px;
+  overflow-y: auto;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.platform-dropdown-up {
+  bottom: 100%;
+  margin-bottom: 0.25rem;
+}
+
+.platform-dropdown-header {
+  padding: 0.4rem 0.6rem;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 0.25rem;
+}
+
+/* 平台选项 */
+.platform-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.6rem;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-main);
+  cursor: pointer;
+  font-size: 0.85rem;
+  text-align: left;
+  transition: background var(--motion-fast) var(--ease-standard);
+}
+
+.platform-option:hover {
+  background: color-mix(in srgb, var(--option-accent, var(--primary-color)) 12%, transparent);
+}
+
+.platform-option-active {
+  background: color-mix(in srgb, var(--option-accent, var(--primary-color)) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--option-accent, var(--primary-color)) 45%, transparent);
+  color: var(--text-main);
+  font-weight: 500;
+}
+
+.platform-option-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.platform-option-disabled:hover {
+  background: transparent;
+}
+
+.platform-option-icon {
+  font-size: 1rem;
+  line-height: 1;
+  flex-shrink: 0;
+  width: 1.2rem;
+  text-align: center;
+}
+
+.platform-option-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.platform-option-brand {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.platform-option-check {
+  flex-shrink: 0;
+  color: var(--option-accent, var(--primary-color));
+}
+
+.platform-option-ban {
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
