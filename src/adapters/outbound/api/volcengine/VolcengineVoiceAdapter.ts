@@ -2,6 +2,7 @@ import type {
   IVoicePort, T2ASyncContext, T2ASyncResult, T2AAsyncContext, T2AAsyncResult, T2AAsyncStatus,
   VoiceCloneContext, VoiceCloneResult, VoiceDesignResult, VoiceListResult, VoiceType,
   FileUploadResult, T2AStreamCallbacks, T2AStreamHandle, VoiceCapabilities, VoiceInfo,
+  VoiceConversionContext, VoiceConversionResult,
 } from '../../../../domain/ports/OutboundPorts';
 import { CapabilityNotSupportedError } from '../../../../domain/ports/OutboundPorts';
 import type { ApiConfig } from '../../config/ApiConfigStore';
@@ -42,6 +43,7 @@ export class VolcengineVoiceAdapter implements IVoicePort {
     supportsDesign: false,
     supportsDelete: false,
     supportsStream: true,
+    supportsConversion: true,
   };
 
   private arkHttp: VolcengineHttpClient;
@@ -134,6 +136,87 @@ export class VolcengineVoiceAdapter implements IVoicePort {
       voiceType: context.voiceId,
       encoding: context.audioFormat || 'mp3',
     }, callbacks);
+  }
+
+  // ==================== 声音转换 ====================
+
+  /**
+   * 声音转换：将源音频的音色转换为目标音色。
+   *
+   * 流程：
+   *  1. 解码源音频（mp3/wav/m4a 等）→ AudioBuffer
+   *  2. 重采样到 16k 单声道 → PCM 16bit 小端序
+   *  3. 通过 WebSocket 流式发送 PCM，接收转换后音频
+   *  4. 合并输出 → Blob URL
+   *
+   * 浏览器 AudioContext 解码能力有限（无法解码 pcm raw），调用方应提供常见编码格式。
+   */
+  async convertVoice(context: VoiceConversionContext): Promise<VoiceConversionResult> {
+    this.speechClient.ensureConfigured();
+
+    // 1. 获取音频 ArrayBuffer
+    const arrayBuffer = await this.fetchAudioArrayBuffer(context.audio);
+    // 2. 解码 + 重采样到 16k PCM
+    const pcmBytes = await this.decodeToPcm16kMono(arrayBuffer);
+    // 3. 流式转换
+    const encoding = context.outputEncoding ?? 'mp3';
+    const { audioBytes } = await this.speechClient.convertVoiceStream({
+      pcmBytes,
+      voiceType: context.targetVoiceType,
+      encoding,
+      rate: context.outputRate ?? 24000,
+      pitchRatio: context.pitchRatio,
+      volumeRatio: context.volumeRatio,
+    });
+    // 4. 转 Blob URL
+    const mimeType = encoding === 'mp3' ? 'audio/mpeg'
+      : encoding === 'wav' ? 'audio/wav'
+      : encoding === 'ogg_opus' ? 'audio/ogg'
+      : 'audio/pcm';
+    const blob = new Blob([audioBytes], { type: mimeType });
+    return {
+      audioUrl: createTrackedObjectUrl(blob),
+      audioSize: audioBytes.byteLength,
+      encoding,
+    };
+  }
+
+  /** 获取音频 ArrayBuffer（支持 Blob 或 URL） */
+  private async fetchAudioArrayBuffer(audio: Blob | string): Promise<ArrayBuffer> {
+    if (typeof audio === 'string') {
+      const res = await fetch(audio);
+      return res.arrayBuffer();
+    }
+    return audio.arrayBuffer();
+  }
+
+  /**
+   * 解码音频并重采样到 16k 单声道 PCM 16bit 小端序。
+   * 使用 OfflineAudioContext 进行重采样，兼容 mp3/wav/m4a 等浏览器可解码格式。
+   */
+  private async decodeToPcm16kMono(arrayBuffer: ArrayBuffer): Promise<Uint8Array> {
+    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const decodeCtx = new AudioCtx();
+    const audioBuffer = await decodeCtx.decodeAudioData(arrayBuffer.slice(0));
+    decodeCtx.close();
+
+    // 重采样到 16k 单声道
+    const targetRate = 16000;
+    const offlineCtx = new OfflineAudioContext(1, Math.ceil(audioBuffer.duration * targetRate), targetRate);
+    const source = offlineCtx.createBufferSource();
+    source.buffer = audioBuffer;
+    source.connect(offlineCtx.destination);
+    source.start();
+    const rendered = await offlineCtx.startRendering();
+
+    // AudioBuffer → Int16 PCM 小端序
+    const floatData = rendered.getChannelData(0);
+    const pcm16 = new Int16Array(floatData.length);
+    for (let i = 0; i < floatData.length; i++) {
+      const s = Math.max(-1, Math.min(1, floatData[i]));
+      pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+    }
+    return new Uint8Array(pcm16.buffer);
   }
 
   // ==================== 异步合成（不支持，火山引擎方舟无异步端点）====================

@@ -1,4 +1,4 @@
-import type { IVoicePort, T2AAsyncContext, T2AAsyncStatus, T2ASyncContext, T2ASyncModel, T2ASyncResult, T2AStreamCallbacks, T2AStreamHandle, VoiceDesignResult, VoiceType, VoiceListResult } from '../ports/OutboundPorts';
+import type { IVoicePort, T2AAsyncContext, T2AAsyncStatus, T2ASyncContext, T2ASyncModel, T2ASyncResult, T2AStreamCallbacks, T2AStreamHandle, VoiceDesignResult, VoiceType, VoiceListResult, VoiceConversionContext, VoiceConversionResult } from '../ports/OutboundPorts';
 import type { ICharacterRepository, IStorySegmentRepository } from '../ports/OutboundPorts';
 import type { IFileStoragePort } from '../ports/FileStoragePorts';
 import type { IApiConfigStore } from '../ports/PlatformPorts';
@@ -69,7 +69,7 @@ export class VoiceService {
     try {
       return this.getVoicePort().voiceCapabilities;
     } catch {
-      return { supportsClone: false, supportsDesign: false, supportsDelete: false, supportsStream: false };
+      return { supportsClone: false, supportsDesign: false, supportsDelete: false, supportsStream: false, supportsConversion: false };
     }
   }
 
@@ -337,6 +337,58 @@ export class VoiceService {
     const previewText = text || '这是一段试听文本，用于展示该音色的效果。';
     const result = await this.synthesizeSync(previewText, voiceId);
     return this.resolveAudioUrl(result);
+  }
+
+  /**
+   * 声音转换：将已有音频的音色实时转换为另一个音色。
+   * 目前仅火山引擎支持（voiceCapabilities.supportsConversion = true）。
+   *
+   * @param audio 原始音频（Blob 或 URL）
+   * @param targetVoiceType 目标音色 ID（如 'BV700_V2_streaming'）
+   * @param options 可选参数：输出编码/采样率/音调/音量
+   */
+  async convertVoice(
+    audio: Blob | string,
+    targetVoiceType: string,
+    options?: {
+      outputEncoding?: 'mp3' | 'wav' | 'pcm' | 'ogg';
+      outputRate?: number;
+      pitchRatio?: number;
+      volumeRatio?: number;
+    },
+  ): Promise<VoiceConversionResult> {
+    const context: VoiceConversionContext = {
+      audio,
+      targetVoiceType,
+      outputEncoding: options?.outputEncoding,
+      outputRate: options?.outputRate,
+      pitchRatio: options?.pitchRatio,
+      volumeRatio: options?.volumeRatio,
+    };
+
+    this._logger.info('[VoiceService] convertVoice 入参', {
+      service: 'VoiceService',
+      method: 'convertVoice',
+      targetVoiceType,
+      audioType: typeof audio === 'string' ? 'url' : 'blob',
+      audioSize: audio instanceof Blob ? audio.size : undefined,
+      outputEncoding: options?.outputEncoding,
+      pitchRatio: options?.pitchRatio,
+      volumeRatio: options?.volumeRatio,
+    });
+
+    const result = await this.getVoicePort().convertVoice(context);
+
+    this._logger.info('[VoiceService] convertVoice 出参', {
+      service: 'VoiceService',
+      method: 'convertVoice',
+      audioUrl: result.audioUrl.substring(0, 100),
+      audioSize: result.audioSize,
+      encoding: result.encoding,
+    });
+
+    this.recordVoiceCost('voice-conversion');
+    return result;
   }
 
   /**

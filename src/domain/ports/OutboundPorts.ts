@@ -337,6 +337,38 @@ export interface VoiceDesignResult {
   trialAudioHex: string;
 }
 
+// --- 声音转换 (Voice Conversion) ---
+
+/**
+ * 声音转换上下文。
+ * 与声音克隆不同：克隆是「采样→建模→复用」，转换是「已有音频→实时换音色」。
+ * 适用于配音替换、变声等场景，输入为源音频，输出为目标音色的音频。
+ */
+export interface VoiceConversionContext {
+  /** 源音频（任意浏览器可解码格式：mp3/wav/m4a 等） */
+  audio: Blob | string;
+  /** 目标音色 ID（系统音色或已克隆音色 S_ 开头） */
+  targetVoiceType: string;
+  /** 输出音频编码格式，默认 mp3 */
+  outputEncoding?: 'wav' | 'pcm' | 'mp3' | 'ogg_opus';
+  /** 输出采样率，默认 24000 */
+  outputRate?: 16000 | 24000 | 32000 | 48000;
+  /** 音调调整 [0.1-3.0]，默认 1.0 */
+  pitchRatio?: number;
+  /** 音量调整 [0.1-3.0]，默认 1.0 */
+  volumeRatio?: number;
+}
+
+/** 声音转换结果：返回可直接播放/下载的 Blob URL */
+export interface VoiceConversionResult {
+  /** 转换后音频的 Blob URL（可直接用于 <audio> 播放） */
+  audioUrl: string;
+  /** 音频字节大小 */
+  audioSize: number;
+  /** 输出音频格式 */
+  encoding: string;
+}
+
 export type VoiceType = 'system' | 'voice_cloning' | 'voice_generation' | 'all';
 
 export interface VoiceInfo {
@@ -392,6 +424,8 @@ export interface IVoicePort {
   deleteVoice(voiceType: 'voice_cloning' | 'voice_generation', voiceId: string): Promise<void>;
   /** WebSocket 流式合成 — 边生成边推送音频块。返回 handle 用于中止 */
   synthesizeSpeechStream(context: T2ASyncContext, callbacks: T2AStreamCallbacks): T2AStreamHandle;
+  /** 声音转换 — 将源音频的音色转换为目标音色，返回转换后音频 */
+  convertVoice(context: VoiceConversionContext): Promise<VoiceConversionResult>;
 }
 
 /**
@@ -408,6 +442,8 @@ export interface VoiceCapabilities {
   supportsDelete: boolean;
   /** 是否支持流式 WebSocket 合成 */
   supportsStream: boolean;
+  /** 是否支持声音转换（已有音频 → 换音色） */
+  supportsConversion: boolean;
 }
 
 /** 抛出当 VoiceCapabilities 不支持某方法时 */

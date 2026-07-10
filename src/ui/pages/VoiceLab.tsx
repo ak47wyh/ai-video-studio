@@ -22,7 +22,7 @@ import { SegmentPicker, type SegmentBindField } from '../components/SegmentPicke
 import { TEXT_LIMITS } from '../../domain/constants/textLimits';
 import { validateTextLimit } from '../utils/validateTextLimit';
 
-type VoiceLabTab = 'tts' | 'clone' | 'design' | 'async' | 'manage';
+type VoiceLabTab = 'tts' | 'clone' | 'design' | 'convert' | 'async' | 'manage';
 
 // 音色设计快捷模板
 const VOICE_DESIGN_TEMPLATES = [
@@ -157,12 +157,13 @@ export const VoiceLab: React.FC = () => {
     if (clonePreviewAudioUrl) { revokeBlobUrl(clonePreviewAudioUrl); setClonePreviewAudioUrl(null); }
     if (previewAudioUrl) { revokeBlobUrl(previewAudioUrl); setPreviewAudioUrl(null); }
     if (designResult?.audioUrl) { revokeBlobUrl(designResult.audioUrl); setDesignResult(null); }
+    if (convertResultUrl) { revokeBlobUrl(convertResultUrl); setConvertResultUrl(null); }
 
     setActiveTab(tab);
     if (tab === 'manage') {
       loadVoices();
     }
-  }, [ttsAudioUrl, clonePreviewAudioUrl, previewAudioUrl, designResult, revokeBlobUrl, loadVoices]);
+  }, [ttsAudioUrl, clonePreviewAudioUrl, previewAudioUrl, designResult, convertResultUrl, revokeBlobUrl, loadVoices]);
 
   // ==================== 加载自定义音色（供 TTS 选择器） ====================
   const loadCustomVoices = useCallback(async () => {
@@ -499,6 +500,16 @@ export const VoiceLab: React.FC = () => {
       color: 'var(--lab-color-image)',
       disabled: !voiceCaps.supportsDesign,
       disabledReason: t('voiceLab.tabDisabledPlatform', { defaultValue: '当前平台不支持此能力' }),
+    },
+    {
+      key: 'convert',
+      label: t('voiceLab.tabConvert', '声音转换'),
+      icon: <Repeat size={16} />,
+      color: 'var(--lab-color-voice)',
+      disabled: !voiceCaps.supportsConversion || (isVolcEngine && !volcVoiceConfigured),
+      disabledReason: !voiceCaps.supportsConversion
+        ? t('voiceLab.tabDisabledPlatform', { defaultValue: '当前平台不支持此能力' })
+        : t('voiceLab.tabDisabledNotConfigured', { defaultValue: '请先在配置中心填写火山引擎语音技术 AppID/Token/Cluster' }),
     },
     {
       key: 'async',

@@ -13,7 +13,10 @@ import type {
   FileUploadResult,
   T2AStreamCallbacks,
   T2AStreamHandle,
+  VoiceConversionContext,
+  VoiceConversionResult,
 } from '../../../domain/ports/OutboundPorts';
+import { CapabilityNotSupportedError } from '../../../domain/ports/OutboundPorts';
 import { ApiConfigStore } from '../config/ApiConfigStore';
 import { getMiniMaxErrorMessage } from './MiniMaxErrorUtils';
 import { createTrackedObjectUrl } from '../../../utils/objectUrlRegistry';
@@ -25,7 +28,12 @@ export class MiniMaxVoiceAdapter implements IVoicePort {
     supportsDesign: true,
     supportsDelete: true,
     supportsStream: true,
+    supportsConversion: false,
   };
+
+  async convertVoice(_context: VoiceConversionContext): Promise<VoiceConversionResult> {
+    throw new CapabilityNotSupportedError('minimax', 'supportsConversion');
+  }
 
   async uploadFile(file: File, purpose: 'voice_clone' | 'prompt_audio' | 't2a_async_input'): Promise<FileUploadResult> {
     const config = ApiConfigStore.load();
