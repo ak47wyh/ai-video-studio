@@ -1,4 +1,5 @@
 import type { AxiosError } from 'axios';
+import { withRetry as baseWithRetry } from '../_base/withRetry';
 
 /**
  * 可灵 Kling API 错误类。
@@ -63,19 +64,10 @@ export async function withRetry<T>(
   maxRetries: number = 3,
   baseDelayMs: number = 1000,
 ): Promise<T> {
-  let lastError: unknown;
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      return await fn();
-    } catch (error) {
-      lastError = error;
-      if (error instanceof KlingApiError && error.isRetryable && attempt < maxRetries) {
-        const delay = baseDelayMs * Math.pow(2, attempt);
-        await new Promise(r => setTimeout(r, delay));
-        continue;
-      }
-      throw error;
-    }
-  }
-  throw lastError;
+  // P2-1：委托到公共 withRetry
+  return baseWithRetry(fn, {
+    maxRetries,
+    baseDelayMs,
+    isRetryable: error => error instanceof KlingApiError && error.isRetryable,
+  });
 }

@@ -66,6 +66,18 @@ import { logSink } from './adapters/outbound/infrastructure/RingBufferLogSinkAda
 import { defaultEventBus } from './adapters/outbound/infrastructure/MemoryEventBusAdapter';
 import { defaultMetrics } from './adapters/outbound/infrastructure/NoopMetricsAdapter';
 import { defaultResilience } from './adapters/outbound/infrastructure/DefaultResilienceAdapter';
+import { BrowserFetchAdapter } from './adapters/outbound/infrastructure/BrowserFetchAdapter';
+
+/**
+ * HTTP 抓取 Port 单例（P1-2）。
+ *
+ * 领域层需要下载外部素材（视频/音频/图片）时统一走此单例，
+ * 避免 Service 内部直接 `fetch()`（违反六边形依赖方向）。
+ * 使用示例：
+ *   import { httpFetch } from '@/dependencies';
+ *   const blob = await httpFetch.fetchBlob(url);
+ */
+export const httpFetch = new BrowserFetchAdapter();
 
 export const defaultLogger = new CompositeLoggerAdapter([
   new ConsoleSinkAdapter(new ConsoleLoggerAdapter(), { service: 'app' }),
@@ -203,6 +215,7 @@ export const modelRegistry = new PlatformModelRegistry(
 export const imageGenerationService = new ImageGenerationService(
   characterRepo, backgroundRepo, platformRouter, apiConfigStoreAdapter, getFileStorage, defaultLogger.child({ service: 'ImageGenerationService' }),
   costMeter, // P1-21：成本计量
+  httpFetch, // P1-2：HTTP 抓取 Port
 );
 
 export const textGenerationService = new TextGenerationService(
@@ -224,6 +237,7 @@ export const videoGenerationService = new VideoGenerationService(
   videoTaskRepo, segmentRepo, characterRepo, backgroundRepo, platformRouter, getFileStorage,
   apiConfigStoreAdapter, defaultLogger.child({ service: 'VideoGenerationService' }),
   costMeter, // P1-21：成本计量
+  httpFetch, // P1-2：HTTP 抓取 Port（用于视频缓存下载，归一化 NetworkError/TimeoutError）
 );
 
 export const videoLabService = new VideoLabService(
@@ -236,15 +250,18 @@ export const voiceService = new VoiceService(
   apiConfigStoreAdapter, defaultLogger.child({ service: 'VoiceService' }),
   costMeter, // P1-21：成本计量
   savedVoiceRepo, // 克隆音色重命名
+  httpFetch, // P1-2：HTTP 抓取 Port
 );
 
 export const musicService = new MusicService(platformRouter, apiConfigStoreAdapter, segmentRepo, getFileStorage, defaultLogger.child({ service: 'MusicService' }),
   costMeter, // P1-21：成本计量
+  httpFetch, // P1-2：HTTP 抓取 Port
 );
 
 export const musicLabService = new MusicLabService(
   platformRouter, apiConfigStoreAdapter, getFileStorage,
-  defaultLogger.child({ service: 'MusicLabService' })
+  defaultLogger.child({ service: 'MusicLabService' }),
+  httpFetch, // P1-2：HTTP 抓取 Port
 );
 
 export const postProcessService = new PostProcessService(ffmpegAdapter, whisperAdapter);
@@ -303,6 +320,8 @@ export const pipelineService = new PipelineService({
   musicService,
   // M3.1 新增依赖：持久化与恢复
   pipelineTaskRepo,
+  // P1-2 新增：HTTP 抓取 Port（NetworkError/TimeoutError 归一化）
+  httpFetch,
 });
 
 // ========================================
@@ -384,6 +403,7 @@ export const assetLibraryService = new AssetLibraryService(
   savedImageRepo, savedVoiceRepo, savedPromptRepo, savedVideoRepo,
   getFileStorage,        // 传入函数引用，延迟获取
   () => generatedFileRepo,  // 传入函数引用，延迟获取
+  httpFetch,             // P1-2：HTTP 抓取 Port，统一 NetworkError/TimeoutError 归一化
 );
 
 // ========================================
@@ -399,6 +419,7 @@ export const timelineRenderService = new TimelineRenderService({
   savedVideoRepo,
   savedVoiceRepo,
   logger: defaultLogger.child({ service: 'TimelineRenderService' }),
+  httpFetch, // P1-2：HTTP 抓取 Port
 });
 
 // ==================== 快照服务（v2.0：使用 ISnapshotRepository） ====================

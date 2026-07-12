@@ -90,9 +90,9 @@ export class StorySegmentRepositoryAdapter implements IStorySegmentRepository {
     return db.segments.where('storyId').equals(storyId).toArray();
   }
   async deleteByStoryId(storyId: string): Promise<void> {
-    const segments = await this.findByStoryId(storyId);
-    const ids = segments.map(s => s.id);
-    await db.segments.bulkDelete(ids);
+    // V2 P1-3.2.3：直接按 storyId 索引删除，消除 findByStoryId → bulkDelete 之间的 TOCTOU 窗口。
+    // 原实现两步之间若有并发写入，可能漏删或误删。
+    await db.segments.where('storyId').equals(storyId).delete();
   }
 }
 
@@ -117,11 +117,8 @@ export class VideoTaskRepositoryAdapter implements IVideoTaskRepository {
   }
   async deleteBySegmentIds(segmentIds: string[]): Promise<void> {
     if (segmentIds.length === 0) return;
-    const tasksToDelete = await db.videoTasks
-      .where('segmentId').anyOf(segmentIds)
-      .toArray();
-    const taskIds = tasksToDelete.map(t => t.id);
-    await db.videoTasks.bulkDelete(taskIds);
+    // V2 P1-3.2.3：同上，直接索引删除避免 TOCTOU
+    await db.videoTasks.where('segmentId').anyOf(segmentIds).delete();
   }
   async updateStatus(taskId: string, status: VideoTaskStatus, videoUrl?: string, errorMessage?: string): Promise<void> {
     const task = await db.videoTasks.get(taskId);
@@ -143,9 +140,10 @@ export class FinalCutRepositoryAdapter implements IFinalCutRepository {
   }
   async findByStoryIds(storyIds: string[]): Promise<FinalCut[]> {
     if (storyIds.length === 0) return [];
-    const all = await db.finalCuts.toArray();
-    const idSet = new Set(storyIds);
-    return all.filter(c => idSet.has(c.storyId)).sort((a, b) => b.createdAt - a.createdAt);
+    // V2 P1-3.5.4 优化：改用 storyId 索引 anyOf 查询，避免全表扫描 + 内存过滤
+    // finalCuts 表已声明 'id, storyId, pipelineTaskId, createdAt' 索引，之前未利用
+    const matched = await db.finalCuts.where('storyId').anyOf(storyIds).toArray();
+    return matched.sort((a, b) => b.createdAt - a.createdAt);
   }
   async delete(id: string): Promise<void> {
     await db.finalCuts.delete(id);

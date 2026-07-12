@@ -1,6 +1,5 @@
-import type { ApiConfig, PlatformId } from '../../adapters/outbound/config/ApiConfigStore';
+import type { ApiConfig, PlatformId } from '../entities/platform';
 import type { IVideoGeneratorPort, IImageGeneratorPort, ITextGenerationPort, IVoicePort, IMusicPort } from '../ports/OutboundPorts';
-import type { IThreeDGenerationPort, IContextCachePort, IModelResponsePort } from '../ports/VolcenginePorts';
 import type { IApiConfigStore, IPlatformCapabilitiesPort, PlatformCapability } from '../ports/PlatformPorts';
 
 // 导入适配器 —— 已有平台
@@ -13,9 +12,9 @@ import { VolcengineVideoAdapter } from '../../adapters/outbound/api/volcengine/V
 import { VolcengineImageAdapter } from '../../adapters/outbound/api/volcengine/VolcengineImageAdapter';
 import { VolcengineTextAdapter } from '../../adapters/outbound/api/volcengine/VolcengineTextAdapter';
 import { VolcengineVoiceAdapter } from '../../adapters/outbound/api/volcengine/VolcengineVoiceAdapter';
-import { Volcengine3DAdapter } from '../../adapters/outbound/api/volcengine/Volcengine3DAdapter';
-import { VolcengineCacheAdapter } from '../../adapters/outbound/api/volcengine/VolcengineCacheAdapter';
-import { VolcengineResponseAdapter } from '../../adapters/outbound/api/volcengine/VolcengineResponseAdapter';
+// 死代码清理（Architecture_Refactor_Design §9.1）：
+//   Volcengine3D/Cache/Response 三个 Adapter 及对应 resolve3D/resolveCache/resolveResponse 方法零消费方，
+//   已从 PlatformRouter 移除。若未来需要接入需在 Router 与 dependencies 装配点重新注册。
 
 // 导入适配器 —— 新增 5 个平台
 import { KlingVideoAdapter } from '../../adapters/outbound/api/kling/KlingVideoAdapter';
@@ -45,9 +44,6 @@ let _imageAdapter: IImageGeneratorPort | null = null;
 let _textAdapter: ITextGenerationPort | null = null;
 let _voiceAdapter: IVoicePort | null = null;
 let _musicAdapter: IMusicPort | null = null;
-let _threeDAdapter: IThreeDGenerationPort | null = null;
-let _cacheAdapter: IContextCachePort | null = null;
-let _responseAdapter: IModelResponsePort | null = null;
 
 /**
  * 平台路由器
@@ -224,26 +220,18 @@ export class PlatformRouter {
     if (_musicAdapter && this.isMatchingPlatform(_musicAdapter, config.activePlatform)) {
       return _musicAdapter;
     }
-    _musicAdapter = new MiniMaxMusicAdapter();
+    // P2-6 修复：按 activePlatform 显式分派，避免"静默 fallback 到 MiniMax"。
+    // 当前 music 能力仅 MiniMax 声明支持（platformCapabilities.ts），若未来其它
+    // 平台声明支持但此处未实现分派，应抛 UnsupportedCapabilityError 而非默认返回
+    // MiniMax（否则用户切换到新平台后会以为已生效但实际仍走 MiniMax）。
+    switch (config.activePlatform) {
+      case 'minimax':
+        _musicAdapter = new MiniMaxMusicAdapter();
+        break;
+      default:
+        throw new UnsupportedCapabilityError(config.activePlatform, 'music');
+    }
     return _musicAdapter;
-  }
-
-  resolve3D(config: ApiConfig): IThreeDGenerationPort {
-    if (_threeDAdapter) return _threeDAdapter;
-    _threeDAdapter = new Volcengine3DAdapter(config, 'volcengine-seed3d');
-    return _threeDAdapter;
-  }
-
-  resolveCache(config: ApiConfig): IContextCachePort {
-    if (_cacheAdapter) return _cacheAdapter;
-    _cacheAdapter = new VolcengineCacheAdapter(config);
-    return _cacheAdapter;
-  }
-
-  resolveResponse(config: ApiConfig): IModelResponsePort {
-    if (_responseAdapter) return _responseAdapter;
-    _responseAdapter = new VolcengineResponseAdapter(config);
-    return _responseAdapter;
   }
 
   private isMatchingPlatform(adapter: { constructor: { name: string } }, platform: PlatformId): boolean {
@@ -274,9 +262,6 @@ export class PlatformRouter {
     _textAdapter = null;
     _voiceAdapter = null;
     _musicAdapter = null;
-    _threeDAdapter = null;
-    _cacheAdapter = null;
-    _responseAdapter = null;
   }
 }
 

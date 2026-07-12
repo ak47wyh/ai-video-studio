@@ -410,18 +410,19 @@ export interface VoiceCapabilities {
   supportsStream: boolean;
 }
 
-/** 抛出当 VoiceCapabilities 不支持某方法时 */
-export class CapabilityNotSupportedError extends Error {
-  public platform: string;
-  public capability: keyof VoiceCapabilities;
-
-  constructor(platform: string, capability: keyof VoiceCapabilities) {
-    super(`Voice capability "${capability}" is not supported by platform "${platform}"`);
-    this.name = 'CapabilityNotSupportedError';
-    this.platform = platform;
-    this.capability = capability;
-  }
-}
+/**
+ * 语音子能力不支持错误（re-export）。
+ *
+ * 原本此处定义了独立的 `CapabilityNotSupportedError extends Error`，
+ * 与 `errors/UnsupportedCapabilityError` 存在重复定义（Architecture_Refactor_Design §9.1）。
+ * 现统一到 `errors/` 目录：
+ *   - `UnsupportedCapabilityError` 处理"整个能力域不支持"
+ *   - `VoiceSubCapabilityNotSupportedError` 处理"语音子能力不支持"（继承 DomainError）
+ * 两者 `code === 'UNSUPPORTED_CAPABILITY'`，UI 可按 code 统一分派。
+ *
+ * 保留 `CapabilityNotSupportedError` 命名以兼容既有 Adapter 抛出点。
+ */
+export { VoiceSubCapabilityNotSupportedError as CapabilityNotSupportedError } from '../errors/VoiceSubCapabilityNotSupportedError';
 
 // --- Music Generation ---
 

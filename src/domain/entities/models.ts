@@ -1,4 +1,4 @@
-import type { PlatformId } from '../../adapters/outbound/config/ApiConfigStore';
+import type { PlatformId } from './platform';
 
 export interface StorySpace {
   id: string;

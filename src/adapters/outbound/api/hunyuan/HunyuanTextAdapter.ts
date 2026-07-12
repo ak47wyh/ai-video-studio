@@ -29,6 +29,16 @@ export class HunyuanTextAdapter implements ITextGenerationPort {
   }
 
   async chatCompletion(context: TextGenerationContext): Promise<TextGenerationResult> {
+    return this.chatCompletionInternal(context);
+  }
+
+  /**
+   * 内部方法：接受可选 signal，允许流式模拟场景真正中断 HTTP 请求（P2-8）。
+   */
+  private async chatCompletionInternal(
+    context: TextGenerationContext,
+    signal?: AbortSignal,
+  ): Promise<TextGenerationResult> {
     // ── Mock 模式 ──
     if (!this.config.hunyuanSecretId || !this.config.hunyuanSecretKey) {
       console.warn('[HunyuanTextAdapter] No SecretId/SecretKey — returning mock result');
@@ -40,7 +50,7 @@ export class HunyuanTextAdapter implements ITextGenerationPort {
 
     const payload = this.buildPayload(context);
     const result = await withRetry(() =>
-      this.http.call<HunyuanChatResponse>('ChatCompletions', payload),
+      this.http.call<HunyuanChatResponse>('ChatCompletions', payload, signal),
     );
 
     const choice = result?.Response?.Choices?.[0];
@@ -63,9 +73,10 @@ export class HunyuanTextAdapter implements ITextGenerationPort {
     }
 
     // 混元流式需通过 SSE 端点，签名逻辑复杂，这里降级为非流式后逐字推送
+    // P2-8：把 controller.signal 传入底层 HTTP，取消时真正中断请求而非仅前端节流
     (async () => {
       try {
-        const result = await this.chatCompletion(context);
+        const result = await this.chatCompletionInternal(context, controller.signal);
         if (controller.signal.aborted) return;
 
         // 逐字符推送模拟流式效果

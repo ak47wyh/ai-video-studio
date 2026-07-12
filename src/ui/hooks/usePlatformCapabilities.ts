@@ -24,8 +24,7 @@
  * 路由仍由 `configStore.load().activePlatform` 决定，确保 UI 检测与实际路由同源。
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { apiConfigStoreAdapter } from '../../dependencies';
+import { useCallback, useMemo } from 'react';
 import {
   PLATFORM_METADATA,
   hasCapability as hasCapabilityBase,
@@ -33,8 +32,9 @@ import {
   type Capability,
   type PlatformMeta,
 } from '../../domain/services/platformCapabilities';
-import type { PlatformId } from '../../adapters/outbound/config/ApiConfigStore';
+import type { PlatformId } from '../../domain/entities/platform';
 import { UnsupportedCapabilityError } from '../../domain/errors/UnsupportedCapabilityError';
+import { usePlatform } from '../contexts/PlatformContext';
 
 export interface UsePlatformCapabilitiesResult {
   /** 当前激活平台 ID */
@@ -56,18 +56,9 @@ export interface UsePlatformCapabilitiesResult {
 }
 
 export function usePlatformCapabilities(): UsePlatformCapabilitiesResult {
-  const [activePlatform, setActivePlatform] = useState<PlatformId>(
-    () => apiConfigStoreAdapter.load().activePlatform
-  );
+  // P4-1：统一走 PlatformContext，消除原本 Hook 内独立 useState + onPlatformChange 订阅
+  const { activePlatform, platformMeta } = usePlatform();
 
-  useEffect(() => {
-    // 订阅平台切换事件，自动更新状态触发重渲染
-    return apiConfigStoreAdapter.onPlatformChange(next => {
-      setActivePlatform(next);
-    });
-  }, []);
-
-  const platformMeta = useMemo(() => PLATFORM_METADATA[activePlatform], [activePlatform]);
   const capabilities = platformMeta.capabilities;
   const capabilitySummary = useMemo(() => getCapabilitySummary(activePlatform), [activePlatform]);
 

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { VoiceCapabilities } from '../../domain/ports/OutboundPorts';
 import { voiceService } from '../../dependencies';
 import { ApiConfigStore } from '../../adapters/outbound/config/ApiConfigStore';
+import { usePlatform } from '../contexts/PlatformContext';
 
 /** 默认降级值（全 false），保证 UI 在适配器初始化失败时不中断 */
 const FALLBACK_CAPABILITIES: VoiceCapabilities = {
@@ -38,6 +39,8 @@ export function useVoiceCapabilities(): UseVoiceCapabilitiesResult {
   const [capabilities, setCapabilities] = useState<VoiceCapabilities>(FALLBACK_CAPABILITIES);
   const [volcVoiceConfigured, setVolcVoiceConfigured] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
+  // P4-1：走 PlatformContext，消除本 Hook 内独立的 subscribePlatform 订阅
+  const { activePlatform } = usePlatform();
 
   useEffect(() => {
     let cancelled = false;
@@ -59,19 +62,16 @@ export function useVoiceCapabilities(): UseVoiceCapabilitiesResult {
       }
     };
 
+    // 平台切换时先重置为 loading 状态（eslint-disable：这是订阅型副作用的必要行为）
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLoading(true);
     void loadCapabilities();
-
-    // 订阅平台变更：切换平台后重新查询能力
-    const unsubscribe = ApiConfigStore.subscribePlatform(() => {
-      setLoading(true);
-      void loadCapabilities();
-    });
 
     return () => {
       cancelled = true;
-      unsubscribe();
     };
-  }, []);
+    // activePlatform 变化时重新查询能力（原 subscribePlatform 逻辑由 PlatformContext 触发重渲染）
+  }, [activePlatform]);
 
   return { capabilities, loading, volcVoiceConfigured };
 }

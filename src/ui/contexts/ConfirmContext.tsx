@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { confirmEventBus, type ConfirmBridgeRequest } from '../../adapters/outbound/ui/ReactConfirmAdapter';
 
@@ -107,8 +107,11 @@ export const ConfirmProvider: React.FC<React.PropsWithChildren> = ({ children })
     setDialog(null);
   };
 
+  // Provider value 稳定化，避免每次渲染派发新对象
+  const contextValue = useMemo(() => ({ confirm }), [confirm]);
+
   return (
-    <ConfirmContext.Provider value={{ confirm }}>
+    <ConfirmContext.Provider value={contextValue}>
       {children}
       {dialog && (
         <ConfirmDialog dialog={dialog} onConfirm={handleConfirm} onCancel={handleCancel} />

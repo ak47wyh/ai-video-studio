@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import type {
   InpaintRegion,
   InpaintOptions,
@@ -85,6 +85,19 @@ export function useWatermarkRemoval(): UseWatermarkRemovalResult {
 
   const cancelledRef = useRef(false);
   const lastParamsRef = useRef<LastProcessParams | null>(null);
+  // V2 P0-4.3.2：ref 跟踪 resultUrl，卸载时兜底 revoke
+  const resultUrlRef = useRef<string | null>(null);
+  useEffect(() => {
+    resultUrlRef.current = resultUrl;
+  }, [resultUrl]);
+  useEffect(() => {
+    return () => {
+      if (resultUrlRef.current) {
+        URL.revokeObjectURL(resultUrlRef.current);
+        resultUrlRef.current = null;
+      }
+    };
+  }, []);
 
   /** 释放上一次结果 URL */
   const releaseResultUrl = useCallback((url: string | null) => {

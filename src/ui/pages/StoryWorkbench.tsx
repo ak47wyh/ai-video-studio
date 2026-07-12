@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect, useRef, useCallback, useReducer } from 'react';
+import React, { useMemo, useEffect, useCallback, useReducer } from 'react';
 import { storyService, videoGenerationService, imageAdapter, voiceService, musicService, textGenerationService, pipelineService, assetLibraryService, apiConfigStoreAdapter, bgmRecommendationService } from '../../dependencies';
 import { Spline, Sparkles, AlertTriangle, ImagePlus, PlayCircle, Film, Scissors } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -43,15 +43,11 @@ export const StoryWorkbench: React.FC = () => {
   const segmentIds = useMemo(() => segments.map(s => s.id), [segments]);
   const videoTasks = useSegmentScopedVideoTasks(segmentIds);
 
-  const narrationPollersRef = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map());
-
-  useEffect(() => {
-    const currentPollers = narrationPollersRef.current;
-    return () => {
-      for (const [, interval] of currentPollers) clearInterval(interval);
-      currentPollers.clear();
-    };
-  }, []);
+  // V2 P2-2.6.6：narrationPollersRef 死代码清理
+  //   原本声明了 Map<string, setInterval> 用于旁白轮询清理，但整个组件从未写入任何 poller，
+  //   仅有清理路径（卸载 / switchStory）——即"永远清空空 Map"，属彻底死代码。
+  //   VoiceLab 相关的旁白/长文本 TTS 轮询已迁到 useAsyncTaskTracker（P4-3），
+  //   本页无需再自行管理。若未来需要，请在 VoiceService 层暴露 destroy() 而不是在组件内维护 Map。
 
   const latestTaskMap = useMemo(() => {
     const map = new Map<string, VideoTask>();
@@ -92,9 +88,7 @@ export const StoryWorkbench: React.FC = () => {
 
   const switchStory = useCallback((storyId: string | null) => {
     wsDispatch({ type: 'SELECT_STORY', storyId });
-    // 切换故事时清理轮询
-    for (const [, interval] of narrationPollersRef.current) clearInterval(interval);
-    narrationPollersRef.current.clear();
+    // V2 P2-2.6.6：narrationPollersRef 已删除（死代码），无需清理
     wsDispatch({ type: 'CLEAR_NARRATION' });
     bgmDispatch({ type: 'RESET' });
   }, []);

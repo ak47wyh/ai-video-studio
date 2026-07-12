@@ -1,6 +1,7 @@
 import type { ISavedImageRepository, ISavedVoiceRepository, ISavedPromptRepository, ISavedVideoRepository, AssetQueryParams } from '../ports/AssetLibraryPorts';
 import type { IFileStoragePort, IGeneratedFileRepository } from '../ports/FileStoragePorts';
 import type { SavedImage, SavedVoice, SavedPrompt, SavedVideo, SavedImageSource, SavedVoiceSource, PromptCategory, SavedPromptSource, SavedVideoSource, GeneratedFile, GeneratedFileType } from '../entities/models';
+import type { IHttpFetchPort } from '../ports/CrossCuttingPorts';
 
 function generateId(): string {
   return `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
@@ -18,6 +19,9 @@ function generateId(): string {
  * 路径约定：
  *   图片 → images/{id}
  *   语音 → audio/{id}
+ *
+ * P1-2：新增可选 httpFetch 依赖，用于把外部 URL 拉取归一化到 IHttpFetchPort，
+ * 错误自动归一化为 NetworkError / TimeoutError，避免 Service 层直接调 fetch()。
  */
 export class AssetLibraryService {
   private imageRepo: ISavedImageRepository;
@@ -26,6 +30,7 @@ export class AssetLibraryService {
   private videoRepo: ISavedVideoRepository;
   private getFileStorage: () => IFileStoragePort;
   private getFileRepo: () => IGeneratedFileRepository;
+  private httpFetch?: IHttpFetchPort;
 
   constructor(
     imageRepo: ISavedImageRepository,
@@ -34,6 +39,7 @@ export class AssetLibraryService {
     videoRepo: ISavedVideoRepository,
     fileStorage: IFileStoragePort | (() => IFileStoragePort),
     fileRepo: IGeneratedFileRepository | (() => IGeneratedFileRepository),
+    httpFetch?: IHttpFetchPort,
   ) {
     this.imageRepo = imageRepo;
     this.voiceRepo = voiceRepo;
@@ -42,6 +48,19 @@ export class AssetLibraryService {
     // 支持直接传入实例或延迟获取函数
     this.getFileStorage = typeof fileStorage === 'function' ? fileStorage : () => fileStorage;
     this.getFileRepo = typeof fileRepo === 'function' ? fileRepo : () => fileRepo;
+    this.httpFetch = httpFetch;
+  }
+
+  /**
+   * P1-2：统一的外部 URL → Blob 抓取入口。
+   * 优先走 IHttpFetchPort（自动 NetworkError/TimeoutError 归一化），
+   * 未注入时回退到 fetch 保持向后兼容。
+   */
+  private async fetchBlob(url: string): Promise<Blob> {
+    if (this.httpFetch) return this.httpFetch.fetchBlob(url);
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.blob();
   }
 
   // ===== Image Assets =====
@@ -105,9 +124,7 @@ export class AssetLibraryService {
     } else if (/^https?:\/\//.test(params.imageUrl)) {
       // 外部 URL：尝试 fetch，但很可能因 CORS 失败
       try {
-        const response = await fetch(params.imageUrl);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        blob = await response.blob();
+        blob = await this.fetchBlob(params.imageUrl);
         mime = blob.type || 'image/png';
       } catch (e) {
         const reason = e instanceof Error ? e.message : String(e);
@@ -257,9 +274,7 @@ export class AssetLibraryService {
     const id = generateId();
     const storagePath = `audio/${id}`;
 
-    const response = await fetch(params.audioUrl);
-    if (!response.ok) throw new Error(`Failed to fetch audio: ${response.status}`);
-    const blob = await response.blob();
+    const blob = await this.fetchBlob(params.audioUrl);
 
     await fileStorage.storeBlob(storagePath, blob);
 
@@ -472,9 +487,7 @@ export class AssetLibraryService {
       );
     } else if (/^https?:\/\//.test(params.videoUrl)) {
       try {
-        const response = await fetch(params.videoUrl);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        blob = await response.blob();
+        blob = await this.fetchBlob(params.videoUrl);
         mime = blob.type || 'video/mp4';
       } catch (e) {
         const reason = e instanceof Error ? e.message : String(e);
@@ -661,8 +674,7 @@ export class AssetLibraryService {
         if (!sourceBlob) {
           // 通过 getImageBlobUrl 兜底读取
           const url = await this.getImageBlobUrl(image);
-          const r = await fetch(url);
-          sourceBlob = await r.blob();
+          sourceBlob = await this.fetchBlob(url);
         }
         if (!sourceBlob) {
           results.push({ imageId, success: false, originalSize: 0, compressedSize: 0, ratio: 0, error: '源文件读取失败' });

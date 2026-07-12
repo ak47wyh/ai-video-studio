@@ -13,8 +13,8 @@ import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { PlatformSwitcher } from '../components/PlatformSwitcher';
 import { storySpaceService } from '../../dependencies';
 import { useToast } from '../contexts/ToastContext';
-import { ApiConfigStore, type PlatformId } from '../../adapters/outbound/config/ApiConfigStore';
-import { PLATFORM_METADATA, hasCapability, type Capability } from '../../domain/services/platformCapabilities';
+import { usePlatform } from '../contexts/PlatformContext';
+import { hasCapability, type Capability } from '../../domain/services/platformCapabilities';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import './MainLayout.css';
 
@@ -50,15 +50,9 @@ export const MainLayout: React.FC = () => {
     () => typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches,
   );
 
-  // 当前激活平台（订阅 ApiConfigStore 平台变更事件，Settings 切换后即时刷新）
-  const [activePlatform, setActivePlatform] = useState<PlatformId>(
-    () => ApiConfigStore.getActivePlatform(),
-  );
-  useEffect(() => {
-    // 订阅平台变更：Settings 页 save() 后通过发布订阅通知，无需路由跳转
-    return ApiConfigStore.subscribePlatform(setActivePlatform);
-  }, []);
-  const activeMeta = PLATFORM_METADATA[activePlatform];
+  // 当前激活平台（P4-1：统一走 PlatformContext，取代原本各页面各自 useState + subscribe）
+  const { activePlatform, platformMeta: activeMeta } = usePlatform();
+  // 保留原变量名，减少下方代码改动
 
   // 注入平台品牌色 CSS 变量（供 .platform-badge 等组件复用，避免 inline style 硬编码）
   useEffect(() => {

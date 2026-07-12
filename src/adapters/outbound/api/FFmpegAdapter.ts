@@ -22,15 +22,29 @@ export class FFmpegAdapter implements IFFmpegPort {
   private loadPromise: Promise<void> | null = null;
   private fetchFileFn: typeof import('@ffmpeg/util').fetchFile | null = null;
 
+  // V2 P0-4.2.1：空闲超时释放。WASM 实例 ~100MB，长时间不用应主动释放。
+  private idleTimer: ReturnType<typeof setTimeout> | null = null;
+  private static readonly IDLE_TIMEOUT_MS = 5 * 60 * 1000; // 5 分钟
+
   isLoaded(): boolean {
     return this.ffmpeg !== null && this.ffmpeg.loaded;
   }
 
   async load(): Promise<void> {
-    if (this.isLoaded()) return;
+    if (this.isLoaded()) {
+      this.touch();
+      return;
+    }
     if (this.loadPromise) return this.loadPromise;
     this.loadPromise = this.doLoad();
-    await this.loadPromise;
+    try {
+      await this.loadPromise;
+      this.touch();
+    } catch (e) {
+      // load 失败时清空 loadPromise，允许重试
+      this.loadPromise = null;
+      throw e;
+    }
   }
 
   private async doLoad(): Promise<void> {
@@ -48,6 +62,49 @@ export class FFmpegAdapter implements IFFmpegPort {
       wasmURL: await util.toBlobURL(`${CORE_BASE}/ffmpeg-core.wasm`, 'application/wasm'),
     });
     this.ffmpeg = ffmpeg;
+  }
+
+  /**
+   * V2 P0-4.2.1：显式卸载 FFmpeg WASM 实例，释放 ~100MB 内存。
+   *
+   * 触发场景：
+   *   - 空闲超过 IDLE_TIMEOUT_MS 后自动触发
+   *   - dependencies.ts 暴露 unloadFfmpeg() 供路由切换手动触发
+   *   - 应用 beforeunload 时兜底调用
+   *
+   * 幂等：未加载时直接返回。dispose 别名保持一致的 IDisposable 语义。
+   */
+  async unload(): Promise<void> {
+    if (this.idleTimer) {
+      clearTimeout(this.idleTimer);
+      this.idleTimer = null;
+    }
+    if (this.ffmpeg) {
+      try {
+        this.ffmpeg.terminate();
+      } catch {
+        // terminate 失败也要清空引用，让 GC 可以回收
+      }
+      this.ffmpeg = null;
+    }
+    this.loadPromise = null;
+    this.fetchFileFn = null;
+  }
+
+  /** IDisposable 兼容别名 */
+  async dispose(): Promise<void> {
+    return this.unload();
+  }
+
+  /**
+   * 记录一次使用，重置空闲计时器。所有对外方法（merge/encodeFromFrames/...）
+   * 会在 load() 后调用 touch()，保证 5 分钟内被访问就不会被空闲释放。
+   */
+  private touch(): void {
+    if (this.idleTimer) clearTimeout(this.idleTimer);
+    this.idleTimer = setTimeout(() => {
+      void this.unload();
+    }, FFmpegAdapter.IDLE_TIMEOUT_MS);
   }
 
   private ensureLoaded(): FFmpeg {

@@ -104,11 +104,14 @@ export class StoryFilmService {
     }
 
     // 2. 创建 Story
+    // P0-1 修复：StoryService.createStory 签名为 (title, originalText, spaceId)，
+    // 之前误按 (spaceId, title, storyText) 顺序传入，导致 Story 被创建到错误的
+    // 空间（用 storyText 当 spaceId）。一键成片流程彻底断裂。
     const title = options.title ?? options.theme ?? storyText.slice(0, 50);
     const story = await this.storyService.createStory(
-      options.spaceId,
       title,
       storyText,
+      options.spaceId,
     );
     this.logger.info('story created', this.ctx({
       method: 'createStoryFilm',

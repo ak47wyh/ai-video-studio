@@ -90,7 +90,8 @@ export interface IApiConfigStore {
 // 平台元数据类型
 // ==========================================
 
-import type { PlatformId, ApiConfig } from '../../adapters/outbound/config/ApiConfigStore';
+import type { PlatformId, ApiConfig } from '../entities/platform';
+export type { PlatformId, ApiConfig };
 
 export interface PlatformMeta {
   id: PlatformId;

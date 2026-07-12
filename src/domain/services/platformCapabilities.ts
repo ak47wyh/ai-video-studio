@@ -8,7 +8,7 @@
  *
  * 修改能力支持情况时只需更新此文件。
  */
-import type { PlatformId, VolcArkProtocol } from '../../adapters/outbound/config/ApiConfigStore';
+import type { PlatformId, VolcArkProtocol } from '../entities/platform';
 
 /** 能力类型 */
 export type Capability =

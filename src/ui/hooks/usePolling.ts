@@ -1,11 +1,18 @@
 /**
  * usePolling — 通用 Polling Hook
  *
- * 自动管理 setInterval 生命周期，避免内存泄漏。
- * 多个并发 poller 由 key 区分，自动清理之前的。
+ * V2 P0-2.1.1 + P0-2.1.2 修复：
+ *   1. 用 ref 计数器代替 state 计数（原实现 setAttempts 异步生效，
+ *      同一 tick 多次触发时 currentAttempt 计算错误，maxAttempts 完全失效）
+ *   2. 改用递归 setTimeout 自调度（原 setInterval + async 会重入，
+ *      fetcher 耗时 > intervalMs 时多个 tick 并发，请求覆盖）
+ *   3. shouldStop/onError/fetcher 用 ref 保存，避免依赖数组抖动导致 effect 频繁重启
+ *      同时闭包内始终读取最新回调
+ *
+ * 自动管理 setTimeout 生命周期，组件卸载即时终止调度。
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 export interface UsePollingOptions {
   /** 是否启用 polling */
@@ -47,25 +54,44 @@ export function usePolling<T>(
   const [attempts, setAttempts] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
 
-  const stopRef = useRef(false);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // 计数器 ref：与 state 解耦，避免 setState 异步生效导致 maxAttempts 失效
+  const attemptsRef = useRef(0);
+  // 停止标志
+  const stoppedRef = useRef(false);
+  // 递归 setTimeout 句柄（P0-2.1.2 改用自调度模式）
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // 回调 ref：避免 fetcher/shouldStop/onError 引用变化触发 effect 重启（P1-2.1.11）
+  const fetcherRef = useRef(fetcher);
+  const shouldStopRef = useRef(shouldStop);
+  const onErrorRef = useRef(onError);
+  // 在 effect 中同步最新回调到 ref，保持 ref 与 props 一致（避开渲染期写 ref 的 lint 规则）
+  useEffect(() => {
+    fetcherRef.current = fetcher;
+    shouldStopRef.current = shouldStop;
+    onErrorRef.current = onError;
+  });
 
-  const stop = () => {
-    stopRef.current = true;
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
+  const clearTimer = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
     }
-    setIsRunning(false);
-  };
+  }, []);
 
-  const restart = () => {
+  const stop = useCallback(() => {
+    stoppedRef.current = true;
+    clearTimer();
+    setIsRunning(false);
+  }, [clearTimer]);
+
+  const restart = useCallback(() => {
     stop();
-    stopRef.current = false;
+    stoppedRef.current = false;
+    attemptsRef.current = 0;
     setAttempts(0);
     setData(null);
     setError(null);
-  };
+  }, [stop]);
 
   useEffect(() => {
     if (!enabled) {
@@ -74,37 +100,43 @@ export function usePolling<T>(
       return;
     }
 
-    stopRef.current = false;
+    stoppedRef.current = false;
+    attemptsRef.current = 0;
     setIsRunning(true);
 
-    const tick = async () => {
-      if (stopRef.current) return;
-      const currentAttempt = attempts + 1;
+    // 自调度递归：前一次完成后再 setTimeout 下一次，避免 setInterval 重入
+    const tick = async (): Promise<void> => {
+      if (stoppedRef.current) return;
+      const currentAttempt = ++attemptsRef.current; // ref 原子递增，无 state 时序问题
       try {
-        const result = await fetcher();
-        if (stopRef.current) return;
+        const result = await fetcherRef.current();
+        if (stoppedRef.current) return;
         setData(result);
         setError(null);
         setAttempts(currentAttempt);
 
-        if (shouldStop?.(result) || currentAttempt >= maxAttempts) {
+        if (shouldStopRef.current?.(result) || currentAttempt >= maxAttempts) {
           stop();
+          return;
         }
       } catch (e) {
-        if (stopRef.current) return;
+        if (stoppedRef.current) return;
         setError(e);
-        onError?.(e);
-        // 错误不停止（继续重试），除非 maxAttempts
+        onErrorRef.current?.(e);
         setAttempts(currentAttempt);
         if (currentAttempt >= maxAttempts) {
           stop();
+          return;
         }
+      }
+      // 只有当次 tick 完成后才调度下一次，天然消除重入
+      if (!stoppedRef.current) {
+        timerRef.current = setTimeout(() => void tick(), intervalMs);
       }
     };
 
-    // 立即执行一次
-    tick();
-    intervalRef.current = setInterval(tick, intervalMs);
+    // 立即执行首次
+    void tick();
 
     return () => {
       stop();

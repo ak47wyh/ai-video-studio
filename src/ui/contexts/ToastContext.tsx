@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { toastEventBus, type ToastBridgeEvent } from '../../adapters/outbound/ui/ReactNotificationAdapter';
 
 type ToastType = 'success' | 'error' | 'info' | 'warning';
@@ -26,17 +26,33 @@ export function useToast() {
 
 export const ToastProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const timeoutRefs = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   const showToast = useCallback((type: ToastType, message: string) => {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     setToasts(prev => [...prev, { id, type, message }]);
-    setTimeout(() => {
+    const timeoutId = setTimeout(() => {
+      timeoutRefs.current.delete(id);
       setToasts(prev => prev.filter(t => t.id !== id));
     }, 3500);
+    timeoutRefs.current.set(id, timeoutId);
   }, []);
 
   const removeToast = useCallback((id: string) => {
+    const timeoutId = timeoutRefs.current.get(id);
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      timeoutRefs.current.delete(id);
+    }
     setToasts(prev => prev.filter(t => t.id !== id));
+  }, []);
+
+  useEffect(() => {
+    const currentTimeouts = timeoutRefs.current;
+    return () => {
+      currentTimeouts.forEach(timeoutId => clearTimeout(timeoutId));
+      currentTimeouts.clear();
+    };
   }, []);
 
   // 订阅 reactNotificationAdapter 发出的事件桥
@@ -88,8 +104,14 @@ export const ToastProvider: React.FC<React.PropsWithChildren> = ({ children }) =
     }
   };
 
+  // Provider value 稳定化，避免每次渲染派发新对象
+  const contextValue = useMemo(
+    () => ({ showToast, removeToast }),
+    [showToast, removeToast],
+  );
+
   return (
-    <ToastContext.Provider value={{ showToast, removeToast }}>
+    <ToastContext.Provider value={contextValue}>
       {children}
       {/* Toast container */}
       <div style={{

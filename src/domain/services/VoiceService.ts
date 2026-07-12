@@ -2,7 +2,7 @@ import type { IVoicePort, T2AAsyncContext, T2AAsyncStatus, T2ASyncContext, T2ASy
 import type { ICharacterRepository, IStorySegmentRepository } from '../ports/OutboundPorts';
 import type { IFileStoragePort } from '../ports/FileStoragePorts';
 import type { IApiConfigStore } from '../ports/PlatformPorts';
-import type { ILoggerPort, ICostMeter } from '../ports/CrossCuttingPorts';
+import type { ILoggerPort, ICostMeter, IHttpFetchPort } from '../ports/CrossCuttingPorts';
 import type { StorySegment } from '../entities/models';
 import type { ISavedVoiceRepository } from '../ports/AssetLibraryPorts';
 import type { PlatformRouter } from './PlatformRouter';
@@ -28,12 +28,14 @@ export interface CloneVoiceOptions {
 export class VoiceService {
   private router: PlatformRouter;
   private configStore: IApiConfigStore;
-  private _logger: ILoggerPort;
+  private logger: ILoggerPort;
   characterRepo: ICharacterRepository;
   segmentRepo: IStorySegmentRepository;
   private getFileStorage: () => IFileStoragePort;
   private costMeter?: ICostMeter;
   private savedVoiceRepo?: ISavedVoiceRepository;
+  /** P1-2：可选注入的 HTTP 抓取 Port（用于 blob:/http 音频统一读取） */
+  private httpFetch?: IHttpFetchPort;
 
   constructor(
     router: PlatformRouter,
@@ -44,15 +46,17 @@ export class VoiceService {
     logger: ILoggerPort,
     costMeter?: ICostMeter,
     savedVoiceRepo?: ISavedVoiceRepository,
+    httpFetch?: IHttpFetchPort,
   ) {
     this.router = router;
     this.characterRepo = characterRepo;
     this.segmentRepo = segmentRepo;
     this.getFileStorage = typeof fileStorage === 'function' ? fileStorage : () => fileStorage;
     this.configStore = configStore;
-    this._logger = logger;
+    this.logger = logger;
     this.costMeter = costMeter;
     this.savedVoiceRepo = savedVoiceRepo;
+    this.httpFetch = httpFetch;
   }
 
   /** 获取当前配置对应的语音合成适配器 */
@@ -160,7 +164,7 @@ export class VoiceService {
 
     // 风控检测
     if (cloneResult.inputSensitive) {
-      this._logger.warn('[VoiceService] Cloned audio triggered content moderation', { service: 'VoiceService' });
+      this.logger.warn('[VoiceService] Cloned audio triggered content moderation', { service: 'VoiceService' });
     }
 
     return cloneResult.voiceId;
@@ -415,8 +419,10 @@ export class VoiceService {
     const audioBlobUrl = await this.getVoicePort().fetchAudioAsBlobUrl(status.audioUrl);
     let blob: Blob;
     try {
-      const blobRes = await fetch(audioBlobUrl);
-      blob = await blobRes.blob();
+      // P1-2：优先走 IHttpFetchPort（blob: URL 也可通过 fetch API 读取）
+      blob = this.httpFetch
+        ? await this.httpFetch.fetchBlob(audioBlobUrl)
+        : await (await fetch(audioBlobUrl)).blob();
     } finally {
       this.getFileStorage().revokeObjectUrl(audioBlobUrl);
     }
@@ -483,6 +489,8 @@ export class VoiceService {
     if (result.audioUrl) {
       const blobUrl = await this.getVoicePort().fetchAudioAsBlobUrl(result.audioUrl);
       try {
+        // P1-2：优先走 IHttpFetchPort
+        if (this.httpFetch) return await this.httpFetch.fetchBlob(blobUrl);
         const res = await fetch(blobUrl);
         return await res.blob();
       } finally {
@@ -536,7 +544,7 @@ export class VoiceService {
         const taskId = await this.createAsyncTask(seg.content, voiceId);
         results.set(seg.id, taskId);
       } catch (e) {
-        this._logger.error(`[VoiceService] Failed to create T2A task for segment ${seg.id}`, e, { service: 'VoiceService', segmentId: seg.id });
+        this.logger.error(`[VoiceService] Failed to create T2A task for segment ${seg.id}`, e, { service: 'VoiceService', segmentId: seg.id });
       }
     }
     return results;
@@ -559,7 +567,7 @@ export class VoiceService {
     savedVoice.name = newName.trim();
     await this.savedVoiceRepo.save(savedVoice);
 
-    this._logger.info('Voice renamed', {
+    this.logger.info('Voice renamed', {
       service: 'VoiceService',
       method: 'renameVoice',
       savedVoiceId,

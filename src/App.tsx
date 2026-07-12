@@ -5,9 +5,10 @@ import { SpaceProvider } from './ui/contexts/SpaceContext';
 import { ToastProvider } from './ui/contexts/ToastContext';
 import { ConfirmProvider } from './ui/contexts/ConfirmContext';
 import { ThemeProvider } from './ui/contexts/ThemeContext';
+import { PlatformProvider } from './ui/contexts/PlatformContext';
 import { ErrorBoundary } from './ui/components/ErrorBoundary';
 import { PageSkeleton } from './ui/components/PageSkeleton';
-import { videoGenerationService } from './dependencies';
+import { videoGenerationService, pipelineService } from './dependencies';
 import { installGlobalErrorCapture } from './adapters/outbound/infrastructure/GlobalErrorCapture';
 import { logSink } from './adapters/outbound/infrastructure/RingBufferLogSinkAdapter';
 
@@ -67,6 +68,14 @@ function App() {
     return () => videoGenerationService.cancelAllPolling();
   }, []);
 
+  // P1-5 修复：页面刷新后恢复 Pipeline 任务（原本 PipelineService.restoreActiveTasks
+  // 已实现但从未在启动时被调用，导致 AI 成片任务刷新后完全丢失执行上下文）。
+  // restoreActiveTasks 内部会把处于中间阶段的任务标记为 failed 并保留元数据，
+  // 供 UI 展示"任务已中断，请重试"提示，从而闭合业务链路。
+  React.useEffect(() => {
+    pipelineService.restoreActiveTasks().catch(console.error);
+  }, []);
+
   // 安装全局错误捕获（window.onerror / unhandledrejection → logSink）
   React.useEffect(() => {
     return installGlobalErrorCapture(logSink);
@@ -80,38 +89,40 @@ function App() {
   return (
     <ErrorBoundary>
       <ThemeProvider>
-        <BrowserRouter basename="/ai-video-studio">
-          <SpaceProvider>
-            <ToastProvider>
-              <ConfirmProvider>
-                <Suspense fallback={<RouteLoadingFallback />}>
-                  <Routes>
-                  <Route path="/" element={<MainLayout />}>
-                    <Route index element={<Dashboard />} />
-                    <Route path="characters" element={<CharacterManagement />} />
-                    <Route path="backgrounds" element={<BackgroundManagement />} />
-                    <Route path="workbench" element={<StoryWorkbench />} />
-                    <Route path="spaces" element={<StorySpaceManagement />} />
-                    <Route path="spaces/:id" element={<SpaceDetailPage />} />
-                    <Route path="export" element={<ExportCenter />} />
-                    <Route path="labs/image" element={<ImageLab />} />
-                    <Route path="labs/voice" element={<VoiceLab />} />
-                    <Route path="labs/text" element={<TextLab />} />
-                    <Route path="labs/video" element={<VideoLab />} />
-                    <Route path="labs/music" element={<MusicLab />} />
-                    <Route path="labs/watermark" element={<WatermarkLab />} />
-                    <Route path="labs/enhance" element={<EnhanceLab />} />
-                    <Route path="editor" element={<VideoEditor />} />
-                    <Route path="story-film" element={<StoryFilmPage />} />
-                    <Route path="settings" element={<Settings />} />
-                    <Route path="*" element={<NotFoundPage />} />
-                  </Route>
-                </Routes>
-                </Suspense>
-              </ConfirmProvider>
-            </ToastProvider>
-          </SpaceProvider>
-        </BrowserRouter>
+        <PlatformProvider>
+          <BrowserRouter basename="/ai-video-studio">
+            <SpaceProvider>
+              <ToastProvider>
+                <ConfirmProvider>
+                  <Suspense fallback={<RouteLoadingFallback />}>
+                    <Routes>
+                    <Route path="/" element={<MainLayout />}>
+                      <Route index element={<Dashboard />} />
+                      <Route path="characters" element={<CharacterManagement />} />
+                      <Route path="backgrounds" element={<BackgroundManagement />} />
+                      <Route path="workbench" element={<StoryWorkbench />} />
+                      <Route path="spaces" element={<StorySpaceManagement />} />
+                      <Route path="spaces/:id" element={<SpaceDetailPage />} />
+                      <Route path="export" element={<ExportCenter />} />
+                      <Route path="labs/image" element={<ImageLab />} />
+                      <Route path="labs/voice" element={<VoiceLab />} />
+                      <Route path="labs/text" element={<TextLab />} />
+                      <Route path="labs/video" element={<VideoLab />} />
+                      <Route path="labs/music" element={<MusicLab />} />
+                      <Route path="labs/watermark" element={<WatermarkLab />} />
+                      <Route path="labs/enhance" element={<EnhanceLab />} />
+                      <Route path="editor" element={<VideoEditor />} />
+                      <Route path="story-film" element={<StoryFilmPage />} />
+                      <Route path="settings" element={<Settings />} />
+                      <Route path="*" element={<NotFoundPage />} />
+                    </Route>
+                  </Routes>
+                  </Suspense>
+                </ConfirmProvider>
+              </ToastProvider>
+            </SpaceProvider>
+          </BrowserRouter>
+        </PlatformProvider>
       </ThemeProvider>
     </ErrorBoundary>
   );

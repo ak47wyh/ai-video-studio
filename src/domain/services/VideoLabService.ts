@@ -9,12 +9,12 @@ import type {
 import type { IApiConfigStore } from '../ports/PlatformPorts';
 import type { ILoggerPort } from '../ports/CrossCuttingPorts';
 import type { PlatformRouter } from './PlatformRouter';
+import { TimeoutError } from '../errors';
 
 export class VideoLabService {
   private router: PlatformRouter;
   private configStore: IApiConfigStore;
-  // @ts-expect-error Logger injected for future use
-  private _logger: ILoggerPort;
+  private logger: ILoggerPort;
   private activePollers = new Map<string, ReturnType<typeof setInterval>>();
 
   constructor(
@@ -24,7 +24,7 @@ export class VideoLabService {
   ) {
     this.router = router;
     this.configStore = configStore;
-    this._logger = logger;
+    this.logger = logger;
   }
 
   /** 获取当前配置对应的视频生成适配器 */
@@ -33,10 +33,12 @@ export class VideoLabService {
   }
 
   async submitTask(context: VideoPromptContext): Promise<string> {
+    this.logger.info('submitTask', { service: 'VideoLabService', method: 'submitTask' });
     return this.getVideoPort().submitVideoTask(context);
   }
 
   async submitAgentTask(context: VideoAgentContext): Promise<string> {
+    this.logger.info('submitAgentTask', { service: 'VideoLabService', method: 'submitAgentTask' });
     return this.getVideoPort().createAgentTask(context);
   }
 
@@ -71,14 +73,26 @@ export class VideoLabService {
           clearInterval(interval);
           this.activePollers.delete(taskId);
           if (retryCount >= maxRetries && status !== 'SUCCESS') {
-            onUpdate({ ...result, status: 'FAILED', errorMessage: `Polling timed out after ${maxRetries} retries` });
+            // Phase 5 收敛：用 TimeoutError 承载超时上下文（替代裸字符串）
+            const err = new TimeoutError({
+              message: `Polling timed out after ${maxRetries} retries`,
+              context: { taskId, retries: retryCount, maxRetries, isAgent },
+            });
+            this.logger.warn('polling timeout', {
+              service: 'VideoLabService', method: 'startPolling', taskId, retries: retryCount,
+            });
+            onUpdate({ ...result, status: 'FAILED', errorMessage: err.message });
             return;
           }
         }
         onUpdate(result);
-      } catch {
+      } catch (e) {
         clearInterval(interval);
         this.activePollers.delete(taskId);
+        this.logger.warn('polling error', {
+          service: 'VideoLabService', method: 'startPolling', taskId,
+          error: e instanceof Error ? e.message : String(e),
+        });
         onUpdate({ status: 'FAILED', errorMessage: 'Polling error' });
       }
     }, 5000);

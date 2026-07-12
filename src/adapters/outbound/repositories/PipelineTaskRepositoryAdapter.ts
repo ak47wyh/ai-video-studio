@@ -29,14 +29,10 @@ export class PipelineTaskRepositoryAdapter implements IPipelineTaskRepository {
   }
 
   async findActive(): Promise<PipelineTask[]> {
-    // status='running' 表示尚未完成（涵盖 splitting / generating_images / ... / burning_subtitles 等中间状态）
-    // 取所有非终态（complete / failed 之外）的任务
+    // V2 P2-3.2.6：走 status 索引，noneOf('complete', 'failed') 排除终态，
+    // 避免全表扫描 + 内存过滤。pipelineTasks 表已声明 status 索引，之前未利用。
     // 注意：PipelineStatus 当前不含 'cancelled'（仅 ThreeDTaskStatusType 有），此处不检查 cancelled
-    const all = await db.pipelineTasks.toArray();
-    return all.filter(t =>
-      t.status !== 'complete' &&
-      t.status !== 'failed'
-    );
+    return db.pipelineTasks.where('status').noneOf(['complete', 'failed']).toArray();
   }
 
   async delete(id: string): Promise<void> {

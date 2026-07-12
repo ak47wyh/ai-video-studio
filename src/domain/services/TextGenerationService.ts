@@ -9,8 +9,7 @@ export class TextGenerationService {
   private configStore: IApiConfigStore;
   private modelRegistry: IModelRegistry;
   private costMeter?: ICostMeter;
-  // @ts-expect-error Logger injected for future use
-  private _logger: ILoggerPort;
+  private logger: ILoggerPort;
 
   constructor(
     router: PlatformRouter,
@@ -22,7 +21,7 @@ export class TextGenerationService {
     this.router = router;
     this.configStore = configStore;
     this.costMeter = costMeter;
-    this._logger = logger;
+    this.logger = logger;
     this.modelRegistry = modelRegistry ?? {
       resolveTextModel: () => 'MiniMax-M2.5-highspeed',
       resolveImageModel: () => 'image-01',
@@ -60,6 +59,11 @@ export class TextGenerationService {
     return this.router.resolve('text', config);
   }
 
+  /** 统一日志 ctx（Phase 5：激活原本闲置的 _logger 占位） */
+  private ctx(method: string, extra: Record<string, unknown> = {}) {
+    return { service: 'TextGenerationService', method, ...extra };
+  }
+
   /**
    * Refine a prompt (character appearance/personality/background description)
    * to be more professional and suitable for AI image generation.
@@ -68,6 +72,7 @@ export class TextGenerationService {
     rawPrompt: string,
     type: 'character_appearance' | 'character_personality' | 'background'
   ): Promise<RefineResult> {
+    this.logger.info('refinePrompt', this.ctx('refinePrompt', { type, len: rawPrompt.length }));
     const typeLabels: Record<string, string> = {
       character_appearance: '角色外貌',
       character_personality: '角色性格',
@@ -113,6 +118,7 @@ export class TextGenerationService {
    * Refine story text to be more cinematic and visual.
    */
   async refineText(rawText: string): Promise<RefineResult> {
+    this.logger.info('refineText', this.ctx('refineText', { len: rawText.length }));
     const model = this.modelRegistry.resolveTextModel('recommendation');
     const textPort = this.getTextPort();
     const result = await textPort.chatCompletion({
@@ -152,6 +158,7 @@ export class TextGenerationService {
    * Suggest a BGM style description based on segment content.
    */
   async suggestBGMStyle(segmentContent: string): Promise<RefineResult> {
+    this.logger.info('suggestBGMStyle', this.ctx('suggestBGMStyle', { len: segmentContent.length }));
     const model = this.modelRegistry.resolveTextModel('recommendation');
     const textPort = this.getTextPort();
     const result = await textPort.chatCompletion({
@@ -196,6 +203,11 @@ export class TextGenerationService {
     characterDescriptions: string[],
     backgroundDescription?: string
   ): Promise<RefineResult> {
+    this.logger.info('optimizeVideoPrompt', this.ctx('optimizeVideoPrompt', {
+      segmentLen: segmentContent.length,
+      characterCount: characterDescriptions.length,
+      hasBackground: Boolean(backgroundDescription),
+    }));
     const contextParts = [
       `段落内容：${segmentContent}`,
       characterDescriptions.length > 0

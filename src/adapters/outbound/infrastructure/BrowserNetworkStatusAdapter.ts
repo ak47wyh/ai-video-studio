@@ -61,19 +61,23 @@ interface NavigatorWithConnection extends Navigator {
 class BrowserNetworkStatusAdapter implements INetworkStatusPort {
   private currentStatus: NetworkStatus = 'online';
   private logger: ILoggerPort;
+  private cleanupHandlers: (() => void)[] = [];
 
   constructor(logger?: ILoggerPort) {
     this.logger = logger ?? new ConsoleLoggerAdapter({ service: 'BrowserNetworkStatusAdapter' });
     if (typeof window === 'undefined') return;
 
-    // 初始状态
     this.currentStatus = navigator.onLine ? 'online' : 'offline';
 
-    // 监听 online/offline 事件
-    window.addEventListener('online', () => this.updateStatus('online'));
-    window.addEventListener('offline', () => this.updateStatus('offline'));
+    const onOnline = () => this.updateStatus('online');
+    const onOffline = () => this.updateStatus('offline');
+    window.addEventListener('online', onOnline);
+    window.addEventListener('offline', onOffline);
+    this.cleanupHandlers.push(
+      () => window.removeEventListener('online', onOnline),
+      () => window.removeEventListener('offline', onOffline),
+    );
 
-    // 监听 connection 变化（网络质量检测）
     const conn = (navigator as NavigatorWithConnection).connection;
     if (conn?.addEventListener) {
       const onConnChange = () => {
@@ -81,12 +85,25 @@ class BrowserNetworkStatusAdapter implements INetworkStatusPort {
           this.updateStatus('offline');
           return;
         }
-        // 根据 effectiveType 判断网络质量
         const slow = conn.effectiveType === 'slow-2g' || conn.effectiveType === '2g';
         this.updateStatus(slow ? 'unstable' : 'online');
       };
       conn.addEventListener('change', onConnChange);
+      this.cleanupHandlers.push(() => conn.removeEventListener?.('change', onConnChange));
     }
+  }
+
+  dispose(): void {
+    this.cleanupHandlers.forEach(cleanup => {
+      try {
+        cleanup();
+      } catch (e) {
+        this.logger.error('[BrowserNetworkStatusAdapter] dispose error', e, {
+          service: 'BrowserNetworkStatusAdapter',
+        });
+      }
+    });
+    this.cleanupHandlers = [];
   }
 
   getStatus(): NetworkStatus {

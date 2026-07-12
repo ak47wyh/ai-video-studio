@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, Ban, Check } from 'lucide-react';
-import { ApiConfigStore, type PlatformId } from '../../adapters/outbound/config/ApiConfigStore';
+import { ApiConfigStore } from '../../adapters/outbound/config/ApiConfigStore';
+import type { PlatformId } from '../../domain/entities/platform';
 import { PLATFORM_METADATA } from '../../domain/services/platformCapabilities';
+import { usePlatform } from '../contexts/PlatformContext';
 import { useToast } from '../contexts/ToastContext';
 import './PlatformSwitcher.css';
 
@@ -53,8 +55,8 @@ export const PlatformSwitcher: React.FC<PlatformSwitcherProps> = ({
     return () => document.removeEventListener('keydown', handleKey);
   }, [open]);
 
-  const activePlatform = ApiConfigStore.getActivePlatform();
-  const activeMeta = PLATFORM_METADATA[activePlatform];
+  // P4-1：走 PlatformContext 订阅 activePlatform，切换后组件即时刷新
+  const { activePlatform, platformMeta: activeMeta } = usePlatform();
   const allPlatforms = Object.values(PLATFORM_METADATA);
 
   const handleSelect = (platform: PlatformId) => {

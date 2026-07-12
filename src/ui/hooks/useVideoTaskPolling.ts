@@ -80,7 +80,15 @@ export function useVideoTaskPolling(
     if (!enabled || tasks.length === 0) return;
 
     let cancelled = false;
-    const pendingTasks = tasks.filter(t => t.status === 'PENDING' || t.status === 'PROCESSING');
+    // P1-8 修复双轮询：跳过 Service 侧 activePollers 已在追踪的任务，
+    // 避免 UI Hook 与 VideoGenerationService.pollTaskStatus 同时对同一
+    // externalTaskId 各发一次 queryTaskStatus 请求（原本每 3s + 5s 双发）。
+    // Service 侧完成状态更新后写入 videoTaskRepo，UI 通过 useLiveQuery 拿到。
+    const pendingTasks = tasks.filter(t => {
+      if (t.status !== 'PENDING' && t.status !== 'PROCESSING') return false;
+      if (t.externalTaskId && videoGenerationService.isPollingActive(t.id)) return false;
+      return true;
+    });
     if (pendingTasks.length === 0) {
       allDoneRef.current = true;
       return;
@@ -155,6 +163,13 @@ export function useSingleVideoTaskPolling(
     if (!enabled || !task || !task.externalTaskId) return;
     if (task.status === 'SUCCESS' || task.status === 'FAILED') {
       // eslint-disable-next-line react-hooks/set-state-in-effect
+      setStatus({ taskId: task.id, status: task.status, videoUrl: task.videoUrl, error: task.errorMessage });
+      return;
+    }
+    // P1-8：若 Service 侧已在轮询同一 externalTaskId，UI 侧跳过独立请求。
+    // Service poller 会通过 videoTaskRepo.updateStatus 触发 useLiveQuery 刷新，
+    // 上层 SegmentCard 用 useLiveQuery 拿最新 task 后 status 会自然更新。
+    if (videoGenerationService.isPollingActive(task.id)) {
       setStatus({ taskId: task.id, status: task.status, videoUrl: task.videoUrl, error: task.errorMessage });
       return;
     }

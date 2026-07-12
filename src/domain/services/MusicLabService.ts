@@ -8,7 +8,7 @@ import type {
 } from '../ports/OutboundPorts';
 import type { IFileStoragePort } from '../ports/FileStoragePorts';
 import type { IApiConfigStore } from '../ports/PlatformPorts';
-import type { ILoggerPort } from '../ports/CrossCuttingPorts';
+import type { ILoggerPort, IHttpFetchPort } from '../ports/CrossCuttingPorts';
 import type { PlatformRouter } from './PlatformRouter';
 import { createTrackedObjectUrl } from '../../utils/objectUrlRegistry';
 
@@ -36,17 +36,21 @@ export class MusicLabService {
   private configStore: IApiConfigStore;
   private logger: ILoggerPort;
   private getFileStorage: () => IFileStoragePort;
+  /** P1-2：可选注入的 HTTP 抓取 Port */
+  private httpFetch?: IHttpFetchPort;
 
   constructor(
     router: PlatformRouter,
     configStore: IApiConfigStore,
     fileStorage: IFileStoragePort | (() => IFileStoragePort),
     logger: ILoggerPort,
+    httpFetch?: IHttpFetchPort,
   ) {
     this.router = router;
     this.configStore = configStore;
     this.logger = logger;
     this.getFileStorage = typeof fileStorage === 'function' ? fileStorage : () => fileStorage;
+    this.httpFetch = httpFetch;
   }
 
   /** 获取当前配置对应的音乐生成适配器 */
@@ -165,6 +169,8 @@ export class MusicLabService {
       if (result.audioUrl.startsWith('mock://')) {
         return new Blob([new Uint8Array(1024)], { type: 'audio/mpeg' });
       }
+      // P1-2：优先走 IHttpFetchPort（自动错误归一化）
+      if (this.httpFetch) return this.httpFetch.fetchBlob(result.audioUrl);
       const res = await fetch(result.audioUrl);
       if (!res.ok) throw new Error(`Failed to fetch music: ${res.status}`);
       return await res.blob();

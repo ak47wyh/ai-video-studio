@@ -48,9 +48,10 @@ export class HunyuanHttpClient {
    *
    * @param action  API Action 名（如 SubmitHunyuanToVideoJob）
    * @param payload 请求体 JSON
+   * @param signal  可选 AbortSignal：外部取消（如流式模拟取消）会中断真实 HTTP 请求（P2-8）
    * @returns 响应体中的 Response 对象
    */
-  async call<T>(action: string, payload: unknown = {}): Promise<T> {
+  async call<T>(action: string, payload: unknown = {}, signal?: AbortSignal): Promise<T> {
     const body = JSON.stringify(payload);
     const timestamp = Math.floor(Date.now() / 1000);
     const date = this.utcDate(timestamp);
@@ -67,6 +68,7 @@ export class HunyuanHttpClient {
         'X-TC-Timestamp': String(timestamp),
         'X-TC-Region': 'ap-beijing',
       },
+      signal, // P2-8：真实 wire abort，允许上层通过 AbortController 中断请求
     });
     return response.data;
   }

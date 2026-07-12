@@ -172,6 +172,48 @@ export interface IConfirmPort {
 }
 
 // ==========================================
+// HTTP 抓取（下载素材/资源）
+// ==========================================
+
+/**
+ * HTTP 请求可选项。
+ * 领域层不感知具体实现（fetch / XHR / axios），只描述通用能力。
+ */
+export interface HttpFetchOptions {
+  /** 请求头 */
+  headers?: Record<string, string>;
+  /** 超时时间（毫秒），默认 30_000 */
+  timeoutMs?: number;
+  /** 取消信号（外部 AbortController） */
+  signal?: AbortSignal;
+  /** 是否忽略 HTTP 错误状态码（默认 false，>=400 抛错） */
+  ignoreStatus?: boolean;
+}
+
+/**
+ * HTTP 抓取端口。
+ *
+ * 用于领域层下载素材（视频/音频/图片）到本地存储，
+ * 取代 Service 层直接使用 `fetch()` 造成的架构边界违规
+ * （详见 System_Architecture_Refactor_Design.md §B-02）。
+ *
+ * 实现方约束：
+ *  - HTTP >= 400 且未设置 `ignoreStatus` 时应归一化为 NetworkError
+ *  - 网络异常（DNS/CORS/TypeError）应归一化为 NetworkError
+ *  - 超时应归一化为 TimeoutError
+ *
+ * 默认实现：BrowserFetchAdapter（基于 fetch + AbortController）
+ */
+export interface IHttpFetchPort {
+  /** 下载 Blob（视频/音频/图片二进制） */
+  fetchBlob(url: string, options?: HttpFetchOptions): Promise<Blob>;
+  /** 下载文本（SVG / TXT / M3U8） */
+  fetchText(url: string, options?: HttpFetchOptions): Promise<string>;
+  /** 下载并 JSON 解析（外部 REST 接口） */
+  fetchJson<T = unknown>(url: string, options?: HttpFetchOptions): Promise<T>;
+}
+
+// ==========================================
 // 成本计量（M3.4 成本可视化）
 // ==========================================
 

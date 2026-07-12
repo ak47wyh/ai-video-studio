@@ -15,8 +15,19 @@ import type { IFileStoragePort } from '../ports/FileStoragePorts';
 import type { IApiConfigStore } from '../ports/PlatformPorts';
 import type { ILoggerPort, ICostMeter } from '../ports/CrossCuttingPorts';
 import type { PlatformRouter } from './PlatformRouter';
-import type { PlatformId } from '../../adapters/outbound/config/ApiConfigStore';
-import { getErrorMessage } from '../../ui/utils/errorUtils';
+import type { PlatformId } from '../entities/platform';
+import type { IHttpFetchPort } from '../ports/CrossCuttingPorts';
+import { TimeoutError } from '../errors';
+
+/**
+ * 领域层错误消息提取工具（原从 ui/utils/errorUtils 引入，违反依赖方向）。
+ * 保持与 UI 层同名同签名，避免调用方修改。
+ */
+function getErrorMessage(e: unknown, fallback = 'Unknown error'): string {
+  if (e instanceof Error) return e.message;
+  if (typeof e === 'string') return e;
+  return fallback;
+}
 
 export interface VideoGenerationOptions {
   mode?: VideoGenerationMode;
@@ -44,6 +55,8 @@ export class VideoGenerationService {
   private logger: ILoggerPort;
   private getFileStorage: () => IFileStoragePort;
   private costMeter?: ICostMeter;
+  /** P1-2：可选注入的 HTTP 抓取 Port。未注入时降级到内置 fetch（保持向后兼容）。 */
+  private httpFetch?: IHttpFetchPort;
 
   private activePollers = new Map<string, ReturnType<typeof setInterval>>();
 
@@ -57,6 +70,7 @@ export class VideoGenerationService {
     configStore: IApiConfigStore,
     logger: ILoggerPort,
     costMeter?: ICostMeter,
+    httpFetch?: IHttpFetchPort,
   ) {
     this.videoTaskRepo = videoTaskRepo;
     this.segmentRepo = segmentRepo;
@@ -67,6 +81,7 @@ export class VideoGenerationService {
     this.configStore = configStore;
     this.logger = logger;
     this.costMeter = costMeter;
+    this.httpFetch = httpFetch;
   }
 
   /** 获取当前配置对应的视频生成适配器 */
@@ -230,6 +245,29 @@ export class VideoGenerationService {
     }
   }
 
+  /**
+   * V2 P0-4.4.1：显式全局销毁入口。
+   *
+   * SPA 路由切换或页面 beforeunload 时调用，遍历清理所有 activePollers。
+   * 相较 cancelAllPolling 语义更明确（应用生命周期终点，而非仅"暂停轮询"），
+   * 供 dependencies.ts 或 App 顶层统一挂载 beforeunload 事件消费。
+   */
+  destroy(): void {
+    this.cancelAllPolling();
+  }
+
+  /**
+   * P1-8：判断某个 taskId 是否已经被 Service 侧的轮询器追踪。
+   *
+   * 用于 UI 层 `useVideoTaskPolling` 消除双轮询：UI Hook 检测到某任务已在
+   * Service 侧 activePollers 中时跳过独立的 queryTaskStatus 请求，仅从
+   * `videoTaskRepo`（由 Service 在 poller 内 updateStatus）派生的响应式数据
+   * 中读取最新状态即可。
+   */
+  isPollingActive(taskId: string): boolean {
+    return this.activePollers.has(taskId);
+  }
+
   private async processTask(task: VideoTask, context: VideoPromptContext) {
     try {
       await this.videoTaskRepo.updateStatus(task.id, 'PROCESSING');
@@ -279,7 +317,11 @@ export class VideoGenerationService {
         } else if (retries >= maxRetries) {
           clearInterval(interval);
           this.activePollers.delete(taskId);
-          await this.videoTaskRepo.updateStatus(taskId, 'FAILED', undefined, 'Polling timeout');
+          const timeoutErr = new TimeoutError({
+            message: 'Polling timeout',
+            context: { taskId, externalTaskId, retries, pollIntervalMs: pollInterval },
+          });
+          await this.videoTaskRepo.updateStatus(taskId, 'FAILED', undefined, timeoutErr.message);
         }
       } catch (error: unknown) {
         const message = getErrorMessage(error, 'Poll failed');
@@ -304,9 +346,15 @@ export class VideoGenerationService {
 
     (async () => {
       try {
-        const res = await fetch(task.videoUrl!);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const blob = await res.blob();
+        // P1-2：优先走注入的 IHttpFetchPort（错误自动归一化为 NetworkError/TimeoutError），
+        // 未注入时回退到全局 fetch 保持向后兼容。
+        const blob = this.httpFetch
+          ? await this.httpFetch.fetchBlob(task.videoUrl!)
+          : await (async () => {
+              const res = await fetch(task.videoUrl!);
+              if (!res.ok) throw new Error(`HTTP ${res.status}`);
+              return res.blob();
+            })();
         if (blob.size > 200 * 1024 * 1024) {
           this.logger.warn(`Video too large (${blob.size} bytes), skip caching`, { service: 'VideoGenerationService' });
           return;

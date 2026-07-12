@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
 import { ApiConfigStore } from '../../adapters/outbound/config/ApiConfigStore';
 import { THEMES, type ThemeId, type ThemeConfig } from './theme-types';
 
@@ -34,8 +34,14 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Provider value 稳定化：避免每次渲染派发新对象引发全体消费者重渲染
+  const value = useMemo<ThemeContextValue>(
+    () => ({ currentTheme, setTheme, themes: THEMES, isLoading }),
+    [currentTheme, setTheme, isLoading],
+  );
+
   return (
-    <ThemeContext.Provider value={{ currentTheme, setTheme, themes: THEMES, isLoading }}>
+    <ThemeContext.Provider value={value}>
       {children}
     </ThemeContext.Provider>
   );

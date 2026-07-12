@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../adapters/outbound/repositories/DexieDatabase';
 import { storySpaceService } from '../../dependencies';
@@ -73,21 +73,31 @@ export const SpaceProvider: React.FC<React.PropsWithChildren> = ({ children }) =
   }, [spaces, setCurrentSpaceId]);
 
   // Derive currentSpaceId: explicit selection > first space > null (loading)
-  const currentSpaceId = (() => {
+  // 修复 B-21：渲染期不再写 localStorage；副作用移到下方 useEffect。
+  const currentSpaceId = useMemo<string | null>(() => {
     if (spaces === undefined) return null; // still loading
     if (explicitSpaceId !== null && spaces.find(s => s.id === explicitSpaceId)) {
       return explicitSpaceId;
     }
-    // 显式选择无效（被删除等）→ 回退到第一个空间，并同步持久化
-    const fallback = spaces.length > 0 ? spaces[0].id : null;
-    if (fallback && fallback !== explicitSpaceId) {
-      writePersistedSpaceId(fallback);
+    // 显式选择无效（被删除等）→ 回退到第一个空间
+    return spaces.length > 0 ? spaces[0].id : null;
+  }, [spaces, explicitSpaceId]);
+
+  // 显式选择失效后回填持久化：作为副作用而非渲染期写入
+  useEffect(() => {
+    if (currentSpaceId && currentSpaceId !== explicitSpaceId) {
+      writePersistedSpaceId(currentSpaceId);
     }
-    return fallback;
-  })();
+  }, [currentSpaceId, explicitSpaceId]);
+
+  // Provider value 稳定化，避免每次派生 currentSpaceId 时触发全体消费者重渲染
+  const contextValue = useMemo(
+    () => ({ currentSpaceId, setCurrentSpaceId }),
+    [currentSpaceId, setCurrentSpaceId],
+  );
 
   return (
-    <SpaceContext.Provider value={{ currentSpaceId, setCurrentSpaceId }}>
+    <SpaceContext.Provider value={contextValue}>
       {children}
     </SpaceContext.Provider>
   );

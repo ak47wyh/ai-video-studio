@@ -150,13 +150,17 @@ export class AgentService {
   }
 
   /**
-   * 兼容旧 API 的简单对话（无工具调用）
-   * @deprecated 推荐使用 chatWithTools()
+   * 简单对话（无工具调用）。
+   *
+   * 保留原因：`AgentPortAdapter` 需要一个稳定的非流式 chat API 以实现 `IAgentPort.chat`，
+   * 而 `chatWithTools` 是带工具循环的复杂流程，签名与消费者需求不匹配。
+   * 因此此方法作为「窄化 chat 入口」被 Adapter 复用，非死代码。
    */
   async chat(messages: AgentMessage[]): Promise<string> {
-    this.logger.warn('AgentService.chat (legacy, no tools) called - consider chatWithTools()', {
+    this.logger.info('AgentService.chat (simple, no tools)', {
       service: 'AgentService',
       method: 'chat',
+      messageCount: messages.length,
     });
 
     const systemMessages: TextGenerationMessage[] = [{ role: 'system', content: SYSTEM_PROMPT }];
@@ -167,7 +171,7 @@ export class AgentService {
       return { role: m.role as 'user' | 'assistant', content: m.content };
     });
 
-    this.logger.info('AgentService.chat (legacy)', {
+    this.logger.debug('AgentService.chat request built', {
       service: 'AgentService',
       method: 'chat',
       messageCount: messages.length,
@@ -442,44 +446,5 @@ export class AgentService {
         setTimeout(() => reject(new Error(`tool execution timeout after ${timeoutMs}ms`)), timeoutMs),
       ),
     ]);
-  }
-
-  /**
-   * 兼容旧 API：建议动作计划
-   * @deprecated 推荐使用 chatWithTools()
-   */
-  async suggestActionPlan(userMessage: string): Promise<string[]> {
-    this.logger.warn('suggestActionPlan (legacy) called - consider chatWithTools()', {
-      service: 'AgentService',
-      method: 'suggestActionPlan',
-    });
-
-    const result = await this.getTextPort().chatCompletion({
-      model: this.resolveChatModel(),
-      messages: [
-        {
-          role: 'system',
-          content: '你是任务规划助手。用户描述创作意图，输出逗号分隔的工具名列表。示例：输入：生成关于森林里小女孩的故事视频 输出：create_character,create_background,split_story_to_segments,suggest_bgm_style,generate_narration,generate_video',
-        },
-        { role: 'user', content: userMessage },
-      ],
-      maxTokens: 128,
-      temperature: 0.3,
-    });
-
-    this.costMeter?.record({
-      platform: this.configStore.load().activePlatform,
-      model: this.resolveChatModel(),
-      callType: 'agent_chat',
-      usage: result.usage
-        ? {
-            inputTokens: result.usage.promptTokens ?? 0,
-            outputTokens: result.usage.completionTokens ?? 0,
-            totalTokens: (result.usage.promptTokens ?? 0) + (result.usage.completionTokens ?? 0),
-          }
-        : undefined,
-    });
-
-    return result.content.trim().split(/[,，、\n]/).map(s => s.trim()).filter(Boolean);
   }
 }

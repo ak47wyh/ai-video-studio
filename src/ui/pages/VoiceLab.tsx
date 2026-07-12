@@ -15,7 +15,8 @@ import { AsyncState } from '../components/AsyncState';
 import { UnsupportedCapabilityNotice } from '../components/UnsupportedCapabilityNotice';
 import { usePlatformCapabilities } from '../hooks/usePlatformCapabilities';
 import { useVoiceCapabilities } from '../hooks/useVoiceCapabilities';
-import { ApiConfigStore } from '../../adapters/outbound/config/ApiConfigStore';
+import { useAsyncTaskTracker, type AsyncTaskBase } from '../hooks/useAsyncTaskTracker';
+import { usePlatform } from '../contexts/PlatformContext';
 import { TextAreaWithCounter } from '../components/TextAreaWithCounter';
 import { InputWithCounter } from '../components/InputWithCounter';
 import { SegmentPicker, type SegmentBindField } from '../components/SegmentPicker';
@@ -44,7 +45,7 @@ export const VoiceLab: React.FC = () => {
   const { currentSpaceId } = useSpace();
   const { hasCapability } = usePlatformCapabilities();
   const { capabilities: voiceCaps, volcVoiceConfigured } = useVoiceCapabilities();
-  const activePlatform = ApiConfigStore.getActivePlatform();
+  const activePlatform = usePlatform().activePlatform;
 
   const [activeTab, setActiveTab] = useState<VoiceLabTab>('tts');
 
@@ -93,8 +94,44 @@ export const VoiceLab: React.FC = () => {
   const [asyncVoiceId, setAsyncVoiceId] = useState('female-shaonv');
   const [asyncModel, setAsyncModel] = useState<string>('speech-2.8-hd');
   const [isCreatingAsyncTask, setIsCreatingAsyncTask] = useState(false);
-  const [asyncTasks, setAsyncTasks] = useState<Array<{ taskId: string; text: string; status: string; audioUrl?: string; fileId?: string; error?: string }>>([]);
-  const pollingRef = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map());
+
+  // P4-3：接通 useAsyncTaskTracker，替代原本手写 setInterval + pollingRef 的实现。
+  // 好处：任务持久化到 sessionStorage、刷新后自动 resume、组件卸载统一清理。
+  interface VoiceAsyncTask extends AsyncTaskBase {
+    text: string;
+    audioUrl?: string;
+    fileId?: string;
+  }
+  const asyncTracker = useAsyncTaskTracker<VoiceAsyncTask>({
+    storageKey: 'voiceLab.asyncTasks',
+    pollIntervalMs: 3000,
+    timeoutMs: 10 * 60 * 1000, // 10 分钟（长文本合成耗时更长）
+    pollFn: async (task) => {
+      const status = await voiceService.queryNarrationStatus(task.id);
+      if (status.status === 'success') {
+        let blobUrl: string | undefined;
+        if (status.audioUrl) {
+          try {
+            blobUrl = registerBlobUrl(await voiceService.resolveAudioUrl({ audioUrl: status.audioUrl }));
+          } catch {
+            blobUrl = status.audioUrl;
+          }
+        }
+        return { status: 'success', audioUrl: blobUrl, fileId: status.fileId } as Partial<VoiceAsyncTask>;
+      }
+      if (status.status === 'failed' || status.status === 'expired') {
+        return { status: 'failed', errorMessage: status.errorMessage } as Partial<VoiceAsyncTask>;
+      }
+      return {}; // 保持 processing
+    },
+  });
+  const asyncTasks = asyncTracker.tasks;
+
+  // 页面首次加载时恢复未完成任务（刷新继续跑）
+  useEffect(() => {
+    asyncTracker.resumeAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ==================== Manage Tab State ====================
   const [voiceList, setVoiceList] = useState<VoiceListResult | null>(null);
@@ -127,12 +164,10 @@ export const VoiceLab: React.FC = () => {
     return url;
   }, []);
 
-  // 组件卸载时释放所有 Blob URL
+  // 组件卸载时释放所有 Blob URL（轮询定时器由 useAsyncTaskTracker 内部统一清理）
   useEffect(() => {
-    const current = pollingRef.current;
     const blobs = blobUrlsRef.current;
     return () => {
-      current.forEach(interval => clearInterval(interval));
       blobs.forEach(url => URL.revokeObjectURL(url));
     };
   }, []);
@@ -314,45 +349,20 @@ export const VoiceLab: React.FC = () => {
     setIsCreatingAsyncTask(true);
     try {
       const taskId = await voiceService.createAsyncTask(asyncText, asyncVoiceId, { model: asyncModel });
-      setAsyncTasks(prev => [...prev, { taskId, text: asyncText.substring(0, 50), status: 'processing' }]);
-      startPolling(taskId);
+      // P4-3：通过 tracker 提交任务，自动持久化 + 启动轮询
+      asyncTracker.addTask({
+        id: taskId,
+        status: 'processing',
+        createdAt: Date.now(),
+        text: asyncText.substring(0, 50),
+      });
+      asyncTracker.startPolling(taskId);
       showToast('success', '异步合成任务已提交');
     } catch (e) {
       showToast('error', getErrorMessage(e, '任务创建失败'));
     } finally {
       setIsCreatingAsyncTask(false);
     }
-  };
-
-  const startPolling = (taskId: string) => {
-    const interval = setInterval(async () => {
-      try {
-        const status = await voiceService.queryNarrationStatus(taskId);
-        if (status.status === 'success') {
-          clearInterval(interval);
-          pollingRef.current.delete(taskId);
-          // 通过 VoiceService 统一获取 Blob URL（不再绕过 Service 层）
-          let blobUrl: string | undefined;
-          if (status.audioUrl) {
-            try {
-              blobUrl = registerBlobUrl(await voiceService.resolveAudioUrl({ audioUrl: status.audioUrl }));
-            } catch {
-              blobUrl = status.audioUrl;
-            }
-          }
-          setAsyncTasks(prev => prev.map(t => t.taskId === taskId ? { ...t, status: 'success', audioUrl: blobUrl, fileId: status.fileId } : t));
-        } else if (status.status === 'failed' || status.status === 'expired') {
-          clearInterval(interval);
-          pollingRef.current.delete(taskId);
-          setAsyncTasks(prev => prev.map(t => t.taskId === taskId ? { ...t, status: 'failed', error: status.errorMessage } : t));
-        }
-      } catch {
-        clearInterval(interval);
-        pollingRef.current.delete(taskId);
-        setAsyncTasks(prev => prev.map(t => t.taskId === taskId ? { ...t, status: 'failed', error: '查询失败' } : t));
-      }
-    }, 3000);
-    pollingRef.current.set(taskId, interval);
   };
 
   const handlePreviewVoice = async (voiceId: string) => {
@@ -923,7 +933,7 @@ export const VoiceLab: React.FC = () => {
             <div>
               <label className="form-label">任务列表</label>
               {asyncTasks.map((task, idx) => (
-                <div key={task.taskId} className="lab-voice-card" style={{ marginBottom: '0.5rem' }}>
+                <div key={task.id} className="lab-voice-card" style={{ marginBottom: '0.5rem' }}>
                   <span style={{ fontSize: '0.85rem', flex: 1 }}>
                     任务 #{idx + 1}: "{task.text}..."
                   </span>
@@ -942,15 +952,15 @@ export const VoiceLab: React.FC = () => {
                           compact
                           accentColor="var(--color-warning)"
                           showWaveform={false}
-                          downloadFilename={`async_${task.taskId}.mp3`}
+                          downloadFilename={`async_${task.id}.mp3`}
                           onDownload={handleDownloadAudio}
                           style={{ flex: 1, minWidth: '200px' }}
                         />
                       )}
                     </>
                   )}
-                  {task.status === 'failed' && (
-                    <span style={{ color: 'var(--color-danger)', fontSize: '0.85rem' }}>失败: {task.error}</span>
+                  {(task.status === 'failed' || task.status === 'timeout') && (
+                    <span style={{ color: 'var(--color-danger)', fontSize: '0.85rem' }}>失败: {task.errorMessage}</span>
                   )}
                 </div>
               ))}

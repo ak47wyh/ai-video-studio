@@ -1,4 +1,5 @@
 import type { AxiosError } from 'axios';
+import { withRetry as baseWithRetry } from '../_base/withRetry';
 
 /**
  * 火山引擎 API 错误类。
@@ -135,26 +136,13 @@ export async function withRetry<T>(
   maxRetries: number = 3,
   baseDelayMs: number = 1000,
 ): Promise<T> {
-  let lastError: unknown;
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      return await fn();
-    } catch (error) {
-      lastError = error;
-      const retryable = isRetryableError(error);
-      if (retryable && attempt < maxRetries) {
-        const delay = baseDelayMs * Math.pow(2, attempt);
-        console.warn('[VolcengineRetry] 第 %d 次重试（%dms 后）', attempt + 1, delay, {
-          errorName: error instanceof Error ? error.name : typeof error,
-          message: error instanceof Error ? error.message : String(error),
-        });
-        await new Promise(r => setTimeout(r, delay));
-        continue;
-      }
-      throw error;
-    }
-  }
-  throw lastError;
+  // P2-1：委托到公共 withRetry，保持函数签名与原语义不变
+  return baseWithRetry(fn, {
+    maxRetries,
+    baseDelayMs,
+    isRetryable: isRetryableError,
+    logTag: '[VolcengineRetry]',
+  });
 }
 
 /** 判断错误是否可重试 */

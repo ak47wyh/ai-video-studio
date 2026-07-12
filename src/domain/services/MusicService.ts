@@ -1,7 +1,7 @@
 import type { IMusicPort, IStorySegmentRepository, MusicGenerationContext, MusicModel, LyricsGenerationContext, LyricsGenerationResult, CoverPreprocessResult } from '../ports/OutboundPorts';
 import type { IFileStoragePort } from '../ports/FileStoragePorts';
 import type { IApiConfigStore } from '../ports/PlatformPorts';
-import type { ILoggerPort, ICostMeter } from '../ports/CrossCuttingPorts';
+import type { ILoggerPort, ICostMeter, IHttpFetchPort } from '../ports/CrossCuttingPorts';
 import type { PlatformRouter } from './PlatformRouter';
 
 export class MusicService {
@@ -11,6 +11,8 @@ export class MusicService {
   segmentRepo: IStorySegmentRepository;
   private getFileStorage: () => IFileStoragePort;
   private costMeter?: ICostMeter;
+  /** P1-2：可选注入的 HTTP 抓取 Port */
+  private httpFetch?: IHttpFetchPort;
 
   constructor(
     router: PlatformRouter,
@@ -19,6 +21,7 @@ export class MusicService {
     fileStorage: IFileStoragePort | (() => IFileStoragePort),
     logger: ILoggerPort,
     costMeter?: ICostMeter,
+    httpFetch?: IHttpFetchPort,
   ) {
     this.router = router;
     this.configStore = configStore;
@@ -26,6 +29,7 @@ export class MusicService {
     this.getFileStorage = typeof fileStorage === 'function' ? fileStorage : () => fileStorage;
     this.logger = logger;
     this.costMeter = costMeter;
+    this.httpFetch = httpFetch;
   }
 
   /** 获取当前配置对应的音乐生成适配器 */
@@ -189,13 +193,17 @@ export class MusicService {
     // Phase 2-B：尝试下载音频并持久化到 OPFS
     if (!audioUrl.startsWith('mock://')) {
       try {
-        const res = await fetch(audioUrl);
-        if (res.ok) {
-          const blob = await res.blob();
-          const storagePath = `audio/bgm_${segmentId}.mp3`;
-          await this.getFileStorage().storeBlob(storagePath, blob);
-          segment.bgmStoragePath = storagePath;
-        }
+        // P1-2：优先走 IHttpFetchPort（自动 NetworkError/TimeoutError 归一化）
+        const blob = this.httpFetch
+          ? await this.httpFetch.fetchBlob(audioUrl)
+          : await (async () => {
+              const res = await fetch(audioUrl);
+              if (!res.ok) throw new Error(`HTTP ${res.status}`);
+              return res.blob();
+            })();
+        const storagePath = `audio/bgm_${segmentId}.mp3`;
+        await this.getFileStorage().storeBlob(storagePath, blob);
+        segment.bgmStoragePath = storagePath;
       } catch (e) {
         const err = e instanceof Error ? e : new Error(String(e));
         this.logger.warn(`Failed to cache BGM for segment ${segmentId}`, {

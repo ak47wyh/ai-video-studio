@@ -16,83 +16,15 @@ import {
 } from './secureStorage';
 
 // ===== 平台标识类型 =====
+// 依赖反转：类型定义迁到 domain/entities/platform.ts，
+// 此处 re-export 以保持 adapters 层对外 API 兼容。
 
-/** 平台标识 —— 通用 */
-export type PlatformId = 'minimax' | 'volcengine' | 'kling' | 'wan' | 'hunyuan' | 'zhipu' | 'vidu';
-
-/** 主题标识 */
-export type ThemeId = 'dark' | 'light' | 'blue' | 'warm';
-
-/** 火山方舟接入协议类型
- *  - openai: 标准后付费模式（Base URL: /api/v3，Authorization: Bearer）
- *  - anthropic: Agent Plan 订阅（Base URL: /api/plan，x-api-key + anthropic-version）
- */
-export type VolcArkProtocol = 'openai' | 'anthropic';
+export type { PlatformId, ThemeId, VolcArkProtocol, ApiConfig } from '../../../domain/entities/platform';
+import type { PlatformId, ThemeId, VolcArkProtocol, ApiConfig } from '../../../domain/entities/platform';
 
 // ===== ApiConfig 接口 =====
-
-export interface ApiConfig {
-  // --- MiniMax ---
-  minimaxApiKey: string;
-  minimaxGroupId: string;
-  minimaxBaseUrl: string;
-  minimaxAnthropicBaseUrl: string;
-
-  // --- 火山方舟（Ark）---
-  volcArkApiKey: string;
-  volcArkBaseUrl: string;
-  /** Anthropic 协议 Base URL（Agent Plan 专属，如 https://ark.cn-beijing.volces.com/api/plan） */
-  volcArkAnthropicBaseUrl: string;
-  /** 接入协议选择：openai=标准后付费，anthropic=Agent Plan 订阅 */
-  volcArkProtocol: VolcArkProtocol;
-  /** Anthropic 协议下使用的文本模型 ID（Agent Plan 支持的模型，如 doubao-seed-2.0-pro） */
-  volcArkAnthropicModel: string;
-  /** Anthropic 协议 CORS 拦截时是否自动降级到 OpenAI 协议（默认 true）。
-   *  Agent Plan 用户直连 ark.cn-beijing.volces.com 时浏览器预检会因 anthropic-version
-   *  头被拒，降级到 OpenAI 协议可恢复文本生成能力（注意计费模式差异）。 */
-  volcArkAutoFallback: boolean;
-
-  // --- 火山引擎语音技术（声音复刻 + 大模型 TTS，独立于方舟 Ark 体系）---
-  /** 语音技术 AppID（从火山引擎控制台「语音技术」获取，与方舟 APIKey 不同体系） */
-  volcVoiceAppId: string;
-  /** 语音技术 Access Token（鉴权头格式为 `Bearer;<Token>`，注意分号分隔） */
-  volcVoiceAccessToken: string;
-  /** 业务集群：volcano_tts（标准音色）/ volcano_icl（复刻字符版）/ volcano_icl_concurr（复刻并发版） */
-  volcVoiceCluster: string;
-  /** 声音复刻模型版本：1=ICL1.0 / 2=DiT标准 / 3=DiT还原 / 4=ICL2.0 */
-  volcVoiceCloneModelType: 0 | 1 | 2 | 3 | 4;
-
-  // --- 可灵 Kling（快手） ---
-  klingAccessKey: string;
-  klingSecretKey: string;
-  klingBaseUrl: string;
-
-  // --- 通义万相 Wan（阿里 DashScope） ---
-  wanApiKey: string;
-  wanBaseUrl: string;
-
-  // --- 腾讯混元 Hunyuan ---
-  hunyuanSecretId: string;
-  hunyuanSecretKey: string;
-  hunyuanBaseUrl: string;
-
-  // --- 智谱 CogVideoX / GLM ---
-  zhipuApiKey: string;
-  zhipuBaseUrl: string;
-
-  // --- Vidu（生数科技） ---
-  viduApiKey: string;
-  viduBaseUrl: string;
-
-  // --- 激活的平台（唯一可用）---
-  activePlatform: PlatformId;
-
-  // --- 主题设置 ---
-  theme: ThemeId;
-
-  // --- 开发者工具 ---
-  vconsoleEnabled: boolean;
-}
+// （类型已迁移到 domain 层，此处仅为向后兼容保留 re-export；
+//   如需修改字段结构，请直接编辑 domain/entities/platform.ts）
 
 const STORAGE_KEY = 'ai_video_studio_api_config';
 

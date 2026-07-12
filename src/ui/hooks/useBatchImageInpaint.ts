@@ -10,7 +10,7 @@
  * - 统一算法应用
  */
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import type {
   InpaintRegion,
   InpaintAlgorithm,
@@ -134,6 +134,22 @@ export function useBatchImageInpaint(): UseBatchImageInpaintResult {
   const [isProcessing, setIsProcessing] = useState(false);
 
   const cancelledRef = useRef(false);
+
+  // V2 P0-4.3.3：ref 跟踪最新 tasks，卸载时统一 revoke 全部 thumbnail/result URL
+  const tasksRef = useRef<BatchImageTask[]>([]);
+  useEffect(() => {
+    tasksRef.current = tasks;
+  }, [tasks]);
+  useEffect(() => {
+    return () => {
+      // 批量任务下每 task 至多 2 个 URL（thumbnail + result），20 张图 = 40 个 URL 泄漏点
+      for (const t of tasksRef.current) {
+        if (t.thumbnailUrl) URL.revokeObjectURL(t.thumbnailUrl);
+        if (t.resultUrl) URL.revokeObjectURL(t.resultUrl);
+      }
+      tasksRef.current = [];
+    };
+  }, []);
 
   const completedCount = tasks.filter(t => t.state === 'success').length;
   const failedCount = tasks.filter(t => t.state === 'error').length;

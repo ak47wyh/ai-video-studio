@@ -2,7 +2,7 @@ import type { IImageGeneratorPort, ImageGenerationContext, ImageAspectRatio } fr
 import type { ICharacterRepository, IBackgroundRepository } from '../ports/OutboundPorts';
 import type { IFileStoragePort } from '../ports/FileStoragePorts';
 import type { IApiConfigStore } from '../ports/PlatformPorts';
-import type { ILoggerPort, LogContext, ICostMeter } from '../ports/CrossCuttingPorts';
+import type { ILoggerPort, LogContext, ICostMeter, IHttpFetchPort } from '../ports/CrossCuttingPorts';
 import { PlatformRouter } from './PlatformRouter';
 
 /**
@@ -27,6 +27,8 @@ export class ImageGenerationService {
   private logger: ILoggerPort;
   private getFileStorage: () => IFileStoragePort;
   private costMeter?: ICostMeter;
+  /** P1-2：可选注入的 HTTP 抓取 Port */
+  private httpFetch?: IHttpFetchPort;
 
   constructor(
     characterRepo: ICharacterRepository,
@@ -36,6 +38,7 @@ export class ImageGenerationService {
     fileStorage: IFileStoragePort | (() => IFileStoragePort),
     logger: ILoggerPort,
     costMeter?: ICostMeter,
+    httpFetch?: IHttpFetchPort,
   ) {
     this.characterRepo = characterRepo;
     this.backgroundRepo = backgroundRepo;
@@ -44,6 +47,7 @@ export class ImageGenerationService {
     this.getFileStorage = typeof fileStorage === 'function' ? fileStorage : () => fileStorage;
     this.logger = logger;
     this.costMeter = costMeter;
+    this.httpFetch = httpFetch;
   }
 
   private ctx(extra: LogContext = {}): LogContext {
@@ -190,7 +194,10 @@ export class ImageGenerationService {
     if (!source) return { url: '' };
 
     try {
-      const blob = await (await fetch(source)).blob();
+      // P1-2：优先走 IHttpFetchPort（自动 NetworkError/TimeoutError 归一化）
+      const blob = this.httpFetch
+        ? await this.httpFetch.fetchBlob(source)
+        : await (await fetch(source)).blob();
 
       if (!blob || blob.size === 0) return { url: source };
 

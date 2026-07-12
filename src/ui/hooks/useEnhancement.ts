@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import type {
   ImageEnhanceOptions,
   PdfEnhanceOptions,
@@ -76,6 +76,20 @@ export function useEnhancement(): UseEnhancementResult {
 
   const cancelledRef = useRef(false);
   const lastParamsRef = useRef<LastProcessParams | null>(null);
+  // V2 P0-4.3.1：用 ref 跟踪最新 resultUrl，卸载时兜底 revoke
+  const resultUrlRef = useRef<string | null>(null);
+  useEffect(() => {
+    resultUrlRef.current = resultUrl;
+  }, [resultUrl]);
+  // 组件卸载时释放当前 Blob URL，避免视频增强结果（数十 MB）泄漏
+  useEffect(() => {
+    return () => {
+      if (resultUrlRef.current) {
+        URL.revokeObjectURL(resultUrlRef.current);
+        resultUrlRef.current = null;
+      }
+    };
+  }, []);
 
   /** 释放上一次结果 URL */
   const releaseResultUrl = useCallback((url: string | null) => {

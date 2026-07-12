@@ -18,7 +18,7 @@ import type {
 import type { IFileStoragePort } from '../ports/FileStoragePorts';
 import type { IPipelineTaskRepository } from '../ports/PersistencePorts';
 import type { IApiConfigStore } from '../ports/PlatformPorts';
-import type { ILoggerPort, IEventBus } from '../ports/CrossCuttingPorts';
+import type { ILoggerPort, IEventBus, IHttpFetchPort } from '../ports/CrossCuttingPorts';
 import type { PostProcessService } from './PostProcessService';
 import { createTrackedObjectUrl } from '../../utils/objectUrlRegistry';
 import type { SubtitleService } from './SubtitleService';
@@ -73,6 +73,9 @@ interface PipelineDeps {
   // ===== M3.1 持久化与恢复（EVOLUTION_DESIGN.md §7.1）=====
   /** Pipeline 任务仓储（持久化到 IndexedDB，解决刷新即丢） */
   pipelineTaskRepo?: IPipelineTaskRepository;
+  // ===== P1-2：可选 HTTP 抓取 Port =====
+  /** 用于视频/音频下载归一化，未注入时回退到全局 fetch */
+  httpFetch?: IHttpFetchPort;
 }
 
 const POLL_INTERVAL_MS = 5000;
@@ -114,6 +117,18 @@ export class PipelineService {
     return this.deps.router.resolveImage(this.deps.configStore.load());
   }
 
+  /**
+   * P1-2：统一的外部 URL → Blob 抓取入口。
+   * 优先走注入的 IHttpFetchPort（自动 NetworkError/TimeoutError 归一化），
+   * 未注入时回退到全局 fetch 保持向后兼容。
+   */
+  private async fetchBlob(url: string): Promise<Blob> {
+    if (this.deps.httpFetch) return this.deps.httpFetch.fetchBlob(url);
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.blob();
+  }
+
   private getVideoPort(): IVideoGeneratorPort {
     return this.deps.router.resolveVideo(this.deps.configStore.load());
   }
@@ -139,10 +154,13 @@ export class PipelineService {
   }
 
   private notify(task: PipelineTask): void {
-    this.tasks.set(task.id, { ...task });
-    this.subscribers.get(task.id)?.forEach(cb => cb(task));
-    // M3.1 持久化：所有状态变更统一写库（fire-and-forget，不阻塞主流程）
-    this.persistTask(task);
+    const deepCopy: PipelineTask = {
+      ...task,
+      steps: task.steps.map(step => ({ ...step })),
+    };
+    this.tasks.set(task.id, deepCopy);
+    this.subscribers.get(task.id)?.forEach(cb => cb({ ...deepCopy, steps: deepCopy.steps.map(s => ({ ...s })) }));
+    this.persistTask(deepCopy);
   }
 
   /** 持久化 PipelineTask 到 IndexedDB（静默失败，不影响主流程） */
@@ -290,6 +308,15 @@ export class PipelineService {
   markComplete(taskId: string, finalVideoUrl: string): void {
     const task = this.tasks.get(taskId);
     if (!task) return;
+    if (task.status === 'failed') {
+      this.logger.warn('markComplete called on already failed task, ignoring', {
+        service: 'PipelineService',
+        method: 'markComplete',
+        taskId,
+        currentStatus: task.status,
+      });
+      return;
+    }
     ['post_processing', 'generating_srt', 'burning_subtitles', 'complete'].forEach(s => {
       this.completeStage(task, s as PipelineStatus);
     });
@@ -345,6 +372,20 @@ export class PipelineService {
       this.videoPollers.delete(taskId);
     }
     this.pendingVideoTasks.delete(taskId);
+  }
+
+  /**
+   * V2 P1-4.4.2：全局销毁入口。
+   *
+   * 遍历清理所有 videoPollers 与 pendingVideoTasks，应用退出/HMR/SPA 卸载时调用。
+   * cleanupPollers 仅按 taskId 清理单任务，此方法为兜底。
+   */
+  destroy(): void {
+    for (const [, poller] of this.videoPollers) {
+      clearInterval(poller);
+    }
+    this.videoPollers.clear();
+    this.pendingVideoTasks.clear();
   }
 
   /**
@@ -463,7 +504,8 @@ export class PipelineService {
               if (result.audioUrl) {
                 // 持久化到 OPFS：audioUrl → Blob → 存储 → 更新 segment.narrationAudioStoragePath
                 try {
-                  const audioBlob = await (await fetch(result.audioUrl)).blob();
+                  // P1-2：走 IHttpFetchPort 统一归一化
+                  const audioBlob = await this.fetchBlob(result.audioUrl);
                   const storagePath = `audio/narration_${seg.id}.mp3`;
                   await fileStorage.storeBlob(storagePath, audioBlob);
                   seg.narrationAudioStoragePath = storagePath;
@@ -758,7 +800,10 @@ export class PipelineService {
    * 事件驱动回调：当某个 external video task 完成时由外部 emit
    */
   private handleVideoTaskCompleted(externalTaskId: string, videoUrl: string): void {
-    void this.deps.videoTaskRepo.findBySegmentId('').then(async () => {
+    // Bug#8 修复：删除多余的 `findBySegmentId('').then(...)` 包裹
+    // V2 P1-3.4.4：fire-and-forget 内异常必须捕获记录，否则 Promise rejection 被 swallow，
+    // VideoTask 在 DB 中永远停留在 PENDING/PROCESSING，Pipeline 永远等不到该 task 完成。
+    void (async () => {
       // 找到对应的 VideoTask 并更新
       const allTasks = await this.deps.videoTaskRepo.findByStatuses(['PENDING', 'PROCESSING']);
       const target = allTasks.find(vt => vt.externalTaskId === externalTaskId);
@@ -780,6 +825,12 @@ export class PipelineService {
           externalTaskId,
         });
       }
+    })().catch((err) => {
+      this.logger.error('handleVideoTaskCompleted failed', err, {
+        service: 'PipelineService',
+        method: 'handleVideoTaskCompleted',
+        externalTaskId,
+      });
     });
   }
 
@@ -844,12 +895,11 @@ export class PipelineService {
         const opfsBlob = await fileStorage.getBlob(task.videoStoragePath);
         if (opfsBlob) videoBlob = opfsBlob;
         else {
-          const res = await fetch(task.videoUrl);
-          videoBlob = await res.blob();
+          // P1-2：走 IHttpFetchPort 统一归一化 NetworkError/TimeoutError
+          videoBlob = await this.fetchBlob(task.videoUrl);
         }
       } else {
-        const res = await fetch(task.videoUrl);
-        videoBlob = await res.blob();
+        videoBlob = await this.fetchBlob(task.videoUrl);
       }
 
       // 音频：旁白优先（narrationUrls 或 narrationAudioStoragePath），其次 BGM
@@ -857,8 +907,7 @@ export class PipelineService {
       const narrationUrl = narrationUrls[seg.id];
       if (narrationUrl) {
         try {
-          const audioRes = await fetch(narrationUrl);
-          audioBlob = await audioRes.blob();
+          audioBlob = await this.fetchBlob(narrationUrl);
         } catch (e) {
           this.logger.warn('narration fetch failed', {
             service: 'PipelineService', method: 'assembleFinalVideo',
@@ -874,8 +923,7 @@ export class PipelineService {
         bgmBlob = await fileStorage.getBlob(seg.bgmStoragePath) ?? undefined;
       } else if (seg.bgmAudioUrl) {
         try {
-          const bgmRes = await fetch(seg.bgmAudioUrl);
-          bgmBlob = await bgmRes.blob();
+          bgmBlob = await this.fetchBlob(seg.bgmAudioUrl);
         } catch (e) {
           this.logger.warn('bgm fetch failed', {
             service: 'PipelineService', method: 'assembleFinalVideo',
