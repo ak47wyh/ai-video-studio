@@ -108,6 +108,9 @@ export interface IVideoGeneratorPort {
   submitVideoTask(context: VideoPromptContext): Promise<string>;
   queryTaskStatus(externalTaskId: string): Promise<VideoTaskResult>;
   downloadVideo(fileId: string): Promise<VideoDownloadResult>;
+}
+
+export interface IVideoAgentCapable extends IVideoGeneratorPort {
   createAgentTask(context: VideoAgentContext): Promise<string>;
   queryAgentTask(taskId: string): Promise<VideoAgentTaskResult>;
 }
@@ -412,19 +415,29 @@ export interface IVoicePort {
   readonly voiceCapabilities: VoiceCapabilities;
 
   uploadFile(file: File, purpose: 'voice_clone' | 'prompt_audio' | 't2a_async_input'): Promise<FileUploadResult>;
-  cloneVoice(context: VoiceCloneContext): Promise<VoiceCloneResult>;
   createT2ATask(context: T2AAsyncContext): Promise<T2AAsyncResult>;
   queryT2ATask(taskId: string): Promise<T2AAsyncStatus>;
   getFileUrl(fileId: string): string;
   /** 带 Bearer 认证下载音频文件，返回 Blob URL（可直接用于 <audio> 播放和下载） */
   fetchAudioAsBlobUrl(audioUrl: string): Promise<string>;
   synthesizeSpeechSync(context: T2ASyncContext): Promise<T2ASyncResult>;
-  designVoice(prompt: string, previewText: string, voiceId?: string, aigcWatermark?: boolean): Promise<VoiceDesignResult>;
   getAvailableVoices(voiceType: VoiceType): Promise<VoiceListResult>;
+}
+
+export interface IVoiceCloneCapable extends IVoicePort {
+  cloneVoice(context: VoiceCloneContext): Promise<VoiceCloneResult>;
+}
+
+export interface IVoiceDesignCapable extends IVoicePort {
+  designVoice(prompt: string, previewText: string, voiceId?: string, aigcWatermark?: boolean): Promise<VoiceDesignResult>;
   deleteVoice(voiceType: 'voice_cloning' | 'voice_generation', voiceId: string): Promise<void>;
-  /** WebSocket 流式合成 — 边生成边推送音频块。返回 handle 用于中止 */
+}
+
+export interface IVoiceStreamCapable extends IVoicePort {
   synthesizeSpeechStream(context: T2ASyncContext, callbacks: T2AStreamCallbacks): T2AStreamHandle;
-  /** 声音转换 — 将源音频的音色转换为目标音色，返回转换后音频 */
+}
+
+export interface IVoiceConversionCapable extends IVoicePort {
   convertVoice(context: VoiceConversionContext): Promise<VoiceConversionResult>;
 }
 

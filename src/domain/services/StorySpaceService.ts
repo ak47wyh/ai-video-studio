@@ -1,29 +1,29 @@
 import { v4 as uuidv4 } from 'uuid';
 import type { StorySpace, Character, Background } from '../entities/models';
-import type { IStorySpaceRepository, ICharacterRepository, IBackgroundRepository, IStoryRepository, IVideoTaskRepository, IStorySegmentRepository } from '../ports/OutboundPorts';
+import type { IStorySpaceRepository, ICharacterRepository, IBackgroundRepository, IStoryRepository } from '../ports/OutboundPorts';
+import type { IUnitOfWorkPort } from '../ports/TransactionPorts';
 
 export class StorySpaceService {
-  spaceRepo: IStorySpaceRepository;
-  characterRepo: ICharacterRepository;
-  backgroundRepo: IBackgroundRepository;
-  storyRepo: IStoryRepository;
-  segmentRepo: IStorySegmentRepository;
-  videoTaskRepo: IVideoTaskRepository;
+  private spaceRepo: IStorySpaceRepository;
+  private characterRepo: ICharacterRepository;
+  private backgroundRepo: IBackgroundRepository;
+  private storyRepo: IStoryRepository;
+  private unitOfWork: IUnitOfWorkPort;
 
   constructor(
     spaceRepo: IStorySpaceRepository,
     characterRepo: ICharacterRepository,
     backgroundRepo: IBackgroundRepository,
     storyRepo: IStoryRepository,
-    segmentRepo: IStorySegmentRepository,
-    videoTaskRepo: IVideoTaskRepository
+    _segmentRepo: unknown,
+    _videoTaskRepo: unknown,
+    unitOfWork: IUnitOfWorkPort
   ) {
     this.spaceRepo = spaceRepo;
     this.characterRepo = characterRepo;
     this.backgroundRepo = backgroundRepo;
     this.storyRepo = storyRepo;
-    this.segmentRepo = segmentRepo;
-    this.videoTaskRepo = videoTaskRepo;
+    this.unitOfWork = unitOfWork;
   }
 
   async createSpace(name: string, description: string): Promise<StorySpace> {
@@ -42,23 +42,38 @@ export class StorySpaceService {
   }
 
   async deleteSpace(spaceId: string): Promise<void> {
-    // Delete all stories and their segments/video tasks in this space
-    const stories = await this.storyRepo.findBySpaceId(spaceId);
-    for (const story of stories) {
-      const segments = await this.segmentRepo.findByStoryId(story.id);
-      const segmentIds = segments.map(s => s.id);
-      await this.videoTaskRepo.deleteBySegmentIds(segmentIds);
-      await this.segmentRepo.deleteByStoryId(story.id);
-    }
-    // Delete all characters and backgrounds in this space
-    // (no need to clean segment references since all stories in this space are being deleted)
-    const characters = await this.characterRepo.findBySpaceId(spaceId);
-    for (const c of characters) await this.characterRepo.delete(c.id);
-    const backgrounds = await this.backgroundRepo.findBySpaceId(spaceId);
-    for (const b of backgrounds) await this.backgroundRepo.delete(b.id);
-    for (const s of stories) await this.storyRepo.delete(s.id);
+    await this.unitOfWork.transaction(
+      ['storySpaces', 'stories', 'segments', 'videoTasks', 'characters', 'backgrounds', 'pipelineTasks', 'finalCuts', 'timelines', 'savedImages', 'savedVoices', 'savedPrompts', 'savedVideos', 'generatedFiles', 'snapshots'],
+      async (tx) => {
+        const stories = await tx.stories.where('spaceId').equals(spaceId).toArray();
+        for (const story of stories) {
+          const segments = await tx.segments.where('storyId').equals(story.id).toArray();
+          const segmentIds = segments.map(s => s.id);
+          if (segmentIds.length > 0) {
+            await tx.videoTasks.where('segmentId').in(segmentIds).delete();
+          }
+          await tx.segments.where('storyId').equals(story.id).delete();
+          await tx.finalCuts.where('storyId').equals(story.id).delete();
+          await tx.timelines.where('storyId').equals(story.id).delete();
+          await tx.pipelineTasks.where('storyId').equals(story.id).delete();
+        }
 
-    await this.spaceRepo.delete(spaceId);
+        await tx.characters.where('spaceId').equals(spaceId).delete();
+        await tx.backgrounds.where('spaceId').equals(spaceId).delete();
+        await tx.savedImages.where('spaceId').equals(spaceId).delete();
+        await tx.savedVoices.where('spaceId').equals(spaceId).delete();
+        await tx.savedPrompts.where('spaceId').equals(spaceId).delete();
+        await tx.savedVideos.where('spaceId').equals(spaceId).delete();
+        await tx.generatedFiles.where('spaceId').equals(spaceId).delete();
+        await tx.snapshots.where('spaceId').equals(spaceId).delete();
+
+        for (const story of stories) {
+          await tx.stories.delete(story.id);
+        }
+
+        await tx.storySpaces.delete(spaceId);
+      }
+    );
   }
 
   async copyCharacterToSpace(characterId: string, targetSpaceId: string): Promise<Character> {

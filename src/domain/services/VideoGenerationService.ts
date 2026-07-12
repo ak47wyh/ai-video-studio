@@ -46,10 +46,10 @@ export interface VideoGenerationOptions {
  * - P1-21：注入 ICostMeter 记录视频调用成本。
  */
 export class VideoGenerationService {
-  videoTaskRepo: IVideoTaskRepository;
-  segmentRepo: IStorySegmentRepository;
-  characterRepo: ICharacterRepository;
-  backgroundRepo: IBackgroundRepository;
+  private videoTaskRepo: IVideoTaskRepository;
+  private segmentRepo: IStorySegmentRepository;
+  private characterRepo: ICharacterRepository;
+  private backgroundRepo: IBackgroundRepository;
   private router: PlatformRouter;
   private configStore: IApiConfigStore;
   private logger: ILoggerPort;
@@ -58,7 +58,7 @@ export class VideoGenerationService {
   /** P1-2：可选注入的 HTTP 抓取 Port。未注入时降级到内置 fetch（保持向后兼容）。 */
   private httpFetch?: IHttpFetchPort;
 
-  private activePollers = new Map<string, ReturnType<typeof setInterval>>();
+  private activePollers = new Map<string, AbortController>();
 
   constructor(
     videoTaskRepo: IVideoTaskRepository,
@@ -239,8 +239,8 @@ export class VideoGenerationService {
 
   /** Cancel all active polling intervals (call on app teardown) */
   cancelAllPolling(): void {
-    for (const [taskId, interval] of this.activePollers) {
-      clearInterval(interval);
+    for (const [taskId, controller] of this.activePollers) {
+      controller.abort();
       this.activePollers.delete(taskId);
     }
   }
@@ -287,51 +287,56 @@ export class VideoGenerationService {
   }
 
   private pollTaskStatus(taskId: string, externalTaskId: string) {
-    // Clear any existing poller for this task
     const existing = this.activePollers.get(taskId);
-    if (existing) clearInterval(existing);
+    if (existing) existing.abort();
+
+    const abortController = new AbortController();
+    this.activePollers.set(taskId, abortController);
 
     const pollInterval = 3000;
     const maxRetries = 60;
     let retries = 0;
 
-    const interval = setInterval(async () => {
+    const poll = async () => {
+      if (abortController.signal.aborted) return;
+
       try {
         retries++;
         const videoPort = this.getVideoPort();
         const result = await videoPort.queryTaskStatus(externalTaskId);
 
         if (result.status === 'SUCCESS' || result.status === 'FAILED') {
-          clearInterval(interval);
           this.activePollers.delete(taskId);
           await this.videoTaskRepo.updateStatus(taskId, result.status, result.videoUrl, result.errorMessage);
-          // Phase 2-B：视频成功后异步缓存到 OPFS，避免外部 URL 过期失效
           if (result.status === 'SUCCESS' && result.videoUrl) {
-            // updateStatus 已设置 url，重新通过 statuses 查找该任务构造 VideoTask 用于缓存
             const candidates = await this.videoTaskRepo.findByStatuses(['SUCCESS']);
             const fresh = candidates.find(t => t.id === taskId);
             if (fresh && !fresh.videoStoragePath) {
               this.cacheVideoInBackground(fresh);
             }
           }
-        } else if (retries >= maxRetries) {
-          clearInterval(interval);
+          return;
+        }
+
+        if (retries >= maxRetries) {
           this.activePollers.delete(taskId);
           const timeoutErr = new TimeoutError({
             message: 'Polling timeout',
             context: { taskId, externalTaskId, retries, pollIntervalMs: pollInterval },
           });
           await this.videoTaskRepo.updateStatus(taskId, 'FAILED', undefined, timeoutErr.message);
+          return;
         }
+
+        setTimeout(poll, pollInterval);
       } catch (error: unknown) {
         const message = getErrorMessage(error, 'Poll failed');
-        clearInterval(interval);
         this.activePollers.delete(taskId);
         await this.videoTaskRepo.updateStatus(taskId, 'FAILED', undefined, message);
       }
-    }, pollInterval);
+    };
 
-    this.activePollers.set(taskId, interval);
+    setTimeout(poll, 0);
   }
 
   /**

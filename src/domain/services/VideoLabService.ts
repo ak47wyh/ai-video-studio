@@ -1,5 +1,6 @@
 import type {
   IVideoGeneratorPort,
+  IVideoAgentCapable,
   VideoPromptContext,
   VideoTaskResult,
   VideoDownloadResult,
@@ -39,7 +40,8 @@ export class VideoLabService {
 
   async submitAgentTask(context: VideoAgentContext): Promise<string> {
     this.logger.info('submitAgentTask', { service: 'VideoLabService', method: 'submitAgentTask' });
-    return this.getVideoPort().createAgentTask(context);
+    const port = this.getVideoPort() as IVideoAgentCapable;
+    return port.createAgentTask(context);
   }
 
   async queryTask(taskId: string): Promise<VideoTaskResult> {
@@ -47,7 +49,8 @@ export class VideoLabService {
   }
 
   async queryAgentTask(taskId: string): Promise<VideoAgentTaskResult> {
-    return this.getVideoPort().queryAgentTask(taskId);
+    const port = this.getVideoPort() as IVideoAgentCapable;
+    return port.queryAgentTask(taskId);
   }
 
   async downloadVideo(fileId: string): Promise<VideoDownloadResult> {

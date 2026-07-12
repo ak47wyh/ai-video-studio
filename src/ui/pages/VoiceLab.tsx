@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Mic, Volume2, Upload, RefreshCw, Save, BookmarkPlus, Palette, FileText, Trash2, Play, Search, ChevronDown, ChevronUp, ArrowRight, Send, Pencil, Check, X } from 'lucide-react';
+import { Mic, Volume2, Upload, RefreshCw, Save, BookmarkPlus, Palette, FileText, Trash2, Play, Search, ChevronDown, ChevronUp, ArrowRight, Send, Pencil, Check, X, Repeat } from 'lucide-react';
 import { voiceService, assetLibraryService } from '../../dependencies';
 import type { T2ASyncModel, VoiceListResult, VoiceInfo } from '../../domain/ports/OutboundPorts';
 import { VOICES_BY_LANGUAGE, LANGUAGE_LABELS } from '../../domain/data/systemVoices';
@@ -88,6 +88,9 @@ export const VoiceLab: React.FC = () => {
   const [designPreviewText, setDesignPreviewText] = useState('');
   const [isDesigning, setIsDesigning] = useState(false);
   const [designResult, setDesignResult] = useState<{ voiceId: string; audioUrl: string } | null>(null);
+
+  // ==================== Convert Tab State ====================
+  const [convertResultUrl, setConvertResultUrl] = useState<string | null>(null);
 
   // ==================== Async Tab State ====================
   const [asyncText, setAsyncText] = useState('');

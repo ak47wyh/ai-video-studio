@@ -1,4 +1,4 @@
-import type { IVoicePort, T2AAsyncContext, T2AAsyncStatus, T2ASyncContext, T2ASyncModel, T2ASyncResult, T2AStreamCallbacks, T2AStreamHandle, VoiceDesignResult, VoiceType, VoiceListResult, VoiceConversionContext, VoiceConversionResult } from '../ports/OutboundPorts';
+import type { IVoicePort, IVoiceCloneCapable, IVoiceDesignCapable, IVoiceStreamCapable, IVoiceConversionCapable, T2AAsyncContext, T2AAsyncStatus, T2ASyncContext, T2ASyncModel, T2ASyncResult, T2AStreamCallbacks, T2AStreamHandle, VoiceDesignResult, VoiceType, VoiceListResult, VoiceConversionContext, VoiceConversionResult } from '../ports/OutboundPorts';
 import type { ICharacterRepository, IStorySegmentRepository } from '../ports/OutboundPorts';
 import type { IFileStoragePort } from '../ports/FileStoragePorts';
 import type { IApiConfigStore } from '../ports/PlatformPorts';
@@ -29,8 +29,8 @@ export class VoiceService {
   private router: PlatformRouter;
   private configStore: IApiConfigStore;
   private logger: ILoggerPort;
-  characterRepo: ICharacterRepository;
-  segmentRepo: IStorySegmentRepository;
+  private characterRepo: ICharacterRepository;
+  private segmentRepo: IStorySegmentRepository;
   private getFileStorage: () => IFileStoragePort;
   private costMeter?: ICostMeter;
   private savedVoiceRepo?: ISavedVoiceRepository;
@@ -153,7 +153,7 @@ export class VoiceService {
       promptAudioFileId = result.fileId;
     }
 
-    const cloneResult = await this.getVoicePort().cloneVoice({
+    const cloneResult = await (this.getVoicePort() as IVoiceCloneCapable).cloneVoice({
       fileId,
       voiceId: customVoiceId,
       text,
@@ -251,7 +251,7 @@ export class VoiceService {
       languageBoost: options?.languageBoost || 'auto',
       ...options,
     };
-    return this.getVoicePort().synthesizeSpeechStream(context, callbacks);
+    return (this.getVoicePort() as IVoiceStreamCapable).synthesizeSpeechStream(context, callbacks);
   }
 
   /**
@@ -307,7 +307,7 @@ export class VoiceService {
    * Design a new voice using text description.
    */
   async designVoice(prompt: string, previewText: string, voiceId?: string, aigcWatermark?: boolean): Promise<VoiceDesignResult> {
-    return this.getVoicePort().designVoice(prompt, previewText, voiceId, aigcWatermark);
+    return (this.getVoicePort() as IVoiceDesignCapable).designVoice(prompt, previewText, voiceId, aigcWatermark);
   }
 
   /**
@@ -318,7 +318,7 @@ export class VoiceService {
     if (!character) throw new Error('Character not found');
 
     const voiceId = `design_${Date.now()}`;
-    const result = await this.getVoicePort().designVoice(prompt, previewText, voiceId);
+    const result = await (this.getVoicePort() as IVoiceDesignCapable).designVoice(prompt, previewText, voiceId);
 
     character.voiceId = result.voiceId;
     await this.characterRepo.save(character);
@@ -355,8 +355,8 @@ export class VoiceService {
     audio: Blob | string,
     targetVoiceType: string,
     options?: {
-      outputEncoding?: 'mp3' | 'wav' | 'pcm' | 'ogg';
-      outputRate?: number;
+      outputEncoding?: 'mp3' | 'wav' | 'pcm' | 'ogg_opus';
+      outputRate?: 16000 | 24000 | 32000 | 48000;
       pitchRatio?: number;
       volumeRatio?: number;
     },
@@ -370,7 +370,7 @@ export class VoiceService {
       volumeRatio: options?.volumeRatio,
     };
 
-    this._logger.info('[VoiceService] convertVoice 入参', {
+    this.logger.info('[VoiceService] convertVoice 入参', {
       service: 'VoiceService',
       method: 'convertVoice',
       targetVoiceType,
@@ -381,9 +381,9 @@ export class VoiceService {
       volumeRatio: options?.volumeRatio,
     });
 
-    const result = await this.getVoicePort().convertVoice(context);
+    const result = await (this.getVoicePort() as IVoiceConversionCapable).convertVoice(context);
 
-    this._logger.info('[VoiceService] convertVoice 出参', {
+    this.logger.info('[VoiceService] convertVoice 出参', {
       service: 'VoiceService',
       method: 'convertVoice',
       audioUrl: result.audioUrl.substring(0, 100),
@@ -572,7 +572,7 @@ export class VoiceService {
    * Also unbinds it from any character currently using it.
    */
   async deleteVoice(voiceType: 'voice_cloning' | 'voice_generation', voiceId: string): Promise<void> {
-    await this.getVoicePort().deleteVoice(voiceType, voiceId);
+    await (this.getVoicePort() as IVoiceDesignCapable).deleteVoice(voiceType, voiceId);
 
     // Unbind from any character using this voice
     const allCharacters = await this.characterRepo.findAll();

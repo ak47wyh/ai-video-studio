@@ -15,13 +15,13 @@ import type {
 } from '../ports/OutboundPorts';
 
 export class StoryService {
-  storyRepo: IStoryRepository;
-  segmentRepo: IStorySegmentRepository;
-  characterRepo: ICharacterRepository;
-  backgroundRepo: IBackgroundRepository;
-  textSplitterPort: ITextSplitterPort;
-  storyBreakdownPort: IStoryBreakdownPort;
-  videoTaskRepo: IVideoTaskRepository;
+  private storyRepo: IStoryRepository;
+  private segmentRepo: IStorySegmentRepository;
+  private characterRepo: ICharacterRepository;
+  private backgroundRepo: IBackgroundRepository;
+  private textSplitterPort: ITextSplitterPort;
+  private storyBreakdownPort: IStoryBreakdownPort;
+  private videoTaskRepo: IVideoTaskRepository;
 
   constructor(
     storyRepo: IStoryRepository,
@@ -248,6 +248,14 @@ export class StoryService {
     const segment = await this.segmentRepo.findById(segmentId);
     if (segment) {
       segment.selectedBackgroundId = backgroundId;
+      await this.segmentRepo.save(segment);
+    }
+  }
+
+  async updateSegment(segmentId: string, updates: Partial<StorySegment>): Promise<void> {
+    const segment = await this.segmentRepo.findById(segmentId);
+    if (segment) {
+      Object.assign(segment, updates);
       await this.segmentRepo.save(segment);
     }
   }

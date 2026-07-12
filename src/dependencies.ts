@@ -7,6 +7,7 @@ import { StorySpaceRepositoryAdapter, CharacterRepositoryAdapter, StoryRepositor
 import { SnapshotRepositoryAdapter } from './adapters/outbound/repositories/SnapshotRepositoryAdapter';
 import { TimelineRepositoryAdapter } from './adapters/outbound/repositories/TimelineRepositoryAdapter';
 import { PipelineTaskRepositoryAdapter } from './adapters/outbound/repositories/PipelineTaskRepositoryAdapter';
+import { DexieUnitOfWorkAdapter } from './adapters/outbound/repositories/TransactionAdapter';
 
 // ==================== 基础设施层（外部API适配器） ====================
 import { MiniMaxVideoAdapter } from './adapters/outbound/api/MiniMaxVideoAdapter';
@@ -105,6 +106,7 @@ export const snapshotRepo = new SnapshotRepositoryAdapter();
 export const timelineRepo = new TimelineRepositoryAdapter();
 // M3.1: Pipeline 任务仓储（持久化到 IndexedDB）
 export const pipelineTaskRepo = new PipelineTaskRepositoryAdapter();
+export const unitOfWork = new DexieUnitOfWorkAdapter();
 // 素材库仓储（提前声明，供 VoiceService 等服务注入）
 import { SavedVoiceRepository } from './adapters/outbound/repositories/AssetLibraryRepositories';
 export const savedVoiceRepo = new SavedVoiceRepository();
@@ -336,7 +338,7 @@ export const storyFilmService = new StoryFilmService(
 // 空间管理
 // ========================================
 export const storySpaceService = new StorySpaceService(
-  spaceRepo, characterRepo, backgroundRepo, storyRepo, segmentRepo, videoTaskRepo
+  spaceRepo, characterRepo, backgroundRepo, storyRepo, segmentRepo, videoTaskRepo, unitOfWork
 );
 
 // ========================================

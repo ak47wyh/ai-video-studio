@@ -361,7 +361,7 @@ export const StoryWorkbench: React.FC = () => {
       const seg = segments.find(s => s.id === segmentId);
       if (seg) {
         seg.actionContent = content;
-        await storyService.segmentRepo.save(seg);
+        await storyService.updateSegment(segmentId, { actionContent: content });
       }
     } catch (e) { showToast('error', getErrorMessage(e)); }
   }, [segments, showToast]);
@@ -371,7 +371,7 @@ export const StoryWorkbench: React.FC = () => {
       const seg = segments.find(s => s.id === segmentId);
       if (seg) {
         seg.firstFrameImage = url;
-        await storyService.segmentRepo.save(seg);
+        await storyService.updateSegment(segmentId, { firstFrameImage: url });
       }
     } catch (e) { showToast('error', getErrorMessage(e)); }
   }, [segments, showToast]);
