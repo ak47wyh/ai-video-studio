@@ -2,7 +2,9 @@ import type {
   IVoicePort, VoiceCloneContext, VoiceCloneResult, T2AAsyncContext, T2AAsyncResult,
   T2AAsyncStatus, T2ASyncContext, T2ASyncResult, VoiceDesignResult, VoiceType,
   VoiceListResult, FileUploadResult, T2AStreamCallbacks, T2AStreamHandle,
+  VoiceConversionContext, VoiceConversionResult,
 } from '../../../../domain/ports/OutboundPorts';
+import { CapabilityNotSupportedError } from '../../../../domain/ports/OutboundPorts';
 import type { ApiConfig } from '../../config/ApiConfigStore';
 import { WanHttpClient } from './WanHttpClient';
 
@@ -20,7 +22,12 @@ export class WanVoiceAdapter implements IVoicePort {
     supportsDesign: false,
     supportsDelete: false,
     supportsStream: false,
+    supportsConversion: false,
   };
+
+  async convertVoice(_context: VoiceConversionContext): Promise<VoiceConversionResult> {
+    throw new CapabilityNotSupportedError('wan', 'supportsConversion');
+  }
 
   private http: WanHttpClient;
   private config: ApiConfig;

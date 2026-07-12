@@ -10,6 +10,7 @@ const FALLBACK_CAPABILITIES: VoiceCapabilities = {
   supportsDesign: false,
   supportsDelete: false,
   supportsStream: false,
+  supportsConversion: false,
 };
 
 interface UseVoiceCapabilitiesResult {

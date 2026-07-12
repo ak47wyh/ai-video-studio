@@ -313,4 +313,246 @@ export class VolcengineSpeechClient {
       return v.toString(16);
     });
   }
+
+  // ==================== 声音转换 (Voice Conversion) ====================
+
+  /**
+   * 流式声音转换（WebSocket V1 二进制协议）。
+   *
+   * 协议参考：https://www.volcengine.com/docs/6561/215896
+   *  - 接口：wss://openspeech.bytedance.com/api/v1/voice_conv/ws
+   *  - 鉴权：Authorization: Bearer;{token}（浏览器 WS 不支持自定义头，通过 body app.token 鉴权）
+   *  - 输入：PCM 16k 16bit 单声道（由调用方解码并重采样）
+   *  - 输出：wav/pcm/mp3/ogg_opus
+   *
+   * 报文格式（大端序）：
+   *  - Full client request: Header(4B) + PayloadSize(4B) + Payload(JSON)
+   *  - Audio-only client request: Header(4B) + Sequence(4B) + PayloadSize(4B) + Payload(raw PCM)
+   *  - Audio-only server response: Header(4B) + [Sequence(4B)] + PayloadSize(4B) + Payload(raw audio)
+   *
+   * @returns 转换后的音频字节与编码格式
+   */
+  convertVoiceStream(params: {
+    pcmBytes: Uint8Array;
+    voiceType: string;
+    encoding?: string;
+    rate?: number;
+    pitchRatio?: number;
+    volumeRatio?: number;
+  }): Promise<{ audioBytes: Uint8Array; encoding: string }> {
+    this.ensureConfigured();
+
+    const encoding = params.encoding ?? 'mp3';
+    const rate = params.rate ?? 24000;
+    const wsUrl = 'wss://openspeech.bytedance.com/api/v1/voice_conv/ws';
+
+    return new Promise((resolve, reject) => {
+      const ws = new WebSocket(wsUrl);
+      ws.binaryType = 'arraybuffer';
+      let closed = false;
+      const audioChunks: Uint8Array[] = [];
+      let seq = 1;
+
+      const cleanup = () => {
+        if (!closed) {
+          closed = true;
+          if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+            ws.close();
+          }
+        }
+      };
+
+      ws.onopen = () => {
+        // 1. 发送 full client request（JSON 配置）
+        const reqid = this.generateReqid();
+        const config = JSON.stringify({
+          app: {
+            appid: this.config.volcVoiceAppId,
+            token: this.config.volcVoiceAccessToken,
+            cluster: this.config.volcVoiceCluster,
+          },
+          user: { uid: 'ai-video-studio' },
+          audio: {
+            voice: 'other',
+            voice_type: params.voiceType,
+            encoding,
+            rate,
+            pitch_ratio: params.pitchRatio ?? 1.0,
+            volume_ratio: params.volumeRatio ?? 1.0,
+          },
+          request: {
+            reqid,
+            operation: 'submit',
+            sequence: 0,
+          },
+        });
+        this.sendFullClientRequest(ws, config);
+
+        // 2. 等待 ACK 后分片发送 PCM 音频
+        // ACK 到达后由 onmessage 触发 startStreaming
+      };
+
+      let streamingStarted = false;
+
+      ws.onmessage = (event) => {
+        const data = event.data as ArrayBuffer;
+        if (data.byteLength < 4) return;
+        const view = new DataView(data);
+        const msgType = (view.getUint8(1) >> 4) & 0x0F;
+        const flags = view.getUint8(1) & 0x0F;
+
+        if (msgType === 0b1111) {
+          // 错误响应
+          const errorPayload = new TextDecoder().decode(new Uint8Array(data, 4));
+          cleanup();
+          reject(new VolcengineApiError(0, 'VC_ERROR', `声音转换失败: ${errorPayload}`));
+          return;
+        }
+
+        if (msgType === 0b1011) {
+          // audio-only server response
+          if (flags === 0b0000) {
+            // ACK（full client request 的确认），开始流式发送音频
+            if (!streamingStarted) {
+              streamingStarted = true;
+              this.streamAudioChunks(ws, params.pcmBytes, (s) => {
+                seq = s;
+              });
+            }
+            return;
+          }
+
+          // 提取音频数据：flags 指示是否有 sequence
+          const hasSeq = flags === 0b0001 || flags === 0b0010 || flags === 0b0011;
+          let offset = 4; // 跳过 header
+          if (hasSeq && data.byteLength >= 8) {
+            const serverSeq = view.getInt32(4, false); // 大端序
+            offset = 8;
+            if (serverSeq < 0) {
+              // 最后一包：提取剩余音频后完成
+              this.extractAudioPayload(data, offset, audioChunks);
+              const merged = this.mergeUint8Arrays(audioChunks);
+              cleanup();
+              resolve({ audioBytes: merged, encoding });
+              return;
+            }
+          }
+          // 普通音频包
+          this.extractAudioPayload(data, offset, audioChunks);
+        }
+      };
+
+      ws.onerror = () => {
+        if (!closed) {
+          cleanup();
+          reject(new VolcengineApiError(0, 'VC_WS_ERROR', '声音转换 WebSocket 连接失败'));
+        }
+      };
+
+      ws.onclose = () => {
+        if (!closed) {
+          // 连接关闭但未收到结束包，若已有数据则返回
+          if (audioChunks.length > 0) {
+            const merged = this.mergeUint8Arrays(audioChunks);
+            resolve({ audioBytes: merged, encoding });
+          } else {
+            reject(new VolcengineApiError(0, 'VC_CLOSED', '声音转换连接异常关闭'));
+          }
+        }
+      };
+
+      // 超时保护（60 秒）
+      setTimeout(() => {
+        if (!closed) {
+          cleanup();
+          reject(new VolcengineApiError(0, 'VC_TIMEOUT', '声音转换超时'));
+        }
+      }, 60_000);
+    });
+  }
+
+  /** 发送 full client request（Header + PayloadSize + Payload） */
+  private sendFullClientRequest(ws: WebSocket, jsonPayload: string): void {
+    const header = new Uint8Array([0x11, 0x10, 0x10, 0x00]); // proto=1, headerSize=1, msgType=1(full), flags=0, serial=1(JSON), compress=0
+    const payloadBytes = new TextEncoder().encode(jsonPayload);
+    const payloadSize = new ArrayBuffer(4);
+    new DataView(payloadSize).setUint32(0, payloadBytes.byteLength, false); // 大端序
+    const msg = new Uint8Array(header.length + 4 + payloadBytes.length);
+    msg.set(header, 0);
+    msg.set(new Uint8Array(payloadSize), header.length);
+    msg.set(payloadBytes, header.length + 4);
+    ws.send(msg);
+  }
+
+  /** 分片发送 PCM 音频（audio-only request，每片 ~200ms = 6400 bytes） */
+  private streamAudioChunks(ws: WebSocket, pcmBytes: Uint8Array, onSeq: (seq: number) => void): void {
+    const CHUNK_SIZE = 6400; // 16k * 16bit * 0.2s = 6400 bytes
+    let offset = 0;
+    let seq = 1;
+
+    const sendNext = () => {
+      if (offset >= pcmBytes.byteLength) return;
+      const end = Math.min(offset + CHUNK_SIZE, pcmBytes.byteLength);
+      const isLast = end >= pcmBytes.byteLength;
+      const chunk = pcmBytes.slice(offset, end);
+      const currentSeq = isLast ? -seq : seq;
+
+      // Header: msgType=0b0010(audio-only), flags=0b0001(seq>0) 或 0b0011(seq<0, last)
+      const flags = isLast ? 0b0011 : 0b0001;
+      const header = new Uint8Array([0x11, (0x02 << 4) | flags, 0x00, 0x00]);
+
+      const seqBuf = new ArrayBuffer(4);
+      new DataView(seqBuf).setInt32(0, currentSeq, false); // 大端序
+
+      const payloadSize = new ArrayBuffer(4);
+      new DataView(payloadSize).setUint32(0, chunk.byteLength, false);
+
+      const msg = new Uint8Array(header.length + 4 + 4 + chunk.byteLength);
+      msg.set(header, 0);
+      msg.set(new Uint8Array(seqBuf), header.length);
+      msg.set(new Uint8Array(payloadSize), header.length + 4);
+      msg.set(chunk, header.length + 8);
+
+      ws.send(msg);
+
+      seq++;
+      onSeq(seq);
+      offset = end;
+
+      if (!isLast) {
+        // 间隔 ~100ms 发送下一片，避免服务端过载
+        setTimeout(sendNext, 100);
+      } else {
+        // 发送完毕，等待服务端返回最后一包
+      }
+    };
+
+    sendNext();
+  }
+
+  /** 从服务端响应中提取音频 payload（跳过 header + 可选 sequence + payloadSize） */
+  private extractAudioPayload(data: ArrayBuffer, offset: number, chunks: Uint8Array[]): void {
+    // offset 已跳过 header 和可能的 sequence，接下来 4 字节是 payloadSize
+    if (data.byteLength < offset + 4) return;
+    const payloadSize = new DataView(data).getUint32(offset, false);
+    const payloadStart = offset + 4;
+    if (payloadSize > 0 && data.byteLength >= payloadStart + payloadSize) {
+      chunks.push(new Uint8Array(data, payloadStart, payloadSize));
+    } else if (data.byteLength > payloadStart) {
+      // payloadSize 为 0 或不匹配时，取剩余全部
+      chunks.push(new Uint8Array(data, payloadStart));
+    }
+  }
+
+  /** 合并多个 Uint8Array */
+  private mergeUint8Arrays(arrays: Uint8Array[]): Uint8Array {
+    const total = arrays.reduce((sum, arr) => sum + arr.byteLength, 0);
+    const merged = new Uint8Array(total);
+    let offset = 0;
+    for (const arr of arrays) {
+      merged.set(arr, offset);
+      offset += arr.byteLength;
+    }
+    return merged;
+  }
 }
