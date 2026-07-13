@@ -443,6 +443,18 @@ export const assetLibraryService = new AssetLibraryService(
   httpFetch,             // P1-2：HTTP 抓取 Port，统一 NetworkError/TimeoutError 归一化
 );
 
+// ==================== 图片处理服务（F6/F7/F8） ====================
+import { ImageProcessingService } from './domain/services/ImageProcessingService';
+import { BrowserImageProcessorAdapter } from './adapters/outbound/image/BrowserImageProcessorAdapter';
+
+// 平台无关的本地图片处理 Port（不走 PlatformRouter，单例注入）
+export const imageProcessorPort = new BrowserImageProcessorAdapter();
+// 图片处理领域服务：编排 Port，提供策略映射 / 上传压缩 / 批量压缩 / 预览
+export const imageProcessingService = new ImageProcessingService(
+  imageProcessorPort,
+  defaultLogger.child({ service: 'ImageProcessingService' }),
+);
+
 // ========================================
 // 时间线渲染服务（剪辑工作台 → 最终视频）
 // - fileStorage 用 lazy accessor，支持应用启动时未完成异步初始化的场景

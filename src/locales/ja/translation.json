@@ -906,5 +906,37 @@
   "notFound": {
     "message": "お探しのページは存在しません",
     "backHome": "ホームに戻る"
+  },
+  "compress": {
+    "title": "画像を一括圧縮",
+    "failed": "圧縮失敗：{{msg}}",
+    "quality": "品質",
+    "qualityHint": "85=ほぼロスレス（推奨）、60=高圧縮、95=最高品質",
+    "limitDimension": "最长辺を制限",
+    "format": "出力形式",
+    "formatOriginal": "元の形式に従う（PNG透明保持）",
+    "formatJpeg": "JPEG（より小さい、透明なし）",
+    "formatWebp": "WebP（モダン形式、最小）",
+    "resultMode": "結果処理",
+    "modeReplace": "原地置換（ライブラリスリム化）",
+    "modeSaveAsNew": "新素材として保存（元を保持）",
+    "processing": "圧縮中...",
+    "start": "圧縮開始",
+    "resultSummary": "圧縮結果",
+    "success": "成功",
+    "totalOriginal": "元のサイズ",
+    "totalCompressed": "圧縮後",
+    "totalSaved": "節約",
+    "completeSummary": "完了：{{ok}}/{{total}} 成功、{{saved}} 節約"
+  },
+  "fileManager": {
+    "deleteSuccess": "削除しました",
+    "deleteFailed": "削除失敗：{{msg}}",
+    "searchPlaceholder": "名前/タグ/プロンプトを検索...",
+    "selected": "{{count}} 件選択",
+    "batchCompress": "一括圧縮",
+    "batchDelete": "一括削除",
+    "clearSelection": "選択解除",
+    "compressComplete": "圧縮完了、アセットを更新しました"
   }
 }

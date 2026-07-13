@@ -952,5 +952,37 @@
   "notFound": {
     "message": "The page you are looking for does not exist",
     "backHome": "Back to Home"
+  },
+  "compress": {
+    "title": "Batch Compress Images",
+    "failed": "Compression failed: {{msg}}",
+    "quality": "Quality",
+    "qualityHint": "85=near-lossless (recommended), 60=high compression, 95=max quality",
+    "limitDimension": "Limit longest edge",
+    "format": "Output format",
+    "formatOriginal": "Follow original (PNG transparency preserved)",
+    "formatJpeg": "JPEG (smaller, no transparency)",
+    "formatWebp": "WebP (modern, smallest)",
+    "resultMode": "Result handling",
+    "modeReplace": "Replace in place (slim library)",
+    "modeSaveAsNew": "Save as new asset (keep original)",
+    "processing": "Compressing...",
+    "start": "Start compression",
+    "resultSummary": "Compression result",
+    "success": "success",
+    "totalOriginal": "Original size",
+    "totalCompressed": "Compressed size",
+    "totalSaved": "Saved",
+    "completeSummary": "Done: {{ok}}/{{total}} succeeded, saved {{saved}}"
+  },
+  "fileManager": {
+    "deleteSuccess": "Deleted",
+    "deleteFailed": "Delete failed: {{msg}}",
+    "searchPlaceholder": "Search name/tag/prompt...",
+    "selected": "{{count}} selected",
+    "batchCompress": "Batch Compress",
+    "batchDelete": "Batch Delete",
+    "clearSelection": "Clear selection",
+    "compressComplete": "Compression complete, assets updated"
   }
 }

@@ -74,8 +74,14 @@ export const PLATFORM_METADATA: Record<PlatformId, PlatformMeta> = {
     docLink: 'https://www.volcengine.com/docs/82379',
     // OpenAI 协议下的全能力（与 PlatformRouter 实际行为一致）
     capabilities: ['video', 'videoFl2v', 'videoS2v', 'image', 'text', 'voice'],
-    videoModels: ['volcengine-seedance-1-0-pro', 'volcengine-seedance-1-0-lite'],
-    imageModel: 'volcengine-seedream-3-0',
+    // 模型 ID 对齐官方 Model ID（详见 https://www.volcengine.com/docs/82379/1330310）
+    videoModels: [
+      'doubao-seedance-1-0-pro-250528',       // 强烈推荐，支持首尾帧/首帧/文生
+      'doubao-seedance-1-0-pro-fast-251015',  // 快速版
+      'doubao-seedance-1-0-lite-t2v-250428',  // 文生 lite
+      'doubao-seedance-1-0-lite-i2v-250428',  // 图生 lite
+    ],
+    imageModel: 'doubao-seedream-4-5-251128',  // Seedream 4.5 最新版本
     textModel: 'volcengine-doubao-pro',
   },
   kling: {

@@ -30,31 +30,50 @@ const STORAGE_KEY = 'ai_video_studio_api_config';
 
 // ===== 默认值 =====
 
-// 所有平台默认直连完整外部 URL,DEV 与 PROD 行为一致。
-// 按设计约束不做 CORS 处理：不可直连的平台视为能力不可用，UI 自动置灰。
+// CORS 策略：MiniMax 直连（平台已支持 CORS），火山引擎开发环境走 Vite proxy。
+// - 开发环境 (import.meta.env.DEV)：火山 baseURL 用相对路径 /volc-ark/*，由 vite.config.ts 的 server.proxy 转发
+// - 生产环境 (import.meta.env.PROD)：火山 baseURL 直连官方域名，需部署 nginx 反代相同路径
+// - MiniMax 始终直连 https://api.minimaxi.com，不随环境变化
+const IS_DEV = import.meta.env.DEV;
+
+// 火山方舟 baseURL：开发环境走 /volc-ark proxy 规避 CORS，生产环境直连官方域名
+const VOLC_ARK_BASE_URL = IS_DEV
+  ? '/volc-ark/api/v3'
+  : 'https://ark.cn-beijing.volces.com/api/v3';
+const VOLC_ARK_ANTHROPIC_BASE_URL = IS_DEV
+  ? '/volc-ark/api/plan'
+  : 'https://ark.cn-beijing.volces.com/api/plan';
+
 const DEFAULT_CONFIG: ApiConfig = {
-  // MiniMax 默认值
+  // MiniMax 默认值（始终直连，平台已支持 CORS）
   minimaxApiKey: '',
   minimaxGroupId: '',
   minimaxBaseUrl: 'https://api.minimaxi.com/v1',
   minimaxAnthropicBaseUrl: 'https://api.minimaxi.com/anthropic',
 
-  // 火山方舟默认值
+  // 火山方舟默认值（开发环境走 proxy，生产环境直连）
   volcArkApiKey: '',
-  volcArkBaseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
-  volcArkAnthropicBaseUrl: 'https://ark.cn-beijing.volces.com/api/plan',
+  volcArkBaseUrl: VOLC_ARK_BASE_URL,
+  volcArkAnthropicBaseUrl: VOLC_ARK_ANTHROPIC_BASE_URL,
   // 默认 Anthropic 协议（Agent Plan 订阅）：进入设置页默认显示 Anthropic Base URL，
   // 用户可通过下拉框切换到 OpenAI 协议配置 OpenAI 格式 URL。
   volcArkProtocol: 'anthropic' as VolcArkProtocol,
   volcArkAnthropicModel: 'doubao-seed-2.0-pro',
   // Anthropic CORS 拦截时自动降级到 OpenAI 协议（默认开启，可由设置页关闭）
   volcArkAutoFallback: true,
+  // 视频生成模型 ID（对齐官方 Model ID，详见 https://www.volcengine.com/docs/82379/1330310）
+  volcArkVideoModel: 'doubao-seedance-1-0-pro-250528',
+  // 图片生成模型 ID（Seedream 4.5 最新版本）
+  volcArkImageModel: 'doubao-seedream-4-5-251128',
+  // Ark TTS 模型 ID
+  volcArkTtsModel: 'doubao-tts-base',
 
   // 火山引擎语音技术默认值（独立于方舟 Ark，需单独开通语音技术服务）
   volcVoiceAppId: '',
   volcVoiceAccessToken: '',
-  volcVoiceCluster: 'volcano_icl',  // 默认复刻字符版集群
-  volcVoiceCloneModelType: 1,        // 默认 ICL 1.0 模型
+  volcVoiceCluster: 'volcano_icl',          // 克隆音色 cluster
+  volcVoiceStandardCluster: 'volcano_tts',  // 标准音色 cluster（P0 修复：与克隆 cluster 分离）
+  volcVoiceCloneModelType: 1,                // 默认 ICL 1.0 模型
 
   // 可灵 Kling 默认值
   klingAccessKey: '',
@@ -88,8 +107,9 @@ const DEFAULT_CONFIG: ApiConfig = {
   vconsoleEnabled: false,
 };
 
-// 旧版 DEV 代理路径 → 完整外部 URL 的迁移映射。
-// 直连架构下不再使用代理路径,需把 localStorage 中残留的旧值替换为默认完整 URL。
+// 旧版 DEV 代理路径迁移映射。
+// 迁移目标自动跟随 DEFAULT_CONFIG：开发环境迁移到 /volc-ark/*（新 proxy 路径），
+// 生产环境迁移到完整外部 URL。其他旧代理路径（/anthropic /kling 等）迁移到完整 URL。
 const PROXY_PATH_MIGRATIONS: Record<string, Partial<ApiConfig>> = {
   '/anthropic': { minimaxAnthropicBaseUrl: DEFAULT_CONFIG.minimaxAnthropicBaseUrl },
   '/kling': { klingBaseUrl: DEFAULT_CONFIG.klingBaseUrl },
@@ -98,6 +118,11 @@ const PROXY_PATH_MIGRATIONS: Record<string, Partial<ApiConfig>> = {
   '/zhipu': { zhipuBaseUrl: DEFAULT_CONFIG.zhipuBaseUrl },
   '/vidu': { viduBaseUrl: DEFAULT_CONFIG.viduBaseUrl },
   '/volcengine-ark': { volcArkBaseUrl: DEFAULT_CONFIG.volcArkBaseUrl },
+  // 旧版完整官方 URL 迁移：开发环境自动切换到 /volc-ark/* proxy 路径规避 CORS，
+  // 生产环境保持官方 URL（需部署 nginx 反代）。
+  // 解决用户 localStorage 中残留的直连 URL 导致 CORS 拦截的问题。
+  'https://ark.cn-beijing.volces.com/api/v3': { volcArkBaseUrl: DEFAULT_CONFIG.volcArkBaseUrl },
+  'https://ark.cn-beijing.volces.com/api/plan': { volcArkAnthropicBaseUrl: DEFAULT_CONFIG.volcArkAnthropicBaseUrl },
 };
 
 export const ApiConfigStore = {
@@ -165,6 +190,8 @@ export const ApiConfigStore = {
       if (isEncryptedPayload(raw)) {
         const config = this._migrateProxyPaths({ ...DEFAULT_CONFIG, ...await decryptJSON<ApiConfig>(raw) });
         this._cache = config;
+        // 迁移后若字段有变化，重新加密持久化，避免下次启动重复迁移
+        void this._persistEncrypted(config);
       } else {
         // 旧版明文：解析、迁移，并异步加密重写升级
         const config = this._migrateProxyPaths({ ...DEFAULT_CONFIG, ...JSON.parse(raw) });

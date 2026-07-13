@@ -625,5 +625,37 @@
   "notFound": {
     "message": "찾으시는 페이지가 존재하지 않습니다",
     "backHome": "홈으로 돌아가기"
+  },
+  "compress": {
+    "title": "이미지 일괄 압축",
+    "failed": "압축 실패: {{msg}}",
+    "quality": "품질",
+    "qualityHint": "85=거의 무손실(권장), 60=고압축, 95=최고 품질",
+    "limitDimension": "최장변 제한",
+    "format": "출력 형식",
+    "formatOriginal": "원본 따르기(PNG 투명 유지)",
+    "formatJpeg": "JPEG(더 작음, 투명 없음)",
+    "formatWebp": "WebP(최신 형식, 가장 작음)",
+    "resultMode": "결과 처리",
+    "modeReplace": "제자리 교체(라이브러리 슬림)",
+    "modeSaveAsNew": "새 자산으로 저장(원본 유지)",
+    "processing": "압축 중...",
+    "start": "압축 시작",
+    "resultSummary": "압축 결과",
+    "success": "성공",
+    "totalOriginal": "원본 크기",
+    "totalCompressed": "압축 후",
+    "totalSaved": "절약",
+    "completeSummary": "완료: {{ok}}/{{total}} 성공, {{saved}} 절약"
+  },
+  "fileManager": {
+    "deleteSuccess": "삭제됨",
+    "deleteFailed": "삭제 실패: {{msg}}",
+    "searchPlaceholder": "이름/태그/프롬프트 검색...",
+    "selected": "{{count}}개 선택됨",
+    "batchCompress": "일괄 압축",
+    "batchDelete": "일괄 삭제",
+    "clearSelection": "선택 해제",
+    "compressComplete": "압축 완료, 자산 업데이트됨"
   }
 }

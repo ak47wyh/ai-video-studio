@@ -8,6 +8,28 @@ export default defineConfig({
   // dev server 启动后自动打开浏览器到 base 路径
   server: {
     open: '/ai-video-studio/',
+    // CORS 代理：仅代理不支持浏览器直连的平台。
+    // - 火山方舟 (ark.cn-beijing.volces.com)：平台未返回 Access-Control-Allow-Origin，必须走代理
+    // - 火山语音技术 (openspeech.bytedance.com)：同上，声音克隆/TTS 域名同样不支持 CORS
+    // - MiniMax (api.minimaxi.com) 不配置代理：平台已支持 CORS 直连，避免不必要的转发开销
+    proxy: {
+      // 火山方舟 API（OpenAI 协议 /api/v3 + Anthropic 协议 /api/plan 共用同一域名）
+      // 浏览器请求 /volc-ark/* → Vite dev server 转发到 https://ark.cn-beijing.volces.com/*
+      '/volc-ark': {
+        target: 'https://ark.cn-beijing.volces.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/volc-ark/, ''),
+        secure: true,
+      },
+      // 火山引擎语音技术（声音克隆 / 声音转换 / 大模型 TTS，独立域名）
+      // 浏览器请求 /volc-speech/* → Vite dev server 转发到 https://openspeech.bytedance.com/*
+      '/volc-speech': {
+        target: 'https://openspeech.bytedance.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/volc-speech/, ''),
+        secure: true,
+      },
+    },
   },
   plugins: [
     react(),
@@ -15,8 +37,8 @@ export default defineConfig({
     // 让图片/视频/音频 Blob 可以直接落到磁盘，无需 fetch 外部 URL
     filesStoragePlugin(),
   ],
-  // 所有第三方 API 请求直连完整外部 URL，不再使用 Vite dev server 反向代理。
-  // 若某平台不支持 CORS，用户可在应用内配置中心手动填入自建反代地址。
+  // CORS 策略：MiniMax 直连（平台已支持 CORS），火山引擎走 server.proxy（平台不支持 CORS）。
+  // 生产环境需部署 nginx 反代相同路径（/volc-ark/、/volc-speech/），详见部署文档。
   build: {
     // Phase 3 性能优化 —— 手动 vendor 拆分，避免单 chunk 过大阻塞首屏
     // 拆分原则：

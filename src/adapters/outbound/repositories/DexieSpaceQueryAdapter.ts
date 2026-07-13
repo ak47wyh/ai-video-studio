@@ -30,15 +30,14 @@ export class DexieSpaceQueryAdapter implements ISpaceQueryPort {
   private listeners = new Set<ChangeListener>();
   private subscribedToDexie = false;
 
-  /** 内部辅助：在首次订阅时挂载 Dexie changes 监听器 */
+  /** 内部辅助：在首次订阅时挂载变更监听器 */
   private ensureDexieSubscription(): void {
     if (this.subscribedToDexie) return;
     this.subscribedToDexie = true;
-    // Dexie 的 changes 事件：任何表 CRUD 都会触发
-    // 通过微任务合并多次变更，避免连续写入产生风暴
-    // Dexie 类型声明中 'changes' 由 Observable 模块提供，类型层面需断言
+
     let scheduled = false;
-    (db as unknown as { on: (event: 'changes', listener: () => void) => void }).on('changes', () => {
+    const notifyAll = (): void => {
+      // 通过微任务合并多次变更，避免连续写入产生风暴
       if (scheduled) return;
       scheduled = true;
       queueMicrotask(() => {
@@ -52,7 +51,43 @@ export class DexieSpaceQueryAdapter implements ISpaceQueryPort {
           }
         }
       });
-    });
+    };
+
+    // 策略 1：优先尝试 Dexie Observable 插件的 'changes' 事件（若已安装）
+    // 修复：db.on('changes') 需要 dexie-observable 插件，未安装时内部访问
+    // undefined.subscribe 抛 TypeError。try/catch 捕获后降级到策略 2。
+    try {
+      (db as unknown as { on: (event: 'changes', listener: () => void) => void }).on('changes', notifyAll);
+      return;
+    } catch {
+      // dexie-observable 未安装，降级到表钩子方案
+    }
+
+    // 策略 2：Dexie 核心表钩子（creating/updating/deleting），无需任何插件
+    // 这是 Dexie 内置功能，在所有写操作时同步触发回调。
+    // 注意：钩子在事务内同步触发，但 notifyAll 通过 queueMicrotask 延迟通知，
+    // 确保 UI 重查时事务已提交。
+    try {
+      const tables = [
+        db.storySpaces, db.characters, db.backgrounds, db.stories,
+        db.segments, db.videoTasks, db.pipelineTasks, db.finalCuts,
+        db.savedImages, db.savedVoices, db.savedPrompts, db.savedVideos,
+        db.snapshots, db.timelines, db.generatedFiles,
+      ];
+      for (const table of tables) {
+        // 三种钩子都返回 undefined，不修改 Dexie 写入行为
+        table.hook('creating', notifyAll);
+        table.hook('updating', notifyAll);
+        table.hook('deleting', notifyAll);
+      }
+      return;
+    } catch {
+      // 表钩子也不可用（极旧 Dexie 版本），降级到策略 3
+    }
+
+    // 策略 3：轮询兜底（2 秒间隔），确保最低限度的 UI 刷新能力
+    // 仅在前两种策略都失败时启用，避免完全失去响应性
+    setInterval(notifyAll, 2000);
   }
 
   async listSpaces(): Promise<StorySpace[]> {

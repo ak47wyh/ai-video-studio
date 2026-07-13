@@ -38,6 +38,9 @@ import { createTrackedObjectUrl } from '../../../../utils/objectUrlRegistry';
  *  - 平台错误码归一化为 VolcengineApiError
  */
 export class VolcengineVoiceAdapter implements IVoicePort {
+  /** audioBytesCache LRU 上限（P1 修复 S-P1-1）：避免用户重复上传后内存堆积 */
+  private static readonly AUDIO_CACHE_MAX = 10;
+
   readonly voiceCapabilities: VoiceCapabilities = {
     supportsClone: true,
     supportsDesign: false,
@@ -67,21 +70,22 @@ export class VolcengineVoiceAdapter implements IVoicePort {
   async synthesizeSpeechSync(context: T2ASyncContext): Promise<T2ASyncResult> {
     const text = context.text;
     const voiceId = context.voiceId;
+    const audioFormat = context.audioFormat || 'mp3';
 
-    // 复刻音色（S_ 开头）必须走原生语音技术
+    // 复刻音色（S_ 开头）必须走原生语音技术，cluster 用 volcano_icl（克隆）
     if (voiceId.startsWith('S_')) {
       const result = await this.speechClient.synthesizeSync({
         text,
         voiceType: voiceId,
-        encoding: context.audioFormat || 'mp3',
+        encoding: audioFormat,
         speedRatio: context.speed ?? 1.0,
         volumeRatio: context.volume ?? 1.0,
+        pitchRatio: context.pitch,
+        emotion: context.emotion,
+        cluster: this.resolveCloneCluster(),
       });
-      return {
-        audioUrl: `data:audio/${context.audioFormat || 'mp3'};base64,${result.audioBase64}`,
-        audioSize: Math.floor(result.audioBase64.length * 0.75),
-        usageCharacters: text.length,
-      };
+      // P0 修复（S-P0-5）：data:URI → Blob URL，避免长文本内存膨胀
+      return this.wrapTtsResult(result.audioBase64, audioFormat, text.length);
     }
 
     // 标准音色：优先走方舟 Ark（若配置了 API Key + OpenAI 协议）
@@ -89,36 +93,42 @@ export class VolcengineVoiceAdapter implements IVoicePort {
       return this.synthesizeViaArk(context);
     }
 
-    // 降级：走原生语音技术 + 标准音色 cluster
-    // 此时需临时切换 cluster 到 volcano_tts，但配置中是复刻 cluster
-    // 为避免污染配置，直接调用原生 TTS 但用标准音色 ID
+    // 降级：走原生语音技术 + 标准音色 cluster（volcano_tts）
+    // P0 修复（S-P0-2）：原实现未切换 cluster，仍用 volcano_icl（克隆 cluster），
+    // 导致标准音色合成全部失败。现显式传入标准音色 cluster。
     const result = await this.speechClient.synthesizeSync({
       text,
       voiceType: voiceId,
-      encoding: context.audioFormat || 'mp3',
+      encoding: audioFormat,
       speedRatio: context.speed ?? 1.0,
       volumeRatio: context.volume ?? 1.0,
+      pitchRatio: context.pitch,
+      emotion: context.emotion,
+      cluster: this.resolveStandardCluster(),
     });
-    return {
-      audioUrl: `data:audio/${context.audioFormat || 'mp3'};base64,${result.audioBase64}`,
-      audioSize: Math.floor(result.audioBase64.length * 0.75),
-      usageCharacters: text.length,
-    };
+    return this.wrapTtsResult(result.audioBase64, audioFormat, text.length);
   }
 
   /** 方舟 Ark OpenAI 兼容协议 TTS */
   private async synthesizeViaArk(context: T2ASyncContext): Promise<T2ASyncResult> {
     const text = context.text;
+    const audioFormat = context.audioFormat || 'mp3';
+    // P0 修复（S-P0-4）：不再硬编码 response_format='mp3'，遵循 context.audioFormat；
+    // P1 修复：补全 speed/volume/pitch/emotion 参数
     const result = await withRetry(() =>
       this.arkHttp.post<ArrayBuffer>('/audio/speech', {
-        model: context.model ?? 'doubao-tts-base',
+        model: context.model ?? this.config.volcArkTtsModel ?? 'doubao-tts-base',
         input: text,
         voice: context.voiceId,
-        response_format: 'mp3',
+        response_format: audioFormat,
+        ...(context.speed !== undefined && { speed: context.speed }),
+        ...(context.volume !== undefined && { volume: context.volume }),
+        ...(context.pitch !== undefined && { pitch: context.pitch }),
+        ...(context.emotion && { emotion: context.emotion }),
       }, { responseType: 'arraybuffer' }),
     );
     return {
-      audioUrl: createTrackedObjectUrl(new Blob([result], { type: 'audio/mpeg' })),
+      audioUrl: createTrackedObjectUrl(new Blob([result], { type: `audio/${audioFormat}` })),
       audioSize: result.byteLength,
       usageCharacters: text.length,
     };
@@ -131,11 +141,64 @@ export class VolcengineVoiceAdapter implements IVoicePort {
    * 走原生语音技术，与方舟协议无关。
    */
   synthesizeSpeechStream(context: T2ASyncContext, callbacks: T2AStreamCallbacks): T2AStreamHandle {
+    // P0 修复（S-P0-3）：补全丢失的 speed/volume/pitch/emotion 参数；
+    // 复刻音色用克隆 cluster，标准音色用标准 cluster
+    const isClone = context.voiceId.startsWith('S_');
     return this.speechClient.createStreamWebSocket({
       text: context.text,
       voiceType: context.voiceId,
       encoding: context.audioFormat || 'mp3',
+      speedRatio: context.speed ?? 1.0,
+      volumeRatio: context.volume ?? 1.0,
+      pitchRatio: context.pitch,
+      emotion: context.emotion,
+      cluster: isClone ? this.resolveCloneCluster() : this.resolveStandardCluster(),
     }, callbacks);
+  }
+
+  // ==================== Cluster 解析 ====================
+
+  /**
+   * 解析克隆音色 cluster。
+   * P0 修复（S-P0-2）：克隆音色用 volcano_icl，与标准音色 cluster 分离。
+   */
+  private resolveCloneCluster(): string {
+    return this.config.volcVoiceCluster || 'volcano_icl';
+  }
+
+  /**
+   * 解析标准音色 cluster。
+   * P0 修复（S-P0-2）：标准音色必须用 volcano_tts，不能用克隆 cluster。
+   * 优先读取 config.volcVoiceStandardCluster（阶段 2 配置补全后），
+   * 未配置时回退到 'volcano_tts'。
+   */
+  private resolveStandardCluster(): string {
+    return this.config.volcVoiceStandardCluster?.trim() || 'volcano_tts';
+  }
+
+  /**
+   * 把 base64 音频字节封装为可播放的 Blob URL。
+   * P0 修复（S-P0-5）：替代原 data:audio/...;base64, 实现，避免长文本内存膨胀。
+   */
+  private wrapTtsResult(audioBase64: string, audioFormat: string, textLength: number): T2ASyncResult {
+    const binary = this.base64ToUint8Array(audioBase64);
+    const blob = new Blob([binary as unknown as BlobPart], { type: `audio/${audioFormat}` });
+    return {
+      audioUrl: createTrackedObjectUrl(blob),
+      audioSize: binary.byteLength,
+      usageCharacters: textLength,
+    };
+  }
+
+  /** base64 字符串 → Uint8Array（不依赖 atob 的同步签名，兼容大字符串） */
+  private base64ToUint8Array(base64: string): Uint8Array {
+    const binString = atob(base64);
+    const len = binString.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+      bytes[i] = binString.charCodeAt(i);
+    }
+    return bytes;
   }
 
   // ==================== 声音转换 ====================
@@ -237,6 +300,9 @@ export class VolcengineVoiceAdapter implements IVoicePort {
    * 上传文件用于声音克隆。
    * 火山引擎不需要预上传到服务端，base64 直接内联到 clone 请求。
    * 这里把 File 转 base64 存入内存缓存，返回 fileId 供 cloneVoice 读取。
+   *
+   * P1 修复（S-P1-1）：audioBytesCache 增加 LRU 上限，
+   * 用户重复上传后取消克隆时旧条目自动淘汰，避免内存堆积。
    */
   async uploadFile(file: File, purpose: 'voice_clone' | 'prompt_audio' | 't2a_async_input'): Promise<FileUploadResult> {
     if (purpose !== 'voice_clone') {
@@ -244,6 +310,11 @@ export class VolcengineVoiceAdapter implements IVoicePort {
     }
     const audioBytes = await this.fileToBase64(file);
     const fileId = `volc_${Date.now()}_${file.name}`;
+    // LRU 淘汰：超出上限时删除最早条目（Map 维持插入顺序）
+    if (this.audioBytesCache.size >= VolcengineVoiceAdapter.AUDIO_CACHE_MAX) {
+      const oldestKey = this.audioBytesCache.keys().next().value;
+      if (oldestKey) this.audioBytesCache.delete(oldestKey);
+    }
     this.audioBytesCache.set(fileId, audioBytes);
     return { fileId };
   }

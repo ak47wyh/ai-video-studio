@@ -952,5 +952,37 @@
   "notFound": {
     "message": "您访问的页面不存在",
     "backHome": "返回首页"
+  },
+  "compress": {
+    "title": "批量压缩图片",
+    "failed": "压缩失败：{{msg}}",
+    "quality": "质量",
+    "qualityHint": "85=近无损（推荐），60=高压缩，95=最高质量",
+    "limitDimension": "限制最长边",
+    "format": "输出格式",
+    "formatOriginal": "跟随原图（PNG 透明图保留）",
+    "formatJpeg": "JPEG（更省体积，不支持透明）",
+    "formatWebp": "WebP（现代格式，体积更小）",
+    "resultMode": "结果处理",
+    "modeReplace": "原地替换（瘦身素材库）",
+    "modeSaveAsNew": "另存为新素材（保留原图）",
+    "processing": "压缩中...",
+    "start": "开始压缩",
+    "resultSummary": "压缩结果",
+    "success": "成功",
+    "totalOriginal": "原体积",
+    "totalCompressed": "压缩后",
+    "totalSaved": "节省",
+    "completeSummary": "压缩完成：{{ok}}/{{total}} 张成功，节省 {{saved}}"
+  },
+  "fileManager": {
+    "deleteSuccess": "已删除",
+    "deleteFailed": "删除失败：{{msg}}",
+    "searchPlaceholder": "搜索名称/标签/提示词...",
+    "selected": "已选 {{count}} 项",
+    "batchCompress": "批量压缩",
+    "batchDelete": "批量删除",
+    "clearSelection": "取消选择",
+    "compressComplete": "压缩完成，素材已更新"
   }
 }

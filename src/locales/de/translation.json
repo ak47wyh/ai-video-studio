@@ -625,5 +625,37 @@
   "notFound": {
     "message": "Die gesuchte Seite existiert nicht",
     "backHome": "Zurück zur Startseite"
+  },
+  "compress": {
+    "title": "Bilder stapelweise komprimieren",
+    "failed": "Komprimierung fehlgeschlagen: {{msg}}",
+    "quality": "Qualität",
+    "qualityHint": "85=nahezu verlustfrei (empfohlen), 60=hohe Komprimierung, 95=max. Qualität",
+    "limitDimension": "Längste Seite begrenzen",
+    "format": "Ausgabeformat",
+    "formatOriginal": "Original folgen (PNG-Transparenz erhalten)",
+    "formatJpeg": "JPEG (kleiner, keine Transparenz)",
+    "formatWebp": "WebP (modern, am kleinsten)",
+    "resultMode": "Ergebnisbehandlung",
+    "modeReplace": "Vor Ort ersetzen (Bibliothek entschlacken)",
+    "modeSaveAsNew": "Als neues Asset speichern (Original behalten)",
+    "processing": "Komprimiere...",
+    "start": "Komprimierung starten",
+    "resultSummary": "Komprimierungsergebnis",
+    "success": "erfolgreich",
+    "totalOriginal": "Originalgröße",
+    "totalCompressed": "Nach Komprimierung",
+    "totalSaved": "Gespart",
+    "completeSummary": "Fertig: {{ok}}/{{total}} erfolgreich, {{saved}} gespart"
+  },
+  "fileManager": {
+    "deleteSuccess": "Gelöscht",
+    "deleteFailed": "Löschen fehlgeschlagen: {{msg}}",
+    "searchPlaceholder": "Name/Tag/Prompt suchen...",
+    "selected": "{{count}} ausgewählt",
+    "batchCompress": "Stapel komprimieren",
+    "batchDelete": "Stapel löschen",
+    "clearSelection": "Auswahl aufheben",
+    "compressComplete": "Komprimierung abgeschlossen, Assets aktualisiert"
   }
 }

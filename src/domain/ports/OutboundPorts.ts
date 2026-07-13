@@ -73,7 +73,8 @@ export interface VideoPromptContext {
   prompt: string;
   promptOptimizer?: boolean;
   fastPretreatment?: boolean;
-  duration?: 6 | 10;
+  /** 视频时长（秒），对齐官方 2-12s 取值范围 */
+  duration?: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
   resolution?: VideoResolution;
   callbackUrl?: string;
   firstFrameImage?: string;
@@ -104,10 +105,39 @@ export interface VideoDownloadResult {
   createdAt: number;
 }
 
+/** 视频任务列表过滤条件（对接官方 GET /contents/generations/tasks） */
+export interface VideoTaskListFilter {
+  status?: 'queued' | 'running' | 'succeeded' | 'failed' | 'expired' | 'cancelled';
+  model?: string;
+  pageNum?: number;
+  pageSize?: number;
+}
+
+/** 视频任务列表项 */
+export interface VideoTaskListItem {
+  id: string;
+  model: string;
+  status: string;
+  createdAt: number;
+  updatedAt: number;
+  videoUrl?: string;
+  error?: { code: string; message: string };
+}
+
+/** 视频任务列表结果 */
+export interface VideoTaskListResult {
+  total: number;
+  tasks: VideoTaskListItem[];
+}
+
 export interface IVideoGeneratorPort {
   submitVideoTask(context: VideoPromptContext): Promise<string>;
   queryTaskStatus(externalTaskId: string): Promise<VideoTaskResult>;
   downloadVideo(fileId: string): Promise<VideoDownloadResult>;
+  /** 取消/删除任务（对接官方 DELETE 端点，可选能力） */
+  cancelTask?(externalTaskId: string): Promise<void>;
+  /** 列出任务（对接官方 GET /tasks 端点，可选能力） */
+  listTasks?(filter: VideoTaskListFilter): Promise<VideoTaskListResult>;
 }
 
 export interface IVideoAgentCapable extends IVideoGeneratorPort {
@@ -183,7 +213,13 @@ export interface IStoryBreakdownPort {
 
 // --- Image Generation ---
 
-export type ImageModel = 'image-01' | 'image-01-live';
+/**
+ * 图片生成模型 ID。
+ * 平台无关字符串类型：MiniMax 用 'image-01' / 'image-01-live'，
+ * 火山引擎用 'doubao-seedream-4-5-251128' 等，
+ * 各平台合法 Model ID 由 platformCapabilities 约束。
+ */
+export type ImageModel = string;
 export type ImageResponseFormat = 'url' | 'base64';
 export type ImageAspectRatio = '1:1' | '16:9' | '4:3' | '3:2' | '2:3' | '3:4' | '9:16' | '21:9';
 
@@ -210,6 +246,14 @@ export interface ImageGenerationContext {
   subjectReference?: ImageSubjectReference[];
   style?: ImageStyle;
   subjectReferenceUrl?: string;
+  /** 文本权重 [1, 10]（仅 Seedream 3.0 系列支持，4.x 忽略） */
+  guidanceScale?: number;
+  /** 组图模式（仅 Seedream 4.x 支持） */
+  sequentialImageGeneration?: 'auto' | 'disabled';
+  /** 组图参数 */
+  sequentialImageGenerationOptions?: { maxImages: number };
+  /** 提示词优化模式（仅 Seedream 4.x 支持） */
+  optimizePromptOptions?: { mode: 'standard' | 'fast' };
 }
 
 export interface ImageGenerationResult {
@@ -221,8 +265,18 @@ export interface ImageGenerationResult {
   };
 }
 
+/** 流式图片生成事件（对接官方 stream=true 响应） */
+export interface ImageStreamEvent {
+  type: 'partial_success' | 'partial_failure' | 'completion';
+  data?: { url?: string; b64_json?: string; size?: string };
+  usage?: { generatedImages: number; outputTokens: number; totalTokens: number };
+  error?: { code: string; message: string };
+}
+
 export interface IImageGeneratorPort {
   generateImage(context: ImageGenerationContext): Promise<ImageGenerationResult>;
+  /** 流式图片生成（对接官方 stream=true，可选能力） */
+  generateImageStream?(context: ImageGenerationContext): AsyncIterable<ImageStreamEvent>;
 }
 
 // --- Voice ---

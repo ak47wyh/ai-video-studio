@@ -55,11 +55,20 @@ export interface ApiConfig {
   volcArkAnthropicModel: string;
   /** Anthropic 协议 CORS 拦截时是否自动降级到 OpenAI 协议（默认 true） */
   volcArkAutoFallback: boolean;
+  /** 视频生成模型 ID（默认 doubao-seedance-1-0-pro-250528，对齐官方 Model ID） */
+  volcArkVideoModel: string;
+  /** 图片生成模型 ID（默认 doubao-seedream-4-5-251128，对齐官方 Model ID） */
+  volcArkImageModel: string;
+  /** Ark TTS 模型 ID（默认 doubao-tts-base） */
+  volcArkTtsModel: string;
 
   // --- 火山引擎语音技术 ---
   volcVoiceAppId: string;
   volcVoiceAccessToken: string;
+  /** 克隆音色 cluster（默认 volcano_icl） */
   volcVoiceCluster: string;
+  /** 标准音色 cluster（默认 volcano_tts，与克隆 cluster 分离） */
+  volcVoiceStandardCluster: string;
   volcVoiceCloneModelType: 0 | 1 | 2 | 3 | 4;
 
   // --- 可灵 Kling ---

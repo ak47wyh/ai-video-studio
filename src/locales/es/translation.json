@@ -625,5 +625,37 @@
   "notFound": {
     "message": "La página que buscas no existe",
     "backHome": "Volver al inicio"
+  },
+  "compress": {
+    "title": "Comprimir imágenes por lotes",
+    "failed": "Compresión fallida: {{msg}}",
+    "quality": "Calidad",
+    "qualityHint": "85=casi sin pérdida (recomendado), 60=alta compresión, 95=calidad máxima",
+    "limitDimension": "Limitar lado más largo",
+    "format": "Formato de salida",
+    "formatOriginal": "Seguir original (transparencia PNG conservada)",
+    "formatJpeg": "JPEG (más pequeño, sin transparencia)",
+    "formatWebp": "WebP (moderno, el más pequeño)",
+    "resultMode": "Manejo de resultado",
+    "modeReplace": "Reemplazar in situ (reducir biblioteca)",
+    "modeSaveAsNew": "Guardar como nuevo activo (conservar original)",
+    "processing": "Comprimiendo...",
+    "start": "Iniciar compresión",
+    "resultSummary": "Resultado de compresión",
+    "success": "éxito",
+    "totalOriginal": "Tamaño original",
+    "totalCompressed": "Después de compresión",
+    "totalSaved": "Ahorrado",
+    "completeSummary": "Completado: {{ok}}/{{total}} exitosos, ahorrado {{saved}}"
+  },
+  "fileManager": {
+    "deleteSuccess": "Eliminado",
+    "deleteFailed": "Eliminación fallida: {{msg}}",
+    "searchPlaceholder": "Buscar nombre/etiqueta/prompt...",
+    "selected": "{{count}} seleccionados",
+    "batchCompress": "Comprimir por lotes",
+    "batchDelete": "Eliminar por lotes",
+    "clearSelection": "Borrar selección",
+    "compressComplete": "Compresión completa, activos actualizados"
   }
 }

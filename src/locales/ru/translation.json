@@ -625,5 +625,37 @@
   "notFound": {
     "message": "Страница, которую вы ищете, не существует",
     "backHome": "Вернуться на главную"
+  },
+  "compress": {
+    "title": "Пакетное сжатие изображений",
+    "failed": "Сжатие не удалось: {{msg}}",
+    "quality": "Качество",
+    "qualityHint": "85=почти без потерь (рекомендуется), 60=высокое сжатие, 95=макс. качество",
+    "limitDimension": "Ограничить длинную сторону",
+    "format": "Формат вывода",
+    "formatOriginal": "Следовать оригиналу (PNG-прозрачность сохранена)",
+    "formatJpeg": "JPEG (меньше, без прозрачности)",
+    "formatWebp": "WebP (современный, наименьший)",
+    "resultMode": "Обработка результата",
+    "modeReplace": "Замена на месте (облегчить библиотеку)",
+    "modeSaveAsNew": "Сохранить как новый актив (сохранить оригинал)",
+    "processing": "Сжатие...",
+    "start": "Начать сжатие",
+    "resultSummary": "Результат сжатия",
+    "success": "успех",
+    "totalOriginal": "Оригинальный размер",
+    "totalCompressed": "После сжатия",
+    "totalSaved": "Сэкономлено",
+    "completeSummary": "Готово: {{ok}}/{{total}} успешно, сэкономлено {{saved}}"
+  },
+  "fileManager": {
+    "deleteSuccess": "Удалено",
+    "deleteFailed": "Ошибка удаления: {{msg}}",
+    "searchPlaceholder": "Поиск имени/тега/промпта...",
+    "selected": "{{count}} выбрано",
+    "batchCompress": "Пакетное сжатие",
+    "batchDelete": "Пакетное удаление",
+    "clearSelection": "Очистить выбор",
+    "compressComplete": "Сжатие завершено, активы обновлены"
   }
 }

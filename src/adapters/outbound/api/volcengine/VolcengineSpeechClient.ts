@@ -4,8 +4,12 @@ import type { T2AStreamCallbacks, T2AStreamHandle } from '../../../../domain/por
 import { parseCloneError, parseTtsError, type SpeakerStatus } from './VolcengineVoiceErrorUtils';
 import { VolcengineApiError } from './VolcengineErrorUtils';
 
-/** 火山引擎语音技术基础域名（与方舟 Ark 域名分离） */
-const SPEECH_BASE_URL = 'https://openspeech.bytedance.com';
+/** 火山引擎语音技术基础域名（与方舟 Ark 域名分离）。
+ *  CORS 策略：开发环境走 Vite proxy /volc-speech，生产环境直连 openspeech.bytedance.com。
+ *  与 vite.config.ts 的 server.proxy['/volc-speech'] 配对。 */
+const SPEECH_BASE_URL = import.meta.env.DEV
+  ? '/volc-speech'
+  : 'https://openspeech.bytedance.com';
 
 /**
  * P0 修复：从未知错误中提取 HTTP 状态码。
@@ -158,14 +162,20 @@ export class VolcengineSpeechClient {
     encoding?: string;
     speedRatio?: number;
     volumeRatio?: number;
+    pitchRatio?: number;
+    emotion?: string;
+    /** 标准音色用 volcano_tts；克隆音色用 volcano_icl。不传则回退到 config.volcVoiceCluster */
+    cluster?: string;
   }): Promise<TtsSyncResult> {
     this.ensureConfigured();
     const reqid = this.generateReqid();
     const body = {
       app: {
         appid: this.config.volcVoiceAppId,
-        token: 'access_token',  // token 已在 Header 中鉴权，body 内 token 字段仅占位
-        cluster: this.config.volcVoiceCluster,
+        // P0 修复（S-P0-1）：注入真实 token，而非 'access_token' 字面量。
+        // 浏览器 WebSocket 不支持自定义 Header，原生 speech 协议通过 body.app.token 鉴权。
+        token: this.config.volcVoiceAccessToken,
+        cluster: params.cluster ?? this.config.volcVoiceCluster,
       },
       user: { uid: 'ai-video-studio' },
       audio: {
@@ -173,6 +183,9 @@ export class VolcengineSpeechClient {
         encoding: params.encoding ?? 'mp3',
         speed_ratio: params.speedRatio ?? 1.0,
         volume_ratio: params.volumeRatio ?? 1.0,
+        // P1 修复（S-P1-x）：补全 pitch/emotion，与 Port 字段对齐
+        ...(params.pitchRatio !== undefined && { pitch_ratio: params.pitchRatio }),
+        ...(params.emotion && { emotion: params.emotion }),
       },
       request: {
         reqid,
@@ -214,6 +227,12 @@ export class VolcengineSpeechClient {
     text: string;
     voiceType: string;
     encoding?: string;
+    speedRatio?: number;
+    volumeRatio?: number;
+    pitchRatio?: number;
+    emotion?: string;
+    /** 标准音色用 volcano_tts；克隆音色用 volcano_icl。不传则回退到 config.volcVoiceCluster */
+    cluster?: string;
   }, callbacks: T2AStreamCallbacks): T2AStreamHandle {
     this.ensureConfigured();
     const wsUrl = `wss://openspeech.bytedance.com/api/v1/tts/ws_binary`;
@@ -226,13 +245,20 @@ export class VolcengineSpeechClient {
       const payload = JSON.stringify({
         app: {
           appid: this.config.volcVoiceAppId,
-          token: 'access_token',
-          cluster: this.config.volcVoiceCluster,
+          // P0 修复（S-P0-1）：注入真实 token。
+          // 浏览器 WebSocket 不支持自定义 Header，必须通过 body.app.token 鉴权。
+          token: this.config.volcVoiceAccessToken,
+          cluster: params.cluster ?? this.config.volcVoiceCluster,
         },
         user: { uid: 'ai-video-studio' },
         audio: {
           voice_type: params.voiceType,
           encoding: params.encoding ?? 'mp3',
+          // P0 修复（S-P0-3）：补全丢失的 speed/volume/pitch/emotion 参数
+          speed_ratio: params.speedRatio ?? 1.0,
+          volume_ratio: params.volumeRatio ?? 1.0,
+          ...(params.pitchRatio !== undefined && { pitch_ratio: params.pitchRatio }),
+          ...(params.emotion && { emotion: params.emotion }),
         },
         request: {
           reqid,
