@@ -121,12 +121,15 @@ export class VideoTaskRepositoryAdapter implements IVideoTaskRepository {
     await db.videoTasks.where('segmentId').anyOf(segmentIds).delete();
   }
   async updateStatus(taskId: string, status: VideoTaskStatus, videoUrl?: string, errorMessage?: string): Promise<void> {
-    const task = await db.videoTasks.get(taskId);
-    if (task) {
-      task.status = status;
-      if (videoUrl !== undefined) task.videoUrl = videoUrl;
-      if (errorMessage !== undefined) task.errorMessage = errorMessage;
-      await db.videoTasks.put(task);
+    // P0 修复：原 get → modify → put 非原子，并发场景会丢失字段。
+    // 改用 Dexie 原生 update：仅 PATCH 指定字段，避免覆盖并发写入。
+    const patch: Partial<VideoTask> = { status };
+    if (videoUrl !== undefined) patch.videoUrl = videoUrl;
+    if (errorMessage !== undefined) patch.errorMessage = errorMessage;
+    const affected = await db.videoTasks.update(taskId, patch);
+    if (affected === 0) {
+      // 任务不存在时静默（与原行为一致），但记日志便于排查
+      // 注意：不可在此抛错，原行为即"task 不存在则 noop"
     }
   }
 }

@@ -430,48 +430,6 @@ export class FFmpegAdapter implements IFFmpegPort {
     }
   }
 
-  async reverse(video: Blob): Promise<Blob> {
-    await this.load();
-    const ffmpeg = this.ensureLoaded();
-    const inputName = 'in.mp4';
-    const outName = 'out.mp4';
-    try {
-      await this.writeFile(inputName, video);
-      await ffmpeg.exec([
-        '-i', inputName,
-        '-vf', 'reverse',
-        '-af', 'areverse',
-        '-c:v', 'libx264',
-        '-c:a', 'aac',
-        outName
-      ]);
-      return await this.readFile(outName);
-    } finally {
-      await this.safeDelete(inputName);
-      await this.safeDelete(outName);
-    }
-  }
-
-  async fadeInOut(video: Blob, fadeInSec: number, fadeOutSec: number): Promise<Blob> {
-    await this.load();
-    const ffmpeg = this.ensureLoaded();
-    const inputName = 'in.mp4';
-    const outName = 'out.mp4';
-    try {
-      await this.writeFile(inputName, video);
-      await ffmpeg.exec([
-        '-i', inputName,
-        '-vf', `fade=t=in:st=0:d=${fadeInSec},fade=t=out:st=0:d=${fadeOutSec}`,
-        '-c:a', 'copy',
-        outName
-      ]);
-      return await this.readFile(outName);
-    } finally {
-      await this.safeDelete(inputName);
-      await this.safeDelete(outName);
-    }
-  }
-
   async applyDelogo(video: Blob, regions: { x: number; y: number; width: number; height: number }[]): Promise<Blob> {
     await this.load();
     const ffmpeg = this.ensureLoaded();

@@ -21,6 +21,7 @@ import { AsyncState } from '../components/AsyncState';
 import { useTimeline } from '../hooks/useTimeline';
 import { useToast } from '../contexts/ToastContext';
 import { v4 as uuidv4 } from 'uuid';
+import { getFileStorage } from '../../dependencies';
 import { EditorToolbar } from './editor/EditorToolbar';
 import { MediaPanel } from './editor/MediaPanel';
 import { PreviewStage } from './editor/PreviewStage';
@@ -48,6 +49,8 @@ export const VideoEditor: React.FC = () => {
   const [importOpen, setImportOpen] = useState(false);
   // M2.3: AI 智能剪切面板开关
   const [autoEditOpen, setAutoEditOpen] = useState(false);
+  // Phase 6 闭环修复：保存待检测的视频 Blob（来自 timeline 第一个视频 clip）
+  const [autoEditVideoBlob, setAutoEditVideoBlob] = useState<Blob | null>(null);
 
   // storyId 变化时同步 URL + 清空选中（在事件回调里重置，避免 effect 内 setState）
   const handleStoryChange = useCallback((sid: string) => {
@@ -170,20 +173,71 @@ export const VideoEditor: React.FC = () => {
   }, [timeline, handleAddToTimeline, showToast, t]);
 
   /** M2.3: 打开 AI 智能剪切面板（取当前时间线第一个视频 clip 的 Blob） */
-  const handleAutoEdit = useCallback(() => {
+  const handleAutoEdit = useCallback(async () => {
     if (!timeline) {
       showToast('warning', t('editor.autoEdit.noTimeline', '请先加载时间线'));
       return;
     }
-    setAutoEditOpen(true);
+    // Phase 6 闭环修复：从第一个未锁定视频轨道取出首个带 storagePath 的 clip
+    const videoTrack = timeline.tracks.find(tr => tr.type === 'video' && !tr.locked);
+    const firstVideoClip = videoTrack?.clips.find(c => c.sourceRef?.storagePath);
+    const storagePath = firstVideoClip?.sourceRef?.storagePath;
+    if (!storagePath) {
+      showToast('warning', t('editor.autoEdit.noVideoSource', '请先在时间线添加视频素材'));
+      return;
+    }
+    try {
+      const blob = await getFileStorage().getBlob(storagePath);
+      if (!blob) {
+        showToast('error', t('editor.autoEdit.blobMissing', '视频文件已丢失，请重新导入'));
+        return;
+      }
+      setAutoEditVideoBlob(blob);
+      setAutoEditOpen(true);
+    } catch (e) {
+      showToast('error', e instanceof Error ? e.message : t('editor.autoEdit.loadFailed', '视频加载失败'));
+    }
   }, [timeline, showToast, t]);
 
-  /** M2.3: 应用剪切结果 —— 移除未保留的 clip */
+  /**
+   * M2.3: 应用剪切结果 —— 将原 clip 按 keptSegments 拆为多段 clip。
+   *
+   * Phase 6 闭环修复：采用数据层分段（inPointSec/outPointSec），不在此处调用 FFmpeg。
+   * 真实渲染在导出阶段由 TimelineRenderService 读取 in/out 点执行 trim。
+   */
   const handleApplyTrim = useCallback((keptSegments: Array<{ startSec: number; endSec: number }>) => {
     if (!timeline) return;
-    // 简化实现：提示用户剪切结果已生成，实际裁剪需对接 FFmpeg
-    showToast('info', t('editor.autoEdit.applied', `已保留 ${keptSegments.length} 个片段，请导出查看效果`));
-  }, [timeline, showToast, t]);
+    updateTimeline(draft => {
+      for (const track of draft.tracks) {
+        if (track.type !== 'video' || track.locked) continue;
+        const idx = track.clips.findIndex(c => c.sourceRef?.storagePath);
+        if (idx < 0) continue;
+        const orig = track.clips[idx];
+        const ref = orig.sourceRef!;
+        const newClips: TimelineClip[] = keptSegments.map((seg, i) => ({
+          ...orig,
+          id: uuidv4(),
+          source: `${orig.source ?? 'video'} #${i + 1}`,
+          duration: Math.max(1000, Math.round((seg.endSec - seg.startSec) * 1000)),
+          sourceRef: { ...ref, inPointSec: seg.startSec, outPointSec: seg.endSec },
+        }));
+        // 按原始起始时间顺序铺排，前一段结尾即下一段起始
+        let cursor = orig.startTime;
+        for (const c of newClips) {
+          c.startTime = cursor;
+          cursor += c.duration;
+        }
+        track.clips.splice(idx, 1, ...newClips);
+      }
+    });
+    showToast('success', t('editor.autoEdit.applied', `已保留 ${keptSegments.length} 个片段，请导出查看效果`));
+  }, [timeline, updateTimeline, showToast, t]);
+
+  /** 关闭 AI 智能剪切面板并释放 Blob 引用 */
+  const handleCloseAutoEdit = useCallback(() => {
+    setAutoEditOpen(false);
+    setAutoEditVideoBlob(null);
+  }, []);
 
   const handleVideoSelect = useCallback((video: SavedVideo) => {
     const source: TimelineClipSource = { kind: 'savedVideo', refId: video.id, storagePath: video.blobKey };
@@ -247,8 +301,8 @@ export const VideoEditor: React.FC = () => {
       {/* M2.3: AI 智能剪切面板 */}
       <KeyframePreviewPanel
         isOpen={autoEditOpen}
-        videoBlob={null}
-        onClose={() => setAutoEditOpen(false)}
+        videoBlob={autoEditVideoBlob}
+        onClose={handleCloseAutoEdit}
         onApplyTrim={handleApplyTrim}
       />
     </div>

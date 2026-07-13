@@ -1,5 +1,6 @@
 import type { AxiosError } from 'axios';
 import { withRetry as baseWithRetry } from '../_base/withRetry';
+import { BaseApiError } from '../_base/BaseApiError';
 
 /**
  * 腾讯混元 Hunyuan API 错误类。
@@ -14,22 +15,19 @@ import { withRetry as baseWithRetry } from '../_base/withRetry';
  *     "RequestId": "xxx"
  *   }
  * }
+ *
+ * Phase 4 修复：原本 isRetryable 仅看业务码（InternalError/RequestLimitExceeded），
+ * 导致腾讯云网关 5xx 错误静默丢失重试机会。现继承 BaseApiError 默认实现
+ * （429 + 5xx），并额外保留对 InternalError/RequestLimitExceeded 业务码的重试。
  */
-export class HunyuanApiError extends Error {
-  public readonly httpStatus: number;
-  public readonly errorCode: string;
-  public readonly rawMessage: string;
-
+export class HunyuanApiError extends BaseApiError {
   constructor(
     httpStatus: number,
     errorCode: string,
     rawMessage: string,
   ) {
-    super(HunyuanApiError.toUserMessage(httpStatus, errorCode, rawMessage));
-    this.name = 'HunyuanApiError';
-    this.httpStatus = httpStatus;
-    this.errorCode = errorCode;
-    this.rawMessage = rawMessage;
+    super(httpStatus, errorCode, rawMessage, 'Hunyuan',
+      HunyuanApiError.toUserMessage(httpStatus, errorCode, rawMessage));
   }
 
   private static toUserMessage(status: number, code: string, raw: string): string {
@@ -52,6 +50,7 @@ export class HunyuanApiError extends Error {
       case 500:
       case 502:
       case 503:
+      case 504:
         return '混元服务暂时不可用，请稍后重试。';
       default:
         if (code === 'LimitExceeded') return '混元请求次数超限，请稍后重试。';
@@ -60,8 +59,11 @@ export class HunyuanApiError extends Error {
     }
   }
 
+  /** 在全局 5xx 标准基础上，额外支持腾讯云业务码 InternalError / RequestLimitExceeded */
   get isRetryable(): boolean {
-    return this.httpStatus === 429 || this.errorCode === 'InternalError' || this.errorCode === 'RequestLimitExceeded';
+    return super.isRetryable
+      || this.errorCode === 'InternalError'
+      || this.errorCode === 'RequestLimitExceeded';
   }
 }
 

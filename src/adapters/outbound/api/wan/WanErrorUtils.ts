@@ -1,24 +1,20 @@
 import type { AxiosError } from 'axios';
 import { withRetry as baseWithRetry } from '../_base/withRetry';
+import { BaseApiError } from '../_base/BaseApiError';
 
 /**
  * 通义万相（DashScope）API 错误类。
+ *
+ * Phase 4 DRY：继承 BaseApiError，复用全局 429 + 5xx 重试语义。
  */
-export class WanApiError extends Error {
-  readonly httpStatus: number;
-  readonly errorCode: string;
-  readonly rawMessage: string;
-
+export class WanApiError extends BaseApiError {
   constructor(
     httpStatus: number,
     errorCode: string,
     rawMessage: string,
   ) {
-    super(WanApiError.toUserMessage(httpStatus, errorCode, rawMessage));
-    this.name = 'WanApiError';
-    this.httpStatus = httpStatus;
-    this.errorCode = errorCode;
-    this.rawMessage = rawMessage;
+    super(httpStatus, errorCode, rawMessage, 'Wan',
+      WanApiError.toUserMessage(httpStatus, errorCode, rawMessage));
   }
 
   private static toUserMessage(status: number, _code: string, raw: string): string {
@@ -34,14 +30,11 @@ export class WanApiError extends Error {
       case 500:
       case 502:
       case 503:
+      case 504:
         return '通义万相服务暂时不可用，请稍后重试。';
       default:
         return `通义万相请求失败 (${status}): ${raw}`;
     }
-  }
-
-  get isRetryable(): boolean {
-    return this.httpStatus === 429;
   }
 }
 

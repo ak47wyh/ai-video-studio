@@ -1,11 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../../adapters/outbound/repositories/DexieDatabase';
-import { storySpaceService } from '../../dependencies';
-import { ConsoleLoggerAdapter } from '../../adapters/outbound/infrastructure/ConsoleLoggerAdapter';
+import { storySpaceService, spaceQueryPort, createLogger } from '../../dependencies';
+import type { StorySpace } from '../../domain/entities/models';
 
 // 独立 logger 实例，避免循环依赖
-const logger = new ConsoleLoggerAdapter({ service: 'SpaceContext' });
+const logger = createLogger('SpaceContext');
 
 interface SpaceContextType {
   currentSpaceId: string | null;
@@ -52,9 +50,30 @@ function writePersistedSpaceId(id: string | null): void {
 }
 
 export const SpaceProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
-  const spaces = useLiveQuery(() => db.storySpaces.toArray());
+  // Phase 2 DIP：通过 spaceQueryPort.listSpaces 订阅 Dexie 变更，替代 useLiveQuery + db 直查
+  const [spaces, setSpaces] = useState<StorySpace[] | undefined>(undefined);
   // 初始化时从 localStorage 读取上次选择的空间
   const [explicitSpaceId, setExplicitSpaceId] = useState<string | null>(readPersistedSpaceId);
+
+  // 订阅空间列表变更（首次加载 + 后续 CRUD 自动刷新）
+  useEffect(() => {
+    let cancelled = false;
+    const run = () => {
+      spaceQueryPort.listSpaces()
+        .then((list) => {
+          if (!cancelled) setSpaces(list);
+        })
+        .catch((e) => {
+          logger.warn('[SpaceContext] listSpaces failed', { error: String(e) });
+        });
+    };
+    run();
+    const unsubscribe = spaceQueryPort.subscribe(run);
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, []);
 
   // 包装 setter：同步写入 localStorage（必须在 useEffect 之前定义，避免 TDZ）
   const setCurrentSpaceId = useCallback((id: string | null) => {

@@ -1,25 +1,20 @@
 import type { AxiosError } from 'axios';
 import { withRetry as baseWithRetry } from '../_base/withRetry';
+import { BaseApiError } from '../_base/BaseApiError';
 
 /**
  * 智谱 AI API 错误类。
- * 携带 HTTP 状态码和平台错误信息，供 UI 层展示。
+ *
+ * Phase 4 DRY：继承 BaseApiError，复用全局 429 + 5xx 重试语义。
  */
-export class ZhipuApiError extends Error {
-  readonly httpStatus: number;
-  readonly errorCode: string;
-  readonly rawMessage: string;
-
+export class ZhipuApiError extends BaseApiError {
   constructor(
     httpStatus: number,
     errorCode: string,
     rawMessage: string,
   ) {
-    super(ZhipuApiError.toUserMessage(httpStatus, errorCode, rawMessage));
-    this.name = 'ZhipuApiError';
-    this.httpStatus = httpStatus;
-    this.errorCode = errorCode;
-    this.rawMessage = rawMessage;
+    super(httpStatus, errorCode, rawMessage, 'Zhipu',
+      ZhipuApiError.toUserMessage(httpStatus, errorCode, rawMessage));
   }
 
   private static toUserMessage(status: number, _code: string, raw: string): string {
@@ -35,15 +30,11 @@ export class ZhipuApiError extends Error {
       case 500:
       case 502:
       case 503:
+      case 504:
         return '智谱服务暂时不可用，请稍后重试。';
       default:
         return `智谱请求失败 (${status}): ${raw}`;
     }
-  }
-
-  /** 是否可重试（仅 429 允许重试） */
-  get isRetryable(): boolean {
-    return this.httpStatus === 429;
   }
 }
 
@@ -65,7 +56,7 @@ interface ZhipuErrorBody {
 
 /**
  * 带指数退避的重试包装器。
- * 仅对 429 错误重试，其他错误直接抛出。
+ * 对 429 + 5xx 服务端错误重试，其他错误直接抛出。
  */
 export async function withRetry<T>(
   fn: () => Promise<T>,

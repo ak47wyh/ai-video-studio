@@ -1,7 +1,7 @@
 import React from 'react';
 import { withTranslation, type WithTranslation } from 'react-i18next';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
-import { logSink } from '../../adapters/outbound/infrastructure/RingBufferLogSinkAdapter';
+import { logSinkPort } from '../../dependencies';
 
 interface Props extends WithTranslation {
   children: React.ReactNode;
@@ -26,7 +26,7 @@ class ErrorBoundaryClass extends React.Component<Props, State> {
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
     // 写入 RingBuffer，让应用内日志面板能看到 React 渲染错误
-    logSink.write({
+    logSinkPort.write({
       id: typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
         ? crypto.randomUUID()
         : `eb-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,

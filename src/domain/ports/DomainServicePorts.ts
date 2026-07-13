@@ -10,23 +10,15 @@
 
 import type { StorySegment, Character, Background } from '../entities/models';
 import type {
-  MergeContext,
   SubtitleStyle,
-  VideoClip,
-  TransitionType,
   OutputFormat,
-  BgmMixConfig,
   Timeline
 } from './PostProcessPorts';
 import type { SrtEntry } from '../services/SubtitleService';
 export type { SrtEntry } from '../services/SubtitleService';
 export type {
-  MergeContext,
   SubtitleStyle,
-  VideoClip,
-  TransitionType,
   OutputFormat,
-  BgmMixConfig,
   Timeline
 } from './PostProcessPorts';
 
@@ -178,33 +170,16 @@ export interface ExportOptions {
 }
 
 /**
- * 后期处理端口。
- * 取代 PipelineService 对 PostProcessService 的具体依赖。
+ * 后期处理端口（Phase 5 ISP 清理：已废弃删除）。
  *
- * 实现方契约：
- * - 所有方法均返回 Blob 或 string（不返回 URL，由调用方决定）
- * - 失败时抛出 Error（不静默）
+ * 历史背景：曾用于把 PostProcessService 包装成 Port，但实际无人消费——
+ * PipelineService 直接依赖 PostProcessService 具体类，PostProcessPortAdapter
+ * 仅做"重命名 + 参数解构"透传。整条 Port 链路为死代码，已在 Phase 5 一并删除。
+ *
+ * 后期处理能力的入口：
+ * - FFmpeg 能力 → PostProcessService（基于 IFFmpegPort）
+ * - 时间线渲染 → TimelineRenderService（基于 ITimelineRenderPort）
  */
-export interface IPostProcessPort {
-  /** 合并视频与音轨 */
-  mergeVideoAudio(ctx: MergeContext): Promise<Blob>;
-  /** 拼接多个视频片段 */
-  concatClips(clips: VideoClip[]): Promise<Blob>;
-  /** 烧录字幕到视频 */
-  burnSubtitles(video: Blob, srt: string, style?: SubtitleStyle): Promise<Blob>;
-  /** 抽取单帧 */
-  extractFrame(video: Blob, atSec: number, format?: 'png' | 'jpg'): Promise<Blob>;
-  /** 混音（人声 + BGM） */
-  mixBgm(voice: Blob, bgm: Blob, config: BgmMixConfig): Promise<Blob>;
-  /** 应用转场（offsetSec 可选：前一段时长 - 转场时长，默认由实现按内部规则推导） */
-  applyTransition(clip1: Blob, clip2: Blob, transition: TransitionType, duration: number, offsetSec?: number): Promise<Blob>;
-  /** 编码最终视频（按 export options 合成所有要素） */
-  exportFinalVideo(storyId: string, options: ExportOptions): Promise<Blob>;
-  /** 检查 FFmpeg 是否已加载 */
-  isFFmpegLoaded(): boolean;
-  /** 确保 FFmpeg 已加载 */
-  ensureLoaded(): Promise<void>;
-}
 
 // ==========================================
 // 字幕服务（Service 视角）

@@ -98,7 +98,7 @@ export class DouyinVideoAddressResolver implements IVideoAddressResolverPort {
     } catch (e) {
       const msg = e instanceof Error ? e.message : '抖音视频解析失败';
       this._logger.warn('resolve 抖音解析失败', { shareUrl, error: msg });
-      throw new Error(msg);
+      throw new Error(msg, { cause: e });
     }
   }
 
@@ -180,7 +180,7 @@ export class DouyinVideoAddressResolver implements IVideoAddressResolverPort {
     } catch (e) {
       this._logger.warn('fetchDouyinDetail 异常', { videoId, error: e instanceof Error ? e.message : String(e) });
       if (this.isCorsError(e)) {
-        throw new Error('抖音接口跨域限制，请先将视频下载到本地后通过本地上传导入');
+        throw new Error('抖音接口跨域限制，请先将视频下载到本地后通过本地上传导入', { cause: e });
       }
       return null;
     }

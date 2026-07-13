@@ -22,12 +22,14 @@ export const SavedRecordsPanel: React.FC<SavedRecordsPanelProps> = ({ images, au
   const [expanded, setExpanded] = useState(false);
   const [urls, setUrls] = useState<Record<string, string>>({});
 
-  // autoExpandKey 变化时自动展开
-  useEffect(() => {
+  // autoExpandKey 变化时自动展开（React 19 推荐：render 期间同步 state，避免 effect 级联渲染）
+  const [prevAutoExpandKey, setPrevAutoExpandKey] = useState(autoExpandKey);
+  if (autoExpandKey !== prevAutoExpandKey) {
+    setPrevAutoExpandKey(autoExpandKey);
     if (autoExpandKey !== undefined && autoExpandKey > 0) {
       setExpanded(true);
     }
-  }, [autoExpandKey]);
+  }
 
   // 加载缩略图 URL
   useEffect(() => {

@@ -1,24 +1,21 @@
 import type { AxiosError } from 'axios';
 import { withRetry as baseWithRetry } from '../_base/withRetry';
+import { BaseApiError } from '../_base/BaseApiError';
 
 /**
  * 可灵 Kling API 错误类。
+ *
+ * Phase 4 DRY：继承 BaseApiError，复用全局 429 + 5xx 重试语义，
+ * 仅保留平台文案映射与 AxiosError 解析。
  */
-export class KlingApiError extends Error {
-  public readonly httpStatus: number;
-  public readonly errorCode: string;
-  public readonly rawMessage: string;
-
+export class KlingApiError extends BaseApiError {
   constructor(
     httpStatus: number,
     errorCode: string,
     rawMessage: string,
   ) {
-    super(KlingApiError.toUserMessage(httpStatus, errorCode, rawMessage));
-    this.name = 'KlingApiError';
-    this.httpStatus = httpStatus;
-    this.errorCode = errorCode;
-    this.rawMessage = rawMessage;
+    super(httpStatus, errorCode, rawMessage, 'Kling',
+      KlingApiError.toUserMessage(httpStatus, errorCode, rawMessage));
   }
 
   private static toUserMessage(status: number, _code: string, raw: string): string {
@@ -34,14 +31,11 @@ export class KlingApiError extends Error {
       case 500:
       case 502:
       case 503:
+      case 504:
         return '可灵服务暂时不可用，请稍后重试。';
       default:
         return `可灵请求失败 (${status}): ${raw}`;
     }
-  }
-
-  get isRetryable(): boolean {
-    return this.httpStatus === 429;
   }
 }
 

@@ -265,6 +265,8 @@ export const VoiceLab: React.FC = () => {
     setClonedVoiceId(null);
     setClonePreviewAudioUrl(null);
     try {
+      // 事件处理函数中生成唯一 ID,非 render 期间,purity 规则误报
+      // eslint-disable-next-line react-hooks/purity
       const customVoiceId = `clone_${Date.now()}_${Math.random().toString(36).substring(7)}`;
       const newVoiceId = await voiceService.cloneVoice(
         cloneFile,

@@ -67,40 +67,64 @@ export class AutoEditService {
   /**
    * Suggest cuts based on detected scenes.
    * Returns a list of cut suggestions (start/end pairs) for natural editing.
+   *
+   * P0 修复：detectKeyframes 创建的 ObjectURL thumbnail 在本流程不需要,
+   * 返回前必须全部 revoke,避免内存泄漏。
    */
   async suggestCuts(video: Blob, targetDurationSec?: number): Promise<CutSuggestion[]> {
     const keyframes = await this.detectKeyframes(video, 0.5);
-    const cuts: CutSuggestion[] = [];
+    try {
+      const cuts: CutSuggestion[] = [];
 
-    for (let i = 0; i < keyframes.length - 1; i++) {
-      const start = keyframes[i];
-      const end = keyframes[i + 1];
-      const duration = end.timestamp - start.timestamp;
+      for (let i = 0; i < keyframes.length - 1; i++) {
+        const start = keyframes[i];
+        const end = keyframes[i + 1];
+        const duration = end.timestamp - start.timestamp;
 
-      // Skip very short scenes (< 1s)
-      if (duration < 1) continue;
+        // Skip very short scenes (< 1s)
+        if (duration < 1) continue;
 
-      cuts.push({
-        startSec: start.timestamp,
-        endSec: end.timestamp,
-        reason: `Scene change at ${start.timestamp.toFixed(1)}s`,
-        score: start.sceneScore,
-      });
-    }
-
-    if (targetDurationSec && cuts.length > 0) {
-      // Trim or extend to target duration
-      const currentTotal = cuts.reduce((sum, c) => sum + (c.endSec - c.startSec), 0);
-      if (currentTotal > targetDurationSec) {
-        const ratio = targetDurationSec / currentTotal;
-        cuts.forEach(c => {
-          const dur = c.endSec - c.startSec;
-          c.endSec = c.startSec + dur * ratio;
+        cuts.push({
+          startSec: start.timestamp,
+          endSec: end.timestamp,
+          reason: `Scene change at ${start.timestamp.toFixed(1)}s`,
+          score: start.sceneScore,
         });
       }
-    }
 
-    return cuts;
+      if (targetDurationSec && cuts.length > 0) {
+        // Trim or extend to target duration
+        const currentTotal = cuts.reduce((sum, c) => sum + (c.endSec - c.startSec), 0);
+        if (currentTotal > targetDurationSec) {
+          const ratio = targetDurationSec / currentTotal;
+          cuts.forEach(c => {
+            const dur = c.endSec - c.startSec;
+            c.endSec = c.startSec + dur * ratio;
+          });
+        }
+      }
+
+      return cuts;
+    } finally {
+      // suggestCuts 仅消费 timestamp/sceneScore,不需要 thumbnail,立即释放
+      AutoEditService.releaseKeyframeUrls(keyframes);
+    }
+  }
+
+  /**
+   * 释放 keyframes 中由 detectKeyframes 创建的 ObjectURL。
+   *
+   * 调用方在不再使用 keyframes 的 thumbnail 时(组件卸载/重新检测/替换数据)
+   * 必须调用此方法,否则 ObjectURL 引用的 Blob 不会被 GC 回收。
+   *
+   * 安全性:对空字符串/非 blob: URL 静默跳过,可重复调用。
+   */
+  static releaseKeyframeUrls(keyframes: KeyframeInfo[]): void {
+    for (const kf of keyframes) {
+      if (kf.thumbnail && kf.thumbnail.startsWith('blob:')) {
+        URL.revokeObjectURL(kf.thumbnail);
+      }
+    }
   }
 
   /**

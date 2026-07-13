@@ -21,6 +21,10 @@ export interface TransactionRepositories {
 
 export interface TransactionRepository<T> {
   delete(id: string): Promise<void>;
+  /** P0 修复：事务内 upsert 单条记录（applyBreakdown 等先删后建场景需要） */
+  save(item: T): Promise<void>;
+  /** P0 修复：事务内批量新增（segments 批量创建） */
+  bulkAdd(items: T[]): Promise<void>;
   where(index: string): TransactionWhereClause<T>;
 }
 

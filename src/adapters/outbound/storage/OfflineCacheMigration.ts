@@ -15,6 +15,8 @@ const OLD_DB_VERSION = 1;
 const OLD_BLOB_STORE = 'blobs';
 const OLD_META_STORE = 'meta';
 const MIGRATION_FLAG_KEY = 'file_storage_migrated';
+/** P0 修复：失败的 key 持久化到 localStorage，下次启动时重试，避免数据永久丢失 */
+const MIGRATION_FAILED_KEYS_KEY = 'file_storage_migration_failed_keys';
 
 interface OldCacheMeta {
   key: string;
@@ -26,10 +28,14 @@ interface OldCacheMeta {
 
 /**
  * 检查是否需要迁移。
+ *
+ * P0 修复：当且仅当「未标记完成」或「存在失败的 key 待重试」时返回 true。
  */
 export function needsMigration(): boolean {
   try {
-    return !localStorage.getItem(MIGRATION_FLAG_KEY);
+    const migrated = localStorage.getItem(MIGRATION_FLAG_KEY);
+    const failedKeys = localStorage.getItem(MIGRATION_FAILED_KEYS_KEY);
+    return !migrated || (failedKeys !== null && failedKeys !== '[]');
   } catch {
     return true; // localStorage 不可用时默认执行迁移
   }
@@ -41,8 +47,39 @@ export function needsMigration(): boolean {
 function markMigrated(): void {
   try {
     localStorage.setItem(MIGRATION_FLAG_KEY, 'true');
+    // 全部成功后清除失败 key 列表
+    localStorage.removeItem(MIGRATION_FAILED_KEYS_KEY);
   } catch {
     // 忽略
+  }
+}
+
+/**
+ * P0 修复：持久化失败的 key 列表，下次启动时 needsMigration 会返回 true 触发重试。
+ */
+function persistFailedKeys(keys: string[]): void {
+  try {
+    if (keys.length === 0) {
+      localStorage.removeItem(MIGRATION_FAILED_KEYS_KEY);
+    } else {
+      localStorage.setItem(MIGRATION_FAILED_KEYS_KEY, JSON.stringify(keys));
+    }
+  } catch {
+    // 忽略
+  }
+}
+
+/**
+ * P0 修复：读取上次失败待重试的 key 集合。
+ */
+function loadFailedKeys(): Set<string> {
+  try {
+    const raw = localStorage.getItem(MIGRATION_FAILED_KEYS_KEY);
+    if (!raw) return new Set();
+    const arr = JSON.parse(raw) as string[];
+    return new Set(Array.isArray(arr) ? arr : []);
+  } catch {
+    return new Set();
   }
 }
 
@@ -153,6 +190,11 @@ function inferExtension(contentType: string): string {
 /**
  * 执行迁移。
  *
+ * P0 修复：
+ *   - 单文件失败时记录到 localStorage 的 failedKeys，下次启动时 needsMigration 仍返回 true 触发重试
+ *   - 仅当「全部成功」时才调用 markMigrated()，避免数据永久丢失
+ *   - 已成功迁移的 key 通过 GeneratedFile 已落盘幂等（id 唯一），重试不会产生重复数据
+ *
  * @param fileStorage 新的文件存储适配器
  * @param fileRepo    新的文件元数据仓储
  * @param defaultSpaceId 默认工作空间 ID
@@ -170,14 +212,29 @@ export async function migrateOfflineCache(
 
   console.log('[FileStorage Migration] Starting migration from OfflineCache...');
 
+  // P0 修复：上次失败的 key 集合，用于本次「仅重试失败项」。
+  // - 首次迁移：集合为空 → 处理所有 entries
+  // - 重试迁移：集合非空 → 只处理集合中的 key，避免重复 IO（已成功项已幂等落盘）
+  const previousFailedKeys = loadFailedKeys();
+  const isRetry = previousFailedKeys.size > 0;
+  if (isRetry) {
+    console.log(`[FileStorage Migration] Retry mode: ${previousFailedKeys.size} previously failed keys.`);
+  }
+
   let oldDB: IDBDatabase | null = null;
   let migratedCount = 0;
+  const failedKeys: string[] = [];
 
   try {
     oldDB = await openOldDB();
     const entries = await readOldEntries(oldDB);
 
-    for (const { key, blob, meta } of entries) {
+    // 重试模式下仅处理失败项；首次模式处理全部
+    const targets = isRetry
+      ? entries.filter(e => previousFailedKeys.has(e.key))
+      : entries;
+
+    for (const { key, blob, meta } of targets) {
       try {
         const newPath = mapKeyToPath(key, meta.contentType);
         const fileType = inferFileType(meta.contentType);
@@ -207,15 +264,31 @@ export async function migrateOfflineCache(
         migratedCount++;
       } catch (err) {
         console.warn(`[FileStorage Migration] Failed to migrate key "${key}":`, err);
+        failedKeys.push(key);
         // 继续迁移其他文件
       }
     }
 
-    markMigrated();
-    console.log(`[FileStorage Migration] Completed. Migrated ${migratedCount}/${entries.length} files.`);
+    // P0 修复：仅当全部成功时才标记完成；否则持久化 failedKeys 供下次重试
+    if (failedKeys.length === 0) {
+      markMigrated();
+      console.log(
+        `[FileStorage Migration] Completed. Migrated ${migratedCount}/${targets.length} files` +
+        (isRetry ? ' (retry).' : '.'),
+      );
+    } else {
+      persistFailedKeys(failedKeys);
+      console.warn(
+        `[FileStorage Migration] Partially completed. Migrated ${migratedCount}/${targets.length}, ` +
+        `failed ${failedKeys.length}. Failed keys will be retried next launch.`,
+      );
+    }
   } catch (err) {
     console.error('[FileStorage Migration] Failed:', err);
     // 不标记为已迁移，下次启动时重试
+    if (failedKeys.length > 0) {
+      persistFailedKeys(failedKeys);
+    }
   } finally {
     if (oldDB) {
       oldDB.close();

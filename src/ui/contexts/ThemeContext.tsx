@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
-import { ApiConfigStore } from '../../adapters/outbound/config/ApiConfigStore';
+import { apiConfigStoreAdapter } from '../../dependencies';
 import { THEMES, type ThemeId, type ThemeConfig } from './theme-types';
 
 interface ThemeContextValue {
@@ -13,7 +13,7 @@ const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [currentTheme, setCurrentTheme] = useState<ThemeId>(() => {
-    const config = ApiConfigStore.load();
+    const config = apiConfigStoreAdapter.load();
     return (config.theme as ThemeId) || 'dark';
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -26,8 +26,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const setTheme = useCallback((theme: ThemeId) => {
     setIsLoading(true);
     try {
-      const config = ApiConfigStore.load();
-      ApiConfigStore.save({ ...config, theme });
+      const config = apiConfigStoreAdapter.load();
+      // 走 Port 持久化（save 异步，但 theme 立即生效）
+      void apiConfigStoreAdapter.save({ ...config, theme });
       setCurrentTheme(theme);
     } finally {
       setIsLoading(false);

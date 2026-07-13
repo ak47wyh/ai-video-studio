@@ -23,6 +23,8 @@ export const ExportCenter: React.FC = () => {
   const [previewCutId, setPreviewCutId] = useState<string | null>(null);
 
   const stories = useSpaceScopedStories();
+  // Phase 6 闭环修复：useSpaceScopedFinalCuts 已通过 spaceQueryPort.subscribe 订阅数据变更，
+  // 数据自动更新，无需手动刷新按钮（原 handleRefresh 是 setPreviewCutId(p => p) 空操作）。
   const allCuts = useSpaceScopedFinalCuts();
 
   const filteredCuts = filterCuts(allCuts, filterRange);
@@ -63,10 +65,6 @@ export const ExportCenter: React.FC = () => {
     }
   };
 
-  const handleRefresh = () => {
-    setPreviewCutId(p => p);
-  };
-
   const formatSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -92,11 +90,6 @@ export const ExportCenter: React.FC = () => {
         <div>
           <h1>{t('export.title')}</h1>
           <p>{t('export.subtitle')}</p>
-        </div>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button className="btn btn-secondary" onClick={handleRefresh}>
-            <RefreshCw size={16} />
-          </button>
         </div>
       </div>
 

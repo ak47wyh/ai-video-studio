@@ -14,6 +14,8 @@ import type { SpaceSnapshot, Timeline } from '../../../domain/ports/PersistenceP
 
 interface DexieTableLike<T> {
   delete(id: string): Promise<void>;
+  put(item: T): Promise<unknown>;
+  bulkAdd(items: T[]): Promise<unknown>;
   where(key: string): DexieWhereClauseLike<T>;
 }
 
@@ -37,6 +39,15 @@ class DexieTransactionRepository<T> implements TransactionRepository<T> {
 
   delete(id: string): Promise<void> {
     return this._table.delete(id);
+  }
+
+  save(item: T): Promise<void> {
+    return this._table.put(item).then(() => undefined);
+  }
+
+  bulkAdd(items: T[]): Promise<void> {
+    if (items.length === 0) return Promise.resolve();
+    return this._table.bulkAdd(items).then(() => undefined);
   }
 }
 

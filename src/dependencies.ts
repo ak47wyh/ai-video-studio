@@ -172,6 +172,39 @@ export const metrics = defaultMetrics;
 export const resilience = defaultResilience;
 
 // ========================================
+// Phase 2 DIP：UI 层依赖入口集中点
+// - createLogger: 替代直接 new ConsoleLoggerAdapter
+// - logSinkPort: 替代直接 import logSink
+// - spaceQueryPort: 替代 UI 直接 import db
+// - pdfRenderPort: 替代 UI 直接 CDN import pdfjs-dist
+// - notificationPort / confirmPort: 替代 UI 直接 import toastEventBus / confirmEventBus
+// ========================================
+import type { ILoggerPort } from './domain/ports/CrossCuttingPorts';
+import type { ILogSinkPort } from './domain/ports/LoggingPorts';
+import type { ISpaceQueryPort } from './domain/ports/SpaceQueryPort';
+import type { IPdfRenderPort } from './domain/ports/PdfRenderPort';
+import { spaceQueryAdapter } from './adapters/outbound/repositories/DexieSpaceQueryAdapter';
+import { pdfJsRenderAdapter } from './adapters/outbound/api/inpaint/PdfJsRenderAdapter';
+
+/** 创建带 service 上下文的子 logger，供 UI utils/hooks 便捷使用 */
+export const createLogger = (scope: string): ILoggerPort => defaultLogger.child({ service: scope });
+
+/** ILogSinkPort 单例（与 logSink 同一实例，UI 通过 Port 依赖，不直接 import adapter） */
+export const logSinkPort: ILogSinkPort = logSink;
+
+/** ISpaceQueryPort 单例：UI 空间维度只读查询入口 */
+export const spaceQueryPort: ISpaceQueryPort = spaceQueryAdapter;
+
+/** IPdfRenderPort 单例：UI PDF 预览渲染入口 */
+export const pdfRenderPort: IPdfRenderPort = pdfJsRenderAdapter;
+
+/** INotificationPort 单例：UI 订阅 Toast 事件桥入口 */
+export const notificationPort: import('./domain/ports/CrossCuttingPorts').INotificationPort = reactNotificationAdapter;
+
+/** IConfirmPort 单例：UI 订阅确认请求桥入口 */
+export const confirmPort: import('./domain/ports/CrossCuttingPorts').IConfirmPort = reactConfirmAdapter;
+
+// ========================================
 // 基础设施实例
 // ========================================
 export const videoAdapter = new MiniMaxVideoAdapter();
@@ -202,7 +235,9 @@ export const costMeter = new InMemoryCostMeter();
 // ========================================
 export const storyService = new StoryService(
   storyRepo, segmentRepo, characterRepo, backgroundRepo,
-  smartTextSplitter, smartStoryBreakdown, videoTaskRepo
+  smartTextSplitter, smartStoryBreakdown, videoTaskRepo,
+  defaultLogger, // Phase 7：日志注入
+  unitOfWork // P0 修复：applyBreakdown 事务包裹
 );
 
 // ========================================
@@ -349,7 +384,7 @@ export const storySpaceService = new StorySpaceService(
 import { ModelCacheAdapter } from './adapters/outbound/repositories/ModelCacheAdapter';
 import type { ModelInfo } from './domain/ports/OutboundPorts';
 const modelCache = new ModelCacheAdapter<ModelInfo>('minimax_cached_models', 60 * 60 * 1000);
-export const modelManagementService = new ModelManagementService(modelAdapter, modelCache);
+export const modelManagementService = new ModelManagementService(modelAdapter, modelCache, defaultLogger);
 
 // ========================================
 // AI 增强服务
@@ -439,17 +474,12 @@ export const snapshotService = new SnapshotService(
 import { AgentPortAdapter } from './adapters/outbound/services/AgentPortAdapter';
 import { BGMPortAdapter } from './adapters/outbound/services/BGMPortAdapter';
 import { CinematographyPortAdapter } from './adapters/outbound/services/CinematographyPortAdapter';
-import { PostProcessPortAdapter } from './adapters/outbound/services/PostProcessPortAdapter';
 import { SubtitlePortAdapter } from './adapters/outbound/services/SubtitlePortAdapter';
 
 export const agentPort: import('./domain/ports/DomainServicePorts').IAgentPort = new AgentPortAdapter(agentService);
 export const bgmPort: import('./domain/ports/DomainServicePorts').IBGMRecommendationPort = new BGMPortAdapter(bgmRecommendationService);
 export const cinematographyPort: import('./domain/ports/DomainServicePorts').ICinematographyPort = new CinematographyPortAdapter(cinematographyService);
-export const postProcessPort: import('./domain/ports/DomainServicePorts').IPostProcessPort = new PostProcessPortAdapter(
-  postProcessService,
-  timelineRenderService,
-  timelineService,
-);
+// Phase 5 ISP 清理：postProcessPort 删除（IPostProcessPort + PostProcessPortAdapter 为死代码）
 export const subtitlePort: import('./domain/ports/DomainServicePorts').ISubtitlePort = new SubtitlePortAdapter(subtitleService);
 
 // ========================================

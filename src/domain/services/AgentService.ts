@@ -440,11 +440,18 @@ export class AgentService {
     timeoutMs: number,
   ): Promise<T> {
     if (timeoutMs <= 0) return fn();
-    return Promise.race([
-      fn(),
-      new Promise<T>((_, reject) =>
-        setTimeout(() => reject(new Error(`tool execution timeout after ${timeoutMs}ms`)), timeoutMs),
-      ),
-    ]);
+    // P0 修复：原实现 setTimeout 未 clearTimeout，每次调用泄漏一个 timer。
+    // 改为 finally 块清理，与 PromisePool.runOne 的实现保持一致。
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([
+        fn(),
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(() => reject(new Error(`tool execution timeout after ${timeoutMs}ms`)), timeoutMs);
+        }),
+      ]);
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
   }
 }

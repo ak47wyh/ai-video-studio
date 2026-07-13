@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, Ban, Check } from 'lucide-react';
-import { ApiConfigStore } from '../../adapters/outbound/config/ApiConfigStore';
+import { apiConfigStoreAdapter } from '../../dependencies';
 import type { PlatformId } from '../../domain/entities/platform';
 import { PLATFORM_METADATA } from '../../domain/services/platformCapabilities';
 import { usePlatform } from '../contexts/PlatformContext';
@@ -61,13 +61,13 @@ export const PlatformSwitcher: React.FC<PlatformSwitcherProps> = ({
 
   const handleSelect = (platform: PlatformId) => {
     // 未配置平台：阻止切换并提示
-    if (!ApiConfigStore.isPlatformConfigured(platform)) {
+    if (!apiConfigStoreAdapter.isPlatformConfigured(platform)) {
       showToast('warning', t('nav.platformNotConfigured', { defaultValue: '平台未配置，请前往配置中心填写 API Key' }));
       return;
     }
     // 切换平台：读取最新配置 → 更新 activePlatform → 保存（触发订阅通知）
-    const config = ApiConfigStore.load();
-    ApiConfigStore.save({ ...config, activePlatform: platform });
+    const config = apiConfigStoreAdapter.load();
+    void apiConfigStoreAdapter.save({ ...config, activePlatform: platform });
     const meta = PLATFORM_METADATA[platform];
     showToast('success', t('settings.platformSwitched', { name: meta?.name ?? platform }));
     setOpen(false);
@@ -109,7 +109,7 @@ export const PlatformSwitcher: React.FC<PlatformSwitcherProps> = ({
           </div>
           {allPlatforms.map(meta => {
             const isActive = meta.id === activePlatform;
-            const isConfigured = ApiConfigStore.isPlatformConfigured(meta.id);
+            const isConfigured = apiConfigStoreAdapter.isPlatformConfigured(meta.id);
             return (
               <button
                 key={meta.id}

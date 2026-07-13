@@ -1,4 +1,4 @@
-import axios, { type AxiosInstance } from 'axios';
+import axios, { type AxiosInstance, isAxiosError } from 'axios';
 import type { ApiConfig } from '../../config/ApiConfigStore';
 import type { T2AStreamCallbacks, T2AStreamHandle } from '../../../../domain/ports/OutboundPorts';
 import { parseCloneError, parseTtsError, type SpeakerStatus } from './VolcengineVoiceErrorUtils';
@@ -6,6 +6,19 @@ import { VolcengineApiError } from './VolcengineErrorUtils';
 
 /** 火山引擎语音技术基础域名（与方舟 Ark 域名分离） */
 const SPEECH_BASE_URL = 'https://openspeech.bytedance.com';
+
+/**
+ * P0 修复：从未知错误中提取 HTTP 状态码。
+ * - AxiosError 且有 response：返回 response.status（如 429/500/502/503/504）
+ * - AxiosError 无 response（网络错误/超时）：返回 503（视为服务不可用，可重试）
+ * - 非 axios 错误：返回 0（不可重试，保持原行为）
+ */
+function extractHttpStatus(err: unknown): number {
+  if (isAxiosError(err)) {
+    return err.response?.status ?? 503;
+  }
+  return 0;
+}
 
 /** 声音复刻资源 ID（固定值，区分 ICL 版本） */
 const RESOURCE_ID = 'seed-icl-1.0';
@@ -107,7 +120,7 @@ export class VolcengineSpeechClient {
       const statusCode: number = resp.data?.BaseResp?.StatusCode ?? -1;
       const statusMessage: string = resp.data?.BaseResp?.StatusMessage ?? '';
       if (statusCode !== 0) {
-        throw parseCloneError(statusCode, statusMessage);
+        throw parseCloneError(statusCode, statusMessage, 200);
       }
       return {
         statusCode,
@@ -116,7 +129,7 @@ export class VolcengineSpeechClient {
       };
     } catch (err) {
       if (err instanceof VolcengineApiError) throw err;
-      throw parseCloneError(-1, (err as Error).message);
+      throw parseCloneError(-1, (err as Error).message, extractHttpStatus(err));
     }
   }
 
@@ -134,7 +147,7 @@ export class VolcengineSpeechClient {
       };
     } catch (err) {
       if (err instanceof VolcengineApiError) throw err;
-      throw parseCloneError(-1, (err as Error).message);
+      throw parseCloneError(-1, (err as Error).message, extractHttpStatus(err));
     }
   }
 
@@ -172,7 +185,7 @@ export class VolcengineSpeechClient {
       const resp = await this.client.post('/api/v1/tts', body);
       const code: number = resp.data?.code ?? -1;
       if (code !== 3000) {
-        throw parseTtsError(code, resp.data?.message ?? 'TTS synthesis failed');
+        throw parseTtsError(code, resp.data?.message ?? 'TTS synthesis failed', 200);
       }
       return {
         audioBase64: resp.data.data,
@@ -181,7 +194,7 @@ export class VolcengineSpeechClient {
       };
     } catch (err) {
       if (err instanceof VolcengineApiError) throw err;
-      throw parseTtsError(-1, (err as Error).message);
+      throw parseTtsError(-1, (err as Error).message, extractHttpStatus(err));
     }
   }
 
@@ -351,7 +364,6 @@ export class VolcengineSpeechClient {
       ws.binaryType = 'arraybuffer';
       let closed = false;
       const audioChunks: Uint8Array[] = [];
-      let seq = 1;
 
       const cleanup = () => {
         if (!closed) {
@@ -415,8 +427,8 @@ export class VolcengineSpeechClient {
             // ACK（full client request 的确认），开始流式发送音频
             if (!streamingStarted) {
               streamingStarted = true;
-              this.streamAudioChunks(ws, params.pcmBytes, (s) => {
-                seq = s;
+              this.streamAudioChunks(ws, params.pcmBytes, () => {
+                // 外层不再跟踪 seq,序列号由 streamAudioChunks 内部管理
               });
             }
             return;

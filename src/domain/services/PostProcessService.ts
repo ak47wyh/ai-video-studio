@@ -71,14 +71,6 @@ export class PostProcessService {
     return this.ffmpegPort.extractFrame(video, atSec, format);
   }
 
-  async reverse(video: Blob): Promise<Blob> {
-    return this.ffmpegPort.reverse(video);
-  }
-
-  async fadeInOut(video: Blob, fadeInSec: number, fadeOutSec: number): Promise<Blob> {
-    return this.ffmpegPort.fadeInOut(video, fadeInSec, fadeOutSec);
-  }
-
   async transcribe(audio: Blob | string, language = 'zh') {
     return this.whisperPort.transcribe(audio, language);
   }

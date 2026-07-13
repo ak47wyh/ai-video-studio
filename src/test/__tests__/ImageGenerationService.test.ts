@@ -87,11 +87,13 @@ function makeMockConfigStore(): IApiConfigStore {
   return {
     load: vi.fn().mockReturnValue(makeMockConfig()),
     save: vi.fn().mockResolvedValue(undefined),
+    autoSave: vi.fn(),
     getActivePlatform: vi.fn().mockReturnValue('minimax'),
     setActivePlatform: vi.fn().mockResolvedValue(undefined),
     getApiKeyMasked: vi.fn().mockReturnValue(''),
     getToken: vi.fn().mockReturnValue(undefined),
     isPlatformConfigured: vi.fn().mockReturnValue(false),
+    isVolcVoiceConfigured: vi.fn().mockReturnValue(false),
     onPlatformChange: vi.fn().mockReturnValue(() => undefined),
     onConfigChange: vi.fn().mockReturnValue(() => undefined),
   };

@@ -1,5 +1,5 @@
-import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosError } from 'axios';
 import type { ApiConfig } from '../../config/ApiConfigStore';
+import { BaseHttpClient } from '../_base/BaseHttpClient';
 import { parseKlingError } from './KlingErrorUtils';
 
 /**
@@ -13,9 +13,10 @@ import { parseKlingError } from './KlingErrorUtils';
  * JWT 缓存于内存，过期（30min）后自动重新生成。
  *
  * Base URL: https://api.klingai.com
+ *
+ * Phase 4 DRY：继承 BaseHttpClient 复用 post/get/拦截器；JWT 通过 request interceptor 动态注入。
  */
-export class KlingHttpClient {
-  private client: AxiosInstance;
+export class KlingHttpClient extends BaseHttpClient {
   private readonly accessKey: string;
   private readonly secretKey: string;
   /** 缓存的 JWT 与过期时间戳（毫秒） */
@@ -23,16 +24,15 @@ export class KlingHttpClient {
   private cachedJwtExpireAt = 0;
 
   constructor(config: ApiConfig) {
+    // 鉴权头通过 request interceptor 动态注入，构造时传空对象
+    super({
+      baseUrl: config.klingBaseUrl,
+      headers: {},
+      parseError: parseKlingError,
+    });
+
     this.accessKey = config.klingAccessKey;
     this.secretKey = config.klingSecretKey;
-
-    this.client = axios.create({
-      baseURL: config.klingBaseUrl.replace(/\/+$/, ''),
-      timeout: 120_000,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
 
     // 请求拦截器：注入最新 JWT
     this.client.interceptors.request.use(async (reqConfig) => {
@@ -40,22 +40,6 @@ export class KlingHttpClient {
       reqConfig.headers['Authorization'] = `Bearer ${await this.getJwt()}`;
       return reqConfig;
     });
-
-    // 响应拦截器：统一错误处理
-    this.client.interceptors.response.use(
-      (response) => response,
-      (error: AxiosError) => Promise.reject(parseKlingError(error)),
-    );
-  }
-
-  async post<T>(path: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
-    const response = await this.client.post<T>(path, data, config);
-    return response.data;
-  }
-
-  async get<T>(path: string, params?: Record<string, unknown>): Promise<T> {
-    const response = await this.client.get<T>(path, { params });
-    return response.data;
   }
 
   // ===== JWT 生成（HS256 via WebCrypto） =====

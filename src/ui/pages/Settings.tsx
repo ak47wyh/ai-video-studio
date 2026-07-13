@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ExternalLink, RefreshCw, Cpu, Trash2, FolderCog, Palette, CheckCircle, ChevronDown, Zap, Save, Database, Bug, AlertTriangle, BookOpen } from 'lucide-react';
-import { ApiConfigStore, type ApiConfig, type PlatformId, type VolcArkProtocol } from '../../adapters/outbound/config/ApiConfigStore';
+import { apiConfigStoreAdapter, modelManagementService } from '../../dependencies';
+import type { ApiConfig, PlatformId, VolcArkProtocol } from '../../domain/entities/platform';
 import { useToast } from '../contexts/ToastContext';
-import { modelManagementService } from '../../dependencies';
 import type { ModelInfo } from '../../domain/ports/OutboundPorts';
 import { getErrorMessage } from '../utils/errorUtils';
 import { PLATFORM_METADATA, type Capability } from '../../domain/services/platformCapabilities';
@@ -330,11 +330,11 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
 export const Settings: React.FC = () => {
   const { t } = useTranslation();
   const { showToast } = useToast();
-  const [config, setConfig] = useState<ApiConfig>(() => ApiConfigStore.load());
+  const [config, setConfig] = useState<ApiConfig>(() => apiConfigStoreAdapter.load());
 
   // 当前展开的平台卡片（默认展开激活平台）
   const [expandedPlatform, setExpandedPlatform] = useState<PlatformId | null>(
-    () => ApiConfigStore.load().activePlatform,
+    () => apiConfigStoreAdapter.load().activePlatform,
   );
   const toggleExpand = useCallback((platform: PlatformId) => {
     setExpandedPlatform(prev => (prev === platform ? null : platform));
@@ -347,7 +347,7 @@ export const Settings: React.FC = () => {
   // 监听配置变化，自动保存
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      ApiConfigStore.autoSave(config);
+      apiConfigStoreAdapter.autoSave(config);
     }, 500); // 防抖 500ms
     return () => clearTimeout(timeoutId);
   }, [config]);

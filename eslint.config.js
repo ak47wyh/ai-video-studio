@@ -56,7 +56,7 @@ const DOMAIN_FORBIDDEN_IMPORTS = [
 ];
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores(['dist', 'coverage']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

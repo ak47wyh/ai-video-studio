@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   Film, Sparkles, Pencil, RefreshCw, ArrowRight, Check, X,
@@ -34,6 +34,7 @@ export const StoryFilmPage: React.FC = () => {
   const { currentSpaceId } = useSpace();
   const { hasCapability } = usePlatformCapabilities();
   const navigate = useNavigate();
+  const location = useLocation();
   const { confirm } = useConfirm();
 
   const {
@@ -42,10 +43,15 @@ export const StoryFilmPage: React.FC = () => {
   } = useStoryFilm();
 
   // ===== 配置状态 =====
+  // Phase 6 闭环修复：消费 Dashboard 透传的 location.state.theme
+  const initialTheme = ((): string => {
+    const state = location.state as { theme?: string } | null;
+    return typeof state?.theme === 'string' ? state.theme : '';
+  })();
   const [storyText, setStoryText] = useState('');
   /** 输入模式：ai 生成 / 手动粘贴 */
   const [inputMode, setInputMode] = useState<'ai' | 'paste'>('ai');
-  const [theme, setTheme] = useState('');
+  const [theme, setTheme] = useState(initialTheme);
   const [keyPointsText, setKeyPointsText] = useState('');
   const [selectedStyle, setSelectedStyle] = useState<VideoStyle>('cinematic');
   const [voiceId, setVoiceId] = useState('');

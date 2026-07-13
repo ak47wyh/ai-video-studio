@@ -1,24 +1,20 @@
 import type { AxiosError } from 'axios';
 import { withRetry as baseWithRetry } from '../_base/withRetry';
+import { BaseApiError } from '../_base/BaseApiError';
 
 /**
  * Vidu API 错误类。
+ *
+ * Phase 4 DRY：继承 BaseApiError，复用全局 429 + 5xx 重试语义。
  */
-export class ViduApiError extends Error {
-  readonly httpStatus: number;
-  readonly errorCode: string;
-  readonly rawMessage: string;
-
+export class ViduApiError extends BaseApiError {
   constructor(
     httpStatus: number,
     errorCode: string,
     rawMessage: string,
   ) {
-    super(ViduApiError.toUserMessage(httpStatus, errorCode, rawMessage));
-    this.name = 'ViduApiError';
-    this.httpStatus = httpStatus;
-    this.errorCode = errorCode;
-    this.rawMessage = rawMessage;
+    super(httpStatus, errorCode, rawMessage, 'Vidu',
+      ViduApiError.toUserMessage(httpStatus, errorCode, rawMessage));
   }
 
   private static toUserMessage(status: number, _code: string, raw: string): string {
@@ -34,14 +30,11 @@ export class ViduApiError extends Error {
       case 500:
       case 502:
       case 503:
+      case 504:
         return 'Vidu 服务暂时不可用，请稍后重试。';
       default:
         return `Vidu 请求失败 (${status}): ${raw}`;
     }
-  }
-
-  get isRetryable(): boolean {
-    return this.httpStatus === 429;
   }
 }
 

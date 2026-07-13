@@ -12,9 +12,9 @@
  * 日志：遵循用户规则，所有入参/出参经 logger 打印
  */
 
-import { ConsoleLoggerAdapter } from '../../adapters/outbound/infrastructure/ConsoleLoggerAdapter';
+import { createLogger } from '../../dependencies';
 
-const logger = new ConsoleLoggerAdapter({ service: 'imageCompress' });
+const logger = createLogger('imageCompress');
 
 export interface CompressOptions {
   /** 质量 60-95，仅 JPEG/WebP 有效；PNG 透明图忽略此值 */

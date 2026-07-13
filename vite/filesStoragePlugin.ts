@@ -407,7 +407,7 @@ export function filesStoragePlugin(options: FilesStoragePluginOptions = {}): Plu
             // 迁移老文件（先复制后删除，失败回滚）
             if (body.migrate && oldAbsolute !== newAbsolute && existsSync(oldAbsolute)) {
               const copyDir = async (srcDir: string, destDir: string) => {
-                let entries: string[] = [];
+                let entries: string[];
                 try {
                   entries = await fsp.readdir(srcDir);
                 } catch {

@@ -8,20 +8,19 @@
  * 与 ReactNotificationAdapter 的实现模式相同：模块级单例 + 事件桥。
  */
 
-import type { IConfirmPort, ConfirmInput } from '../../../domain/ports/CrossCuttingPorts';
+import type { IConfirmPort, ConfirmInput, ConfirmBridgeRequest } from '../../../domain/ports/CrossCuttingPorts';
 
-export interface ConfirmBridgeRequest {
-  id: string;
-  title: string;
-  message: string;
-  confirmText?: string;
-  cancelText?: string;
-  destructive?: boolean;
-  resolve: (value: boolean) => void;
-}
+/** 兼容旧引用：从 domain re-export ConfirmBridgeRequest */
+export type { ConfirmBridgeRequest };
 
 type ConfirmListener = (req: ConfirmBridgeRequest) => void;
 
+/**
+ * Confirm 事件总线（adapter 内部使用）。
+ *
+ * Phase 2 后：UI 层应通过 IConfirmPort.subscribe 订阅，
+ * 不再直接 import 此单例。仅为 adapter 内部解耦与测试需要保留。
+ */
 class ConfirmEventBus {
   private listeners = new Set<ConfirmListener>();
 
@@ -55,6 +54,11 @@ class ReactConfirmAdapter implements IConfirmPort {
         resolve,
       });
     });
+  }
+
+  /** Phase 2 DIP：暴露订阅入口，UI 通过 Port 订阅，不再直接依赖 confirmEventBus */
+  subscribe(listener: (req: ConfirmBridgeRequest) => void): () => void {
+    return confirmEventBus.subscribe(listener);
   }
 }
 

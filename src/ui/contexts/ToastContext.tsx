@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import { toastEventBus, type ToastBridgeEvent } from '../../adapters/outbound/ui/ReactNotificationAdapter';
+import { notificationPort } from '../../dependencies';
+import type { ToastBridgeEvent } from '../../domain/ports/CrossCuttingPorts';
 
 type ToastType = 'success' | 'error' | 'info' | 'warning';
 
@@ -55,9 +56,9 @@ export const ToastProvider: React.FC<React.PropsWithChildren> = ({ children }) =
     };
   }, []);
 
-  // 订阅 reactNotificationAdapter 发出的事件桥
+  // 订阅 reactNotificationAdapter 发出的事件桥（Phase 2 DIP：走 Port 订阅）
   useEffect(() => {
-    const unsubscribe = toastEventBus.subscribe((event: ToastBridgeEvent) => {
+    const unsubscribe = notificationPort.subscribe((event: ToastBridgeEvent) => {
       // 处理 dismiss 事件（ReactNotificationAdapter 内部约定）
       if (event.message.startsWith('__dismiss__:')) {
         const id = event.message.split(':')[1];

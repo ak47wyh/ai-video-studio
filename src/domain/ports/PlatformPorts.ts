@@ -70,6 +70,8 @@ export interface IApiConfigStore {
   load(): ApiConfig;
   /** 保存完整配置（合并默认值） */
   save(config: ApiConfig): Promise<void>;
+  /** 自动保存（防抖包装；与 save 等价，仅为语义区分） */
+  autoSave(config: ApiConfig): void;
   /** 获取当前激活平台 */
   getActivePlatform(): PlatformId;
   /** 切换激活平台（持久化 + 触发 onPlatformChange） */
@@ -80,6 +82,8 @@ export interface IApiConfigStore {
   getToken(platform: PlatformId): string | undefined;
   /** 判断指定平台是否已配置（有有效 Key/Token） */
   isPlatformConfigured(platform: PlatformId): boolean;
+  /** 火山引擎语音技术（AppID/Token/Cluster）是否已配置完整 */
+  isVolcVoiceConfigured(): boolean;
   /** 订阅平台切换事件，返回取消订阅函数 */
   onPlatformChange(listener: PlatformChangeListener): () => void;
   /** 订阅配置变更事件（含 Key/Token 更新），返回取消订阅函数 */

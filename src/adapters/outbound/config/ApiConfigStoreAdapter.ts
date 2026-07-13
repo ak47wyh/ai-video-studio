@@ -76,6 +76,16 @@ export class ApiConfigStoreAdapter implements IApiConfigStore {
     return LegacyStore.isPlatformConfigured(platform);
   }
 
+  /** Phase 2: 暴露火山语音技术配置状态（AppID/Token/Cluster 三件套） */
+  isVolcVoiceConfigured(): boolean {
+    return LegacyStore.isVolcVoiceConfigured();
+  }
+
+  /** Phase 2: 防抖自动保存；与 save 等价，仅为语义区分（同步触发，避免 UI 调用方丢失） */
+  autoSave(config: ApiConfig): void {
+    void this.save(config);
+  }
+
   onPlatformChange(listener: PlatformChangeListener): () => void {
     this.platformListeners.add(listener);
     return () => this.platformListeners.delete(listener);

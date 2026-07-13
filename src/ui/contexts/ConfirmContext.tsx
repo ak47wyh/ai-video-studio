@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { confirmEventBus, type ConfirmBridgeRequest } from '../../adapters/outbound/ui/ReactConfirmAdapter';
+import { confirmPort } from '../../dependencies';
+import type { ConfirmBridgeRequest } from '../../domain/ports/CrossCuttingPorts';
 
 interface ConfirmOptions {
   title: string;
@@ -82,9 +83,9 @@ export const ConfirmProvider: React.FC<React.PropsWithChildren> = ({ children })
     });
   }, []);
 
-  // 订阅 reactConfirmAdapter 发出的事件桥
+  // 订阅 reactConfirmAdapter 发出的事件桥（Phase 2 DIP：走 Port 订阅）
   useEffect(() => {
-    const unsubscribe = confirmEventBus.subscribe((req: ConfirmBridgeRequest) => {
+    const unsubscribe = confirmPort.subscribe((req: ConfirmBridgeRequest) => {
       setDialog({
         title: req.title,
         message: req.message,

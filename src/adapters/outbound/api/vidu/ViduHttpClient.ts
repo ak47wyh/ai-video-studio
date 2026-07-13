@@ -1,5 +1,5 @@
-import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosError } from 'axios';
 import type { ApiConfig } from '../../config/ApiConfigStore';
+import { BaseHttpClient } from '../_base/BaseHttpClient';
 import { parseViduError } from './ViduErrorUtils';
 
 /**
@@ -7,35 +7,15 @@ import { parseViduError } from './ViduErrorUtils';
  *
  * 鉴权：HTTP Header `Authorization: Token <API-Key>`
  * Base URL：https://api.vidu.cn
+ *
+ * Phase 4 DRY：继承 BaseHttpClient，仅声明鉴权头与错误解析器。
  */
-export class ViduHttpClient {
-  private client: AxiosInstance;
-  private readonly apiKey: string;
-
+export class ViduHttpClient extends BaseHttpClient {
   constructor(config: ApiConfig) {
-    this.apiKey = config.viduApiKey;
-    this.client = axios.create({
-      baseURL: config.viduBaseUrl.replace(/\/+$/, ''),
-      timeout: 120_000,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Token ${this.apiKey}`,
-      },
+    super({
+      baseUrl: config.viduBaseUrl,
+      headers: { 'Authorization': `Token ${config.viduApiKey}` },
+      parseError: parseViduError,
     });
-
-    this.client.interceptors.response.use(
-      (response) => response,
-      (error: AxiosError) => Promise.reject(parseViduError(error)),
-    );
-  }
-
-  async post<T>(path: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
-    const response = await this.client.post<T>(path, data, config);
-    return response.data;
-  }
-
-  async get<T>(path: string, params?: Record<string, unknown>): Promise<T> {
-    const response = await this.client.get<T>(path, { params });
-    return response.data;
   }
 }

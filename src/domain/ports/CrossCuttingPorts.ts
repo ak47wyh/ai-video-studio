@@ -155,20 +155,59 @@ export interface ConfirmInput {
 }
 
 /**
+ * Toast 事件桥接结构。
+ *
+ * Phase 2 DIP：UI 层（ToastContext）不再直接依赖 adapter 内部 toastEventBus，
+ * 而是通过 INotificationPort.subscribe 订阅此结构。类型提升至 domain 层，
+ * 让 UI 与 adapter 共享同一份契约。
+ */
+export interface ToastBridgeEvent {
+  id: string;
+  type: ToastVariant;
+  message: string;
+}
+
+/**
+ * 确认对话框请求桥接结构。
+ *
+ * Phase 2 DIP：UI 层（ConfirmContext）不再直接依赖 adapter 内部 confirmEventBus，
+ * 而是通过 IConfirmPort.subscribe 订阅此结构。类型提升至 domain 层。
+ */
+export interface ConfirmBridgeRequest {
+  id: string;
+  title: string;
+  message: string;
+  confirmText?: string;
+  cancelText?: string;
+  destructive?: boolean;
+  resolve: (value: boolean) => void;
+}
+
+/**
  * 通知端口：让 Service 层主动弹 Toast 而不耦合 React。
  * 默认实现：ReactNotificationAdapter（包装 ToastContext）。
+ *
+ * Phase 2 DIP：新增 subscribe 方法，UI 通过 Port 订阅事件桥，
+ * 不再直接 import toastEventBus。
  */
 export interface INotificationPort {
   toast(input: ToastInput): string;
   dismiss(toastId: string): void;
+  /** 订阅 Toast 事件桥；返回取消订阅函数 */
+  subscribe(listener: (event: ToastBridgeEvent) => void): () => void;
 }
 
 /**
  * 确认对话框端口：让 Service 层发起"是否继续"询问。
  * 默认实现：ReactConfirmAdapter（包装 ConfirmContext）。
+ *
+ * Phase 2 DIP：新增 subscribe 方法，UI 通过 Port 订阅请求桥，
+ * 不再直接 import confirmEventBus。
  */
 export interface IConfirmPort {
   ask(input: ConfirmInput): Promise<boolean>;
+  /** 订阅确认请求事件；返回取消订阅函数 */
+  subscribe(listener: (req: ConfirmBridgeRequest) => void): () => void;
 }
 
 // ==========================================

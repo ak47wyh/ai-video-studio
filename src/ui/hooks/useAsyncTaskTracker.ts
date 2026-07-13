@@ -78,13 +78,18 @@ export function useAsyncTaskTracker<T extends AsyncTaskBase>(
 
   // tasks 的 ref，供轮询闭包内读取最新值（必须先于 startPolling 声明）
   const tasksRef = useRef(tasks);
-  tasksRef.current = tasks;
 
   const pollingRef = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map());
   const pollFnRef = useRef(pollFn);
   const onCompleteRef = useRef(onComplete);
-  pollFnRef.current = pollFn;
-  onCompleteRef.current = onComplete;
+
+  // React 19：ref.current 必须在 effect 中更新（render 期间写 ref 会破坏纯渲染）
+  // 无依赖数组 = 每次 commit 后同步,确保轮询闭包读到最新值
+  useEffect(() => {
+    tasksRef.current = tasks;
+    pollFnRef.current = pollFn;
+    onCompleteRef.current = onComplete;
+  });
 
   // 持久化到 sessionStorage
   useEffect(() => {

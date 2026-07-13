@@ -173,7 +173,9 @@ export class VolcengineVoiceAdapter implements IVoicePort {
       : encoding === 'wav' ? 'audio/wav'
       : encoding === 'ogg_opus' ? 'audio/ogg'
       : 'audio/pcm';
-    const blob = new Blob([audioBytes], { type: mimeType });
+    // TS6 严格模式下 Uint8Array<ArrayBufferLike> 不兼容 BlobPart(SharedArrayBuffer 不兼容 ArrayBuffer),
+    // 运行时 Uint8Array 是合法 BlobPart,用类型断言逃逸
+    const blob = new Blob([audioBytes as unknown as BlobPart], { type: mimeType });
     return {
       audioUrl: createTrackedObjectUrl(blob),
       audioSize: audioBytes.byteLength,

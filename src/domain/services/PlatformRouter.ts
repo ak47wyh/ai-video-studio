@@ -38,33 +38,107 @@ import { apiConfigStoreAdapter } from '../../adapters/outbound/config/ApiConfigS
 import { platformCapabilitiesAdapter } from '../../adapters/outbound/infrastructure/PlatformCapabilitiesAdapter';
 import { UnsupportedCapabilityError } from '../errors/UnsupportedCapabilityError';
 
-// 适配器实例缓存
-let _videoAdapter: IVideoGeneratorPort | null = null;
-let _imageAdapter: IImageGeneratorPort | null = null;
-let _textAdapter: ITextGenerationPort | null = null;
-let _voiceAdapter: IVoicePort | null = null;
-let _musicAdapter: IMusicPort | null = null;
-
 /**
- * 平台路由器
+ * 平台路由器（Phase 3 OCP 重构：注册表模式）
  *
- * 依赖反转（v2.0）：
- * - 通过 IApiConfigStore 获取配置
- * - 通过 IPlatformCapabilitiesPort 查询能力
- * - 订阅 onPlatformChange 事件，自动 reset 缓存
+ * 设计要点：
+ * - 内部维护 `Map<PlatformCapability, Map<PlatformId, Factory>>` 注册表，
+ *   新增平台只需在 `registerDefaults()` 添加一行，零改动 resolve 主体（OCP 闭合）。
+ * - 适配器实例按 `(capability, platform)` 缓存，平台切换时 reset 清空全部缓存。
+ * - 火山方舟 Anthropic 协议特例：仅支持 text 能力，video/image 拦截仍在 resolve 内部判定。
+ *
+ * 兼容性：保留 `resolveVideo/resolveImage/resolveText/resolveVoice/resolveMusic`
+ * 公共 API 不变，调用方无需修改。
  */
+type AdapterFactory<T> = (config: ApiConfig) => T;
+
+interface CachedAdapter {
+  platform: PlatformId;
+  instance: unknown;
+}
+
 export class PlatformRouter {
   private configStore: IApiConfigStore;
   private capabilities: IPlatformCapabilitiesPort;
+  /** 注册表：capability → platform → factory */
+  private readonly registry = new Map<PlatformCapability, Map<PlatformId, AdapterFactory<unknown>>>();
+  /** 实例缓存：capability → 已实例化的 adapter */
+  private readonly cache = new Map<PlatformCapability, CachedAdapter>();
+
   constructor(
     configStore: IApiConfigStore = apiConfigStoreAdapter,
     capabilities: IPlatformCapabilitiesPort = platformCapabilitiesAdapter
   ) {
     this.configStore = configStore;
     this.capabilities = capabilities;
+    this.registerDefaults();
     this.configStore.onPlatformChange(() => {
       this.reset();
     });
+  }
+
+  /** 注册全部已知平台×能力的工厂函数（OCP：新增平台在此追加即可） */
+  private registerDefaults(): void {
+    // video（7 平台）
+    this.register('video', 'volcengine', (c) => new VolcengineVideoAdapter(c));
+    this.register('video', 'kling', (c) => new KlingVideoAdapter(c));
+    this.register('video', 'wan', (c) => new WanVideoAdapter(c));
+    this.register('video', 'hunyuan', (c) => new HunyuanVideoAdapter(c));
+    this.register('video', 'zhipu', (c) => new ZhipuVideoAdapter(c));
+    this.register('video', 'vidu', (c) => new ViduVideoAdapter(c));
+    this.register('video', 'minimax', () => new MiniMaxVideoAdapter());
+
+    // image（7 平台）
+    this.register('image', 'volcengine', (c) => new VolcengineImageAdapter(c));
+    this.register('image', 'kling', (c) => new KlingImageAdapter(c));
+    this.register('image', 'wan', (c) => new WanImageAdapter(c));
+    this.register('image', 'hunyuan', (c) => new HunyuanImageAdapter(c));
+    this.register('image', 'zhipu', (c) => new ZhipuImageAdapter(c));
+    this.register('image', 'vidu', (c) => new ViduImageAdapter(c));
+    this.register('image', 'minimax', () => new MiniMaxImageAdapter());
+
+    // text（5 平台）
+    this.register('text', 'volcengine', (c) => new VolcengineTextAdapter(c));
+    this.register('text', 'wan', (c) => new WanTextAdapter(c));
+    this.register('text', 'hunyuan', (c) => new HunyuanTextAdapter(c));
+    this.register('text', 'zhipu', (c) => new ZhipuTextAdapter(c));
+    this.register('text', 'minimax', () => new MiniMaxTextAdapter());
+
+    // voice（5 平台；火山引擎语音独立于方舟协议）
+    this.register('voice', 'volcengine', (c) => new VolcengineVoiceAdapter(c));
+    this.register('voice', 'wan', (c) => new WanVoiceAdapter(c));
+    this.register('voice', 'hunyuan', (c) => new HunyuanVoiceAdapter(c));
+    this.register('voice', 'zhipu', (c) => new ZhipuVoiceAdapter(c));
+    this.register('voice', 'minimax', () => new MiniMaxVoiceAdapter());
+
+    // music（仅 MiniMax；其他平台通过 ensureCap 拦截，符合 P2-6 修复）
+    this.register('music', 'minimax', () => new MiniMaxMusicAdapter());
+  }
+
+  /** 注册某 (capability, platform) 的工厂 */
+  register<T>(capability: PlatformCapability, platform: PlatformId, factory: AdapterFactory<T>): void {
+    let capMap = this.registry.get(capability);
+    if (!capMap) {
+      capMap = new Map();
+      this.registry.set(capability, capMap);
+    }
+    capMap.set(platform, factory as AdapterFactory<unknown>);
+  }
+
+  /** 取消注册（capability 省略时清除该平台所有能力） */
+  unregister(platform: PlatformId, capability?: PlatformCapability): void {
+    if (capability) {
+      this.registry.get(capability)?.delete(platform);
+    } else {
+      for (const capMap of this.registry.values()) {
+        capMap.delete(platform);
+      }
+    }
+  }
+
+  /** 查询某平台是否声明支持某能力（基于注册表） */
+  hasRegistered(platform: PlatformId, capability: PlatformCapability): boolean {
+    return this.registry.get(capability)?.has(platform) ?? false;
   }
 
   resolve(capability: 'video', config: ApiConfig): IVideoGeneratorPort;
@@ -89,40 +163,30 @@ export class PlatformRouter {
     }
   }
 
+  /** 通用解析：从注册表查工厂 → 实例化 → 缓存 */
+  private resolveAdapter<T>(capability: PlatformCapability, config: ApiConfig): T {
+    const platform = config.activePlatform;
+    const capMap = this.registry.get(capability);
+    if (!capMap || !capMap.has(platform)) {
+      throw new UnsupportedCapabilityError(platform, capability as 'video' | 'image' | 'text' | 'voice' | 'music');
+    }
+    const cached = this.cache.get(capability);
+    if (cached && cached.platform === platform) {
+      return cached.instance as T;
+    }
+    const factory = capMap.get(platform)!;
+    const instance = factory(config) as T;
+    this.cache.set(capability, { platform, instance });
+    return instance;
+  }
+
   resolveVideo(config: ApiConfig): IVideoGeneratorPort {
     this.ensureCap(config.activePlatform, 'video');
-    // P0-3: 火山方舟 Anthropic 协议仅支持 text 能力，video/image/voice 应拦截
+    // P0-3: 火山方舟 Anthropic 协议仅支持 text 能力，video/image 应拦截
     if (config.activePlatform === 'volcengine' && config.volcArkProtocol === 'anthropic') {
       throw new UnsupportedCapabilityError('volcengine', 'video');
     }
-    if (_videoAdapter && this.isMatchingPlatform(_videoAdapter, config.activePlatform)) {
-      return _videoAdapter;
-    }
-    switch (config.activePlatform) {
-      case 'volcengine':
-        _videoAdapter = new VolcengineVideoAdapter(config);
-        break;
-      case 'kling':
-        _videoAdapter = new KlingVideoAdapter(config);
-        break;
-      case 'wan':
-        _videoAdapter = new WanVideoAdapter(config);
-        break;
-      case 'hunyuan':
-        _videoAdapter = new HunyuanVideoAdapter(config);
-        break;
-      case 'zhipu':
-        _videoAdapter = new ZhipuVideoAdapter(config);
-        break;
-      case 'vidu':
-        _videoAdapter = new ViduVideoAdapter(config);
-        break;
-      case 'minimax':
-      default:
-        _videoAdapter = new MiniMaxVideoAdapter();
-        break;
-    }
-    return _videoAdapter;
+    return this.resolveAdapter<IVideoGeneratorPort>('video', config);
   }
 
   resolveImage(config: ApiConfig): IImageGeneratorPort {
@@ -130,60 +194,12 @@ export class PlatformRouter {
     if (config.activePlatform === 'volcengine' && config.volcArkProtocol === 'anthropic') {
       throw new UnsupportedCapabilityError('volcengine', 'image');
     }
-    if (_imageAdapter && this.isMatchingPlatform(_imageAdapter, config.activePlatform)) {
-      return _imageAdapter;
-    }
-    switch (config.activePlatform) {
-      case 'volcengine':
-        _imageAdapter = new VolcengineImageAdapter(config);
-        break;
-      case 'kling':
-        _imageAdapter = new KlingImageAdapter(config);
-        break;
-      case 'wan':
-        _imageAdapter = new WanImageAdapter(config);
-        break;
-      case 'hunyuan':
-        _imageAdapter = new HunyuanImageAdapter(config);
-        break;
-      case 'zhipu':
-        _imageAdapter = new ZhipuImageAdapter(config);
-        break;
-      case 'vidu':
-        _imageAdapter = new ViduImageAdapter(config);
-        break;
-      case 'minimax':
-      default:
-        _imageAdapter = new MiniMaxImageAdapter();
-        break;
-    }
-    return _imageAdapter;
+    return this.resolveAdapter<IImageGeneratorPort>('image', config);
   }
 
   resolveText(config: ApiConfig): ITextGenerationPort {
     this.ensureCap(config.activePlatform, 'text');
-    if (_textAdapter && this.isMatchingPlatform(_textAdapter, config.activePlatform)) {
-      return _textAdapter;
-    }
-    switch (config.activePlatform) {
-      case 'volcengine':
-        _textAdapter = new VolcengineTextAdapter(config);
-        break;
-      case 'wan':
-        _textAdapter = new WanTextAdapter(config);
-        break;
-      case 'hunyuan':
-        _textAdapter = new HunyuanTextAdapter(config);
-        break;
-      case 'zhipu':
-        _textAdapter = new ZhipuTextAdapter(config);
-        break;
-      case 'minimax':
-      default:
-        _textAdapter = new MiniMaxTextAdapter();
-        break;
-    }
-    return _textAdapter;
+    return this.resolveAdapter<ITextGenerationPort>('text', config);
   }
 
   resolveVoice(config: ApiConfig): IVoicePort {
@@ -191,61 +207,14 @@ export class PlatformRouter {
     // 火山引擎语音技术（声音复刻 + 大模型 TTS）独立于方舟 Ark 体系，
     // 走原生语音端点（openspeech.bytedance.com），与 volcArkProtocol 无关。
     // 因此 Anthropic 协议（Agent Plan）下语音能力仍然可用，不再拦截。
-    if (_voiceAdapter && this.isMatchingPlatform(_voiceAdapter, config.activePlatform)) {
-      return _voiceAdapter;
-    }
-    switch (config.activePlatform) {
-      case 'volcengine':
-        _voiceAdapter = new VolcengineVoiceAdapter(config);
-        break;
-      case 'wan':
-        _voiceAdapter = new WanVoiceAdapter(config);
-        break;
-      case 'hunyuan':
-        _voiceAdapter = new HunyuanVoiceAdapter(config);
-        break;
-      case 'zhipu':
-        _voiceAdapter = new ZhipuVoiceAdapter(config);
-        break;
-      case 'minimax':
-      default:
-        _voiceAdapter = new MiniMaxVoiceAdapter();
-        break;
-    }
-    return _voiceAdapter;
+    return this.resolveAdapter<IVoicePort>('voice', config);
   }
 
   resolveMusic(config: ApiConfig): IMusicPort {
     this.ensureCap(config.activePlatform, 'music');
-    if (_musicAdapter && this.isMatchingPlatform(_musicAdapter, config.activePlatform)) {
-      return _musicAdapter;
-    }
-    // P2-6 修复：按 activePlatform 显式分派，避免"静默 fallback 到 MiniMax"。
-    // 当前 music 能力仅 MiniMax 声明支持（platformCapabilities.ts），若未来其它
-    // 平台声明支持但此处未实现分派，应抛 UnsupportedCapabilityError 而非默认返回
-    // MiniMax（否则用户切换到新平台后会以为已生效但实际仍走 MiniMax）。
-    switch (config.activePlatform) {
-      case 'minimax':
-        _musicAdapter = new MiniMaxMusicAdapter();
-        break;
-      default:
-        throw new UnsupportedCapabilityError(config.activePlatform, 'music');
-    }
-    return _musicAdapter;
-  }
-
-  private isMatchingPlatform(adapter: { constructor: { name: string } }, platform: PlatformId): boolean {
-    const adapterName = adapter.constructor.name;
-    const platformPrefix: Record<PlatformId, string> = {
-      minimax: 'MiniMax',
-      volcengine: 'Volcengine',
-      kling: 'Kling',
-      wan: 'Wan',
-      hunyuan: 'Hunyuan',
-      zhipu: 'Zhipu',
-      vidu: 'Vidu',
-    };
-    return adapterName.startsWith(platformPrefix[platform]);
+    // P2-6 修复：music 能力仅 MiniMax 声明支持（platformCapabilities.ts）；
+    // 注册表未注册的平台会抛 UnsupportedCapabilityError，避免静默 fallback。
+    return this.resolveAdapter<IMusicPort>('music', config);
   }
 
   hasCapability(capability: PlatformCapability): boolean {
@@ -257,11 +226,7 @@ export class PlatformRouter {
   }
 
   reset(): void {
-    _videoAdapter = null;
-    _imageAdapter = null;
-    _textAdapter = null;
-    _voiceAdapter = null;
-    _musicAdapter = null;
+    this.cache.clear();
   }
 }
 

@@ -1,32 +1,53 @@
 import type { IModelManagementPort, ModelInfo } from '../ports/OutboundPorts';
 import type { IModelCachePort, CachedModels } from '../ports/ModelCachePort';
+import type { ILoggerPort, LogContext } from '../ports/CrossCuttingPorts';
 
 export class ModelManagementService {
   private modelPort: IModelManagementPort;
   private cache: IModelCachePort<ModelInfo>;
+  private logger: ILoggerPort;
 
-  constructor(modelPort: IModelManagementPort, cache: IModelCachePort<ModelInfo>) {
+  constructor(modelPort: IModelManagementPort, cache: IModelCachePort<ModelInfo>, logger: ILoggerPort) {
     this.modelPort = modelPort;
     this.cache = cache;
+    this.logger = logger;
+  }
+
+  /** 统一上下文工厂：附加 service 字段 */
+  private ctx(extra: LogContext = {}): LogContext {
+    return { service: 'ModelManagementService', ...extra };
   }
 
   /**
    * Fetch all models from API (handles pagination).
+   *
+   * P0 修复：增加 MAX_PAGES 兜底,防止恶意/异常 API 持续返回 hasMore=true 时死循环。
+   * 单页 100 条 × 50 页 = 5000 条模型已远超实际业务需求。
    */
   async fetchModels(): Promise<ModelInfo[]> {
+    const MAX_PAGES = 50;
     const allModels: ModelInfo[] = [];
     let afterId: string | undefined;
+    let pageCount = 0;
 
     do {
       const result = await this.modelPort.listModels(100, afterId);
+      this.logger.debug('listModels page fetched', this.ctx({ page: pageCount, pageSize: result.models.length, hasMore: result.hasMore }));
       allModels.push(...result.models);
       afterId = result.hasMore ? result.lastId : undefined;
+      pageCount++;
+      if (pageCount >= MAX_PAGES && afterId) {
+        // 达到兜底阈值仍有更多页,停止分页避免死循环
+        this.logger.warn(`fetchModels hit MAX_PAGES=${MAX_PAGES}, stopping pagination`, this.ctx({ collectedModels: allModels.length }));
+        afterId = undefined;
+      }
     } while (afterId);
 
     // Cache the result
     const cached: CachedModels<ModelInfo> = { models: allModels, cachedAt: Date.now() };
     await this.cache.write(cached);
 
+    this.logger.info('fetchModels done', this.ctx({ totalModels: allModels.length, pages: pageCount }));
     return allModels;
   }
 
@@ -34,8 +55,13 @@ export class ModelManagementService {
    * Get models from cache if valid, otherwise fetch from API.
    */
   async getModels(): Promise<ModelInfo[]> {
+    this.logger.debug('getModels called', this.ctx({}));
     const cached = await this.getCachedModelsInternal();
-    if (cached) return cached.models;
+    if (cached) {
+      this.logger.debug('getModels cache hit', this.ctx({ modelCount: cached.models.length }));
+      return cached.models;
+    }
+    this.logger.debug('getModels cache miss, fetching', this.ctx({}));
     return this.fetchModels();
   }
 
@@ -43,6 +69,7 @@ export class ModelManagementService {
    * Force refresh models from API.
    */
   async refreshModels(): Promise<ModelInfo[]> {
+    this.logger.info('refreshModels called', this.ctx({}));
     return this.fetchModels();
   }
 
@@ -50,6 +77,7 @@ export class ModelManagementService {
    * Get cached models info (models + cachedAt timestamp).
    */
   async getCachedModels(): Promise<CachedModels<ModelInfo> | null> {
+    this.logger.debug('getCachedModels called', this.ctx({}));
     return this.getCachedModelsInternal();
   }
 
@@ -57,16 +85,22 @@ export class ModelManagementService {
    * Check if a specific model is available.
    */
   async isModelAvailable(modelId: string): Promise<boolean> {
+    this.logger.debug('isModelAvailable called', this.ctx({ modelId }));
     const models = await this.getModels();
-    return models.some(m => m.id === modelId);
+    const available = models.some(m => m.id === modelId);
+    this.logger.debug('isModelAvailable done', this.ctx({ modelId, available }));
+    return available;
   }
 
   /**
    * Get text generation models (from API).
    */
   async getTextModels(): Promise<ModelInfo[]> {
+    this.logger.debug('getTextModels called', this.ctx({}));
     const models = await this.getModels();
-    return models.filter(m => m.type === 'text' || m.id.startsWith('MiniMax-'));
+    const textModels = models.filter(m => m.type === 'text' || m.id.startsWith('MiniMax-'));
+    this.logger.debug('getTextModels done', this.ctx({ textModelCount: textModels.length }));
+    return textModels;
   }
 
   /**

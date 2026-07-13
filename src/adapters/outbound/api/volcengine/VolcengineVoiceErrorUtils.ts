@@ -50,11 +50,16 @@ const TTS_ERROR_MAP: Record<number, ErrorMapping> = {
 /**
  * 解析声音复刻错误（upload / status 接口）。
  * 火山引擎声音复刻错误以 BaseResp.StatusCode 返回，0 为成功。
+ *
+ * P0 修复：新增 httpStatus 参数透传给 VolcengineApiError，
+ * 使 isRetryable 能正确判断 429/5xx 重试场景。
+ * - 业务错误（HTTP 200 但业务码非 0）：传 200 → 不可重试（正确，业务校验失败）
+ * - 网络/服务端错误（catch AxiosError）：传 503 → 可重试
  */
-export function parseCloneError(statusCode: number, fallbackMessage: string): VolcengineApiError {
+export function parseCloneError(statusCode: number, fallbackMessage: string, httpStatus: number = 200): VolcengineApiError {
   const mapped = CLONE_ERROR_MAP[statusCode];
   return new VolcengineApiError(
-    0,
+    httpStatus,
     mapped?.code ?? `CLONE_${statusCode}`,
     mapped?.message ?? fallbackMessage,
   );
@@ -63,11 +68,13 @@ export function parseCloneError(statusCode: number, fallbackMessage: string): Vo
 /**
  * 解析 TTS 错误（/api/v1/tts 接口）。
  * 火山引擎 TTS 以 code 字段返回，3000 为成功。
+ *
+ * P0 修复：同 parseCloneError，新增 httpStatus 参数。
  */
-export function parseTtsError(code: number, fallbackMessage: string): VolcengineApiError {
+export function parseTtsError(code: number, fallbackMessage: string, httpStatus: number = 200): VolcengineApiError {
   const mapped = TTS_ERROR_MAP[code];
   return new VolcengineApiError(
-    0,
+    httpStatus,
     mapped?.code ?? `TTS_${code}`,
     mapped?.message ?? fallbackMessage,
   );

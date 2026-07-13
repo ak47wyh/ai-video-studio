@@ -358,23 +358,19 @@ export const StoryWorkbench: React.FC = () => {
 
   const handleUpdateActionContent = useCallback(async (segmentId: string, content: string) => {
     try {
-      const seg = segments.find(s => s.id === segmentId);
-      if (seg) {
-        seg.actionContent = content;
-        await storyService.updateSegment(segmentId, { actionContent: content });
-      }
+      // P0 修复：原代码直接修改 seg.actionContent 破坏 React 不可变性。
+      // segments 来自 useLiveQuery，storyService.updateSegment 落盘后 Dexie 会自动通知重查询刷新 UI。
+      // 删除直接修改，仅依赖 service 调用 + liveQuery 机制。
+      await storyService.updateSegment(segmentId, { actionContent: content });
     } catch (e) { showToast('error', getErrorMessage(e)); }
-  }, [segments, showToast]);
+  }, [showToast]);
 
   const handleUpdateFirstFrameImage = useCallback(async (segmentId: string, url: string) => {
     try {
-      const seg = segments.find(s => s.id === segmentId);
-      if (seg) {
-        seg.firstFrameImage = url;
-        await storyService.updateSegment(segmentId, { firstFrameImage: url });
-      }
+      // P0 修复：同上，删除直接修改 seg.firstFrameImage，依赖 liveQuery 刷新。
+      await storyService.updateSegment(segmentId, { firstFrameImage: url });
     } catch (e) { showToast('error', getErrorMessage(e)); }
-  }, [segments, showToast]);
+  }, [showToast]);
 
   const handleAssembleFinalVideo = async () => {
     if (!ws.selectedStoryId) return;

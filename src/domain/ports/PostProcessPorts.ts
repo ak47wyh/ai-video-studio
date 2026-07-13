@@ -53,8 +53,6 @@ export interface IFFmpegPort {
   crop(video: Blob, opts: CropOptions): Promise<Blob>;
   resize(video: Blob, width: number, height: number): Promise<Blob>;
   extractFrame(video: Blob, atSec: number, format?: 'png' | 'jpg'): Promise<Blob>;
-  reverse(video: Blob): Promise<Blob>;
-  fadeInOut(video: Blob, fadeInSec: number, fadeOutSec: number): Promise<Blob>;
   /** 应用 delogo 滤镜去除水印（矩形区域），单次执行保留时序与音频 */
   applyDelogo(video: Blob, regions: { x: number; y: number; width: number; height: number }[]): Promise<Blob>;
   /** 将图片帧序列重新编码为视频（含可选音频流） */

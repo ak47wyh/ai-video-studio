@@ -1,25 +1,22 @@
 import type { AxiosError } from 'axios';
 import { withRetry as baseWithRetry } from '../_base/withRetry';
+import { BaseApiError } from '../_base/BaseApiError';
 
 /**
  * 火山引擎 API 错误类。
  * 携带 HTTP 状态码和平台错误信息，供 UI 层展示。
+ *
+ * Phase 4 DRY：继承 BaseApiError，复用全局 429 + 5xx 重试语义，
+ * 保留平台特有的 CORS 错误识别能力。
  */
-export class VolcengineApiError extends Error {
-  public readonly httpStatus: number;
-  public readonly errorCode: string;
-  public readonly rawMessage: string;
-
+export class VolcengineApiError extends BaseApiError {
   constructor(
     httpStatus: number,
     errorCode: string,
     rawMessage: string,
   ) {
-    super(VolcengineApiError.toUserMessage(httpStatus, errorCode, rawMessage));
-    this.name = 'VolcengineApiError';
-    this.httpStatus = httpStatus;
-    this.errorCode = errorCode;
-    this.rawMessage = rawMessage;
+    super(httpStatus, errorCode, rawMessage, 'Volcengine',
+      VolcengineApiError.toUserMessage(httpStatus, errorCode, rawMessage));
   }
 
   /** 生成用户可读的错误信息 */
@@ -33,20 +30,14 @@ export class VolcengineApiError extends Error {
         return '当前 Token 无权访问此功能，请检查 Token 权限配置。';
       case 429:
         return '请求过于频繁，请稍后重试。';
+      case 500:
+      case 502:
       case 503:
+      case 504:
         return '火山引擎服务暂时不可用，请稍后重试。';
       default:
         return `火山引擎请求失败 (${status}): ${raw}`;
     }
-  }
-
-  /** 是否可重试（429 限流 + 5xx 服务端错误 + 网关错误） */
-  get isRetryable(): boolean {
-    return this.httpStatus === 429
-      || this.httpStatus === 500
-      || this.httpStatus === 502
-      || this.httpStatus === 503
-      || this.httpStatus === 504;
   }
 }
 
@@ -64,6 +55,11 @@ export class CorsBlockedError extends VolcengineApiError {
   constructor(rawMessage: string = 'Browser CORS preflight blocked the request.') {
     super(0, 'CORS_BLOCKED', rawMessage);
     this.name = 'CorsBlockedError';
+  }
+
+  /** CORS 拦截是确定性失败，不可重试 */
+  override get isRetryable(): boolean {
+    return false;
   }
 }
 

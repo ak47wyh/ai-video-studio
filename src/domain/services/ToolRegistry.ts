@@ -523,6 +523,7 @@ export class ToolRegistry {
       handler: async (args) => {
         let text = args.text as string | undefined;
         const segmentId = args.segmentId as string | undefined;
+        const voiceId = (args.voiceId as string | undefined) ?? '';
 
         if (!text && segmentId) {
           const seg = await this.deps.segmentRepo.findById(segmentId);
@@ -534,27 +535,30 @@ export class ToolRegistry {
           return { success: false, error: 'Either text or segmentId is required', summary: '缺少文本或分镜 ID' };
         }
 
-        if (!segmentId) {
-          // 无 segmentId 时直接返回合成结果摘要（不绑定到分镜）
-          // VoiceService.synthesize 需要更多参数，此处简化处理
+        if (segmentId) {
+          // 绑定分镜：调用 generateAndPersistNarration（持久化到 OPFS）
+          const audioUrl = await this.deps.voiceService.generateAndPersistNarration(segmentId, text, voiceId);
           return {
             success: true,
-            data: { text, voiceId: args.voiceId || 'default' },
-            summary: `已准备旁白文本（${text.length} 字），未指定分镜 ID 故未实际合成`,
+            data: { audioUrl, segmentId },
+            summary: `已生成旁白音频并持久化（绑定分镜 ${segmentId}）`,
           };
         }
 
-        // 调用 VoiceService.generateAndPersistNarration（持久化到 OPFS）
-        const audioUrl = await this.deps.voiceService.generateAndPersistNarration(
-          segmentId,
-          text,
-          (args.voiceId as string | undefined) ?? '',
-        );
-
+        // P0 修复：无 segmentId 时也必须实际合成 TTS,避免业务闭环断裂
+        // (原实现仅返回文本摘要,Agent 会误以为旁白已生成)
+        const result = await this.deps.voiceService.generateNarrationAudio(text, voiceId);
+        if (result.taskId) {
+          return {
+            success: true,
+            data: { taskId: result.taskId, text, voiceId },
+            summary: `已创建异步 TTS 任务（taskId=${result.taskId}，文本 ${text.length} 字），需轮询获取结果`,
+          };
+        }
         return {
           success: true,
-          data: { audioUrl, segmentId },
-          summary: `已生成旁白音频并持久化（绑定分镜 ${segmentId}）`,
+          data: { audioUrl: result.audioUrl, text, voiceId },
+          summary: `已同步合成旁白音频（文本 ${text.length} 字）`,
         };
       },
     });

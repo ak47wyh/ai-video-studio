@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { VoiceCapabilities } from '../../domain/ports/OutboundPorts';
-import { voiceService } from '../../dependencies';
-import { ApiConfigStore } from '../../adapters/outbound/config/ApiConfigStore';
+import { voiceService, apiConfigStoreAdapter } from '../../dependencies';
 import { usePlatform } from '../contexts/PlatformContext';
 
 /** 默认降级值（全 false），保证 UI 在适配器初始化失败时不中断 */
@@ -51,7 +50,7 @@ export function useVoiceCapabilities(): UseVoiceCapabilitiesResult {
         const caps = await voiceService.getVoiceCapabilities();
         if (!cancelled) {
           setCapabilities(caps);
-          setVolcVoiceConfigured(ApiConfigStore.isVolcVoiceConfigured());
+          setVolcVoiceConfigured(apiConfigStoreAdapter.isVolcVoiceConfigured());
         }
       } catch {
         if (!cancelled) {

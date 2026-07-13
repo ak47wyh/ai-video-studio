@@ -7,7 +7,7 @@ import { useWatermarkRemoval } from '../hooks/useWatermarkRemoval';
 import { useBatchImageInpaint } from '../hooks/useBatchImageInpaint';
 import { useToast } from '../contexts/ToastContext';
 import { useSpace } from '../contexts/SpaceContext';
-import { assetLibraryService, videoAddressResolver } from '../../dependencies';
+import { assetLibraryService, videoAddressResolver, pdfRenderPort } from '../../dependencies';
 import type { InpaintRegion, InpaintAlgorithm, VideoInpaintMode } from '../../domain/ports/WatermarkRemovalPorts';
 import { detectVideoAddressType, fetchVideoAsFile } from '../utils/videoAddress';
 import './WatermarkLab.css';
@@ -473,25 +473,14 @@ const PdfWatermarkPanel: React.FC = () => {
     setRegions([]);
     reset();
     try {
-      // @ts-expect-error - CDN 动态导入，无类型声明
-      const pdfjs = await import(/* @vite-ignore */ 'https://unpkg.com/pdfjs-dist@4.8.69/build/pdf.min.mjs');
-      pdfjs.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@4.8.69/build/pdf.worker.min.mjs';
-      const buf = await f.arrayBuffer();
-      const doc = await pdfjs.getDocument({ data: buf }).promise;
-      const page = await doc.getPage(1);
-      const viewport = page.getViewport({ scale: 1 });
-      setNaturalSize({ w: viewport.width, h: viewport.height });
-      const ratio = viewport.width / viewport.height;
+      // Phase 2 DIP：通过 pdfRenderPort 隔离 pdfjs-dist CDN 加载
+      const { width, height, dataUrl } = await pdfRenderPort.renderFirstPage(f);
+      setNaturalSize({ w: width, h: height });
+      const ratio = width / height;
       const dh = MAX_DIMENSION;
       const dw = dh * ratio;
       setDisplaySize({ w: Math.round(dw), h: Math.round(dh) });
-
-      const canvas = document.createElement('canvas');
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
-      const ctx = canvas.getContext('2d')!;
-      await page.render({ canvasContext: ctx, viewport }).promise;
-      setFirstPageUrl(canvas.toDataURL('image/png'));
+      setFirstPageUrl(dataUrl);
     } catch (_e) {
       showToast('error', 'PDF 预览失败');
     }
