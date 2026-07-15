@@ -86,14 +86,30 @@ export interface VideoPromptContext {
   background?: import('../entities/models').Background;
   videoStyle?: string;
   aigcWatermark?: boolean;
+  /** 参考音频 URL 列表（用于音色/旋律继承，Seedance 2.0 系列，mp3/wav，每段 ≤15s，最多 3 段） */
+  referenceAudioUrls?: string[];
+  /** 是否启用模型自动生成音频（与 referenceAudioUrls 互斥） */
+  generateAudio?: boolean;
 }
 
 export interface VideoTaskResult {
   status: VideoTaskStatus;
   videoUrl?: string;
+  /** 火山引擎尾帧图像 URL（return_last_frame=true 时返回，24h 有效） */
+  lastFrameUrl?: string;
   videoWidth?: number;
   videoHeight?: number;
   fileId?: string;
+  /** 火山引擎 token 用量（completion_tokens） */
+  usageTokens?: number;
+  /** 火山引擎实际使用的种子值 */
+  seed?: number;
+  /** 火山引擎实际使用的分辨率（如 "720p"） */
+  resolution?: string;
+  /** 火山引擎实际使用的宽高比（如 "16:9"） */
+  ratio?: string;
+  /** 火山引擎实际时长（秒） */
+  duration?: number;
   errorMessage?: string;
 }
 

@@ -54,7 +54,8 @@ export class VolcengineVoiceAdapter implements IVoicePort {
 
   constructor(config: ApiConfig) {
     this.config = config;
-    this.arkHttp = new VolcengineHttpClient(config);
+    // 方舟 Ark TTS 永远走 OpenAI 协议（标准音色）
+    this.arkHttp = VolcengineHttpClient.createOpenAI(config);
     this.speechClient = new VolcengineSpeechClient(config);
   }
 
@@ -84,8 +85,9 @@ export class VolcengineVoiceAdapter implements IVoicePort {
       };
     }
 
-    // 标准音色：优先走方舟 Ark（若配置了 API Key + OpenAI 协议）
-    if (this.config.volcArkApiKey.trim() && this.config.volcArkProtocol === 'openai') {
+    // 标准音色：优先走方舟 Ark（若配置了 OpenAI API Key）
+    // 双协议并存：Ark TTS 永远走 OpenAI 协议，只需 OpenAI Key
+    if (this.config.volcArkOpenAiApiKey.trim()) {
       return this.synthesizeViaArk(context);
     }
 

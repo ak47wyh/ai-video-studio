@@ -19,6 +19,8 @@ export interface Character {
   createdAt: number;
   /** 参考图 OPFS 存储路径（Phase 2-C 持久化，referenceImageUrl 过期/体积大时优化） */
   referenceImageStoragePath?: string;
+  /** 角色参考音频 URL（用于视频生成时音色继承，mp3/wav，≤15s） */
+  referenceAudioUrl?: string;
 }
 
 export interface Background {

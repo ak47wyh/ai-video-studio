@@ -37,6 +37,8 @@ export interface VideoGenerationOptions {
   promptOptimizer?: boolean;
   firstFrameImage?: string;
   lastFrameImage?: string;
+  /** 是否启用模型自动生成音频（火山引擎 Seedance 2.0 系列，与参考音频互斥） */
+  generateAudio?: boolean;
 }
 
 /**
@@ -172,6 +174,11 @@ export class VideoGenerationService {
       }
     }
 
+    // 收集角色参考音频 URL（用于视频生成时音色继承，火山引擎 Seedance 2.0 系列）
+    const referenceAudioUrls = characters
+      .map(c => c.referenceAudioUrl)
+      .filter((url): url is string => !!url && url.length > 0);
+
     // Build prompt
     const promptParts: string[] = [];
     if (characters.length > 0) {
@@ -203,6 +210,9 @@ export class VideoGenerationService {
       // Voice and BGM
       characterVoiceIds: Object.keys(characterVoiceIds).length > 0 ? characterVoiceIds : undefined,
       bgmAudioUrl: segment.bgmAudioUrl,
+      // 参考音频（人物音色，火山引擎 Seedance 2.0 系列）
+      referenceAudioUrls: referenceAudioUrls.length > 0 ? referenceAudioUrls : undefined,
+      generateAudio: options?.generateAudio,
       // Legacy fields for backward compatibility
       actionContent: segment.content,
       characters,

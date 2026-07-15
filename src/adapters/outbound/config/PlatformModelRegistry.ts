@@ -39,7 +39,7 @@ export class PlatformModelRegistry implements IModelRegistry {
     // 火山方舟 Anthropic 协议（Agent Plan）：使用 volcArkAnthropicModel
     if (platformId === 'volcengine') {
       const config = this.configStore.load();
-      const protocol: VolcArkProtocol = config.volcArkProtocol ?? 'openai';
+      const protocol: VolcArkProtocol = config.volcArkTextProtocol ?? 'openai';
       if (protocol === 'anthropic') {
         const anthropicModel = config.volcArkAnthropicModel || 'doubao-seed-2.0-pro';
         this.logger.info('resolveTextModel from volcengine anthropic (Agent Plan)', {

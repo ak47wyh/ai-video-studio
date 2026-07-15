@@ -337,7 +337,20 @@
     "volcVoiceModelIcl2": "ICL 2.0 (Dernière, 2025.10)",
     "volcVoiceModelDitStandard": "DiT Standard (pas de restauration de style)",
     "volcVoiceModelDitRestore": "DiT Restauration (restaurer accent/vitesse)",
-    "volcVoiceModelMega": "Effet MEGA (ancien, non recommandé)"
+    "volcVoiceModelMega": "Effet MEGA (ancien, non recommandé)",
+    "volcArkOpenAiApiKeyLabel": "API Key (OpenAI Protocol)",
+    "volcArkAnthropicApiKeyLabel": "API Key (Anthropic Protocol)",
+    "volcOpenAiReady": "Video/Image/Voice Ark TTS available",
+    "volcOpenAiNotReady": "Video/Image requires OpenAI Key",
+    "volcAnthropicReady": "Anthropic text generation available",
+    "volcAnthropicNotReady": "Anthropic text generation not configured",
+    "volcOpenAiSectionTitle": "OpenAI Protocol (Standard Pay-As-You-Go)",
+    "volcOpenAiSectionHint": "For: Video generation / Image generation / Voice Ark TTS / Text generation (OpenAI compatible)",
+    "volcAnthropicSectionTitle": "Anthropic Protocol (Agent Plan Subscription)",
+    "volcAnthropicSectionHint": "For: Text generation (Agent Plan exclusive models, e.g. doubao-seed-2.0-pro)",
+    "volcTextProtocolTitle": "Text Generation Protocol Preference",
+    "volcTextProtocolHint": "Only affects text generation; Video/Image always use OpenAI protocol",
+    "volcValidateHint": "Please validate OpenAI and Anthropic configurations separately"
   },
   "models": {
     "title": "Available Models",

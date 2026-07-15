@@ -13,7 +13,7 @@ import { withRetry, isCorsError, classifyNetworkError } from './VolcengineErrorU
  *  - openai:     POST /chat/completions  （OpenAI 兼容格式，标准后付费模式）
  *  - anthropic:  POST /v1/messages       （Anthropic Messages 格式，Agent Plan 订阅）
  *
- * 协议类型由 config.volcArkProtocol 决定，构造时由 HttpClient 统一处理鉴权与 Base URL。
+ * 协议类型由 config.volcArkTextProtocol 决定，构造时由 HttpClient 统一处理鉴权与 Base URL。
  */
 export class VolcengineTextAdapter implements ITextGenerationPort {
   private http: VolcengineHttpClient;
@@ -21,12 +21,13 @@ export class VolcengineTextAdapter implements ITextGenerationPort {
 
   constructor(config: ApiConfig) {
     this.config = config;
-    this.http = new VolcengineHttpClient(config);
+    // Text 按"偏好协议"选择（volcArkTextProtocol）
+    this.http = new VolcengineHttpClient(config, config.volcArkTextProtocol);
   }
 
   async chatCompletion(context: TextGenerationContext): Promise<TextGenerationResult> {
     console.log('[VolcengineTextAdapter] chatCompletion 入参', {
-      protocol: this.config.volcArkProtocol,
+      protocol: this.config.volcArkTextProtocol,
       model: context.model,
       messagesCount: context.messages.length,
       maxTokens: context.maxTokens,
@@ -38,7 +39,7 @@ export class VolcengineTextAdapter implements ITextGenerationPort {
       : await this.chatCompletionOpenAI(context);
 
     console.log('[VolcengineTextAdapter] chatCompletion 出参', {
-      protocol: this.config.volcArkProtocol,
+      protocol: this.config.volcArkTextProtocol,
       contentLength: result.content.length,
       usage: result.usage,
     });
@@ -185,12 +186,12 @@ export class VolcengineTextAdapter implements ITextGenerationPort {
    * 条件：
    *  - 用户在设置页开启了 volcArkAutoFallback（默认 true）
    *  - OpenAI 协议 Base URL 非空（默认配置即满足）
-   *  - API Key 非空（Anthropic 已配置，Key 可能通用也可能不通用，让上游用 401 兜底）
+   *  - OpenAI API Key 非空（双协议并存：降级需 OpenAI Key 独立配置）
    */
   private canFallbackToOpenAI(): boolean {
     return this.config.volcArkAutoFallback
       && !!this.config.volcArkBaseUrl.trim()
-      && !!this.config.volcArkApiKey.trim();
+      && !!this.config.volcArkOpenAiApiKey.trim();
   }
 
   private async runStreamAnthropic(

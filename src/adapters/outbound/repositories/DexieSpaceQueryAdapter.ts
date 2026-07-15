@@ -5,11 +5,17 @@
  *
  * 设计要点：
  * - 内部使用 `db.*` 完成查询，外部仅暴露 Port 契约
- * - subscribe 桥接 Dexie 的 `db.on('changes')` 事件，转译为通用的"已变更"通知
- *   （不传递具体变更详情，UI 自行决定是否重新查询）
+ * - subscribe 通过 `table.hook('creating'|'updating'|'deleting')` 监听 CRUD，
+ *   转译为通用的"已变更"通知（不传递具体变更详情，UI 自行决定是否重新查询）
  * - 所有 list 方法均返回普通数组（已 .toArray()，无 Dexie Collection 类型泄漏）
+ *
+ * Dexie 4 兼容性：
+ *   Dexie 4 移除了内置 `db.on('changes')` Observable 事件（dexie-react-hooks 4.x 改用
+ *   `liveQuery`），故改用稳定的 `table.hook` API 监听 CRUD。一次事务内的多次写入通过
+ *   queueMicrotask 合并触发一次通知。
  */
 
+import type { Table } from 'dexie';
 import type { ISpaceQueryPort, SpaceAssetCounts, VideoTaskStats } from '../../../domain/ports/SpaceQueryPort';
 import type {
   StorySpace,
@@ -30,15 +36,13 @@ export class DexieSpaceQueryAdapter implements ISpaceQueryPort {
   private listeners = new Set<ChangeListener>();
   private subscribedToDexie = false;
 
-  /** 内部辅助：在首次订阅时挂载 Dexie changes 监听器 */
+  /** 内部辅助：在首次订阅时挂载 Dexie table.hook CRUD 监听器 */
   private ensureDexieSubscription(): void {
     if (this.subscribedToDexie) return;
     this.subscribedToDexie = true;
-    // Dexie 的 changes 事件：任何表 CRUD 都会触发
-    // 通过微任务合并多次变更，避免连续写入产生风暴
-    // Dexie 类型声明中 'changes' 由 Observable 模块提供，类型层面需断言
+
     let scheduled = false;
-    (db as unknown as { on: (event: 'changes', listener: () => void) => void }).on('changes', () => {
+    const notify = (): void => {
       if (scheduled) return;
       scheduled = true;
       queueMicrotask(() => {
@@ -52,7 +56,33 @@ export class DexieSpaceQueryAdapter implements ISpaceQueryPort {
           }
         }
       });
-    });
+    };
+
+    // Dexie 4：监听所有表的 creating/updating/deleting hook
+    // hook 回调签名（creating/updating/deleting）各异，此处统一忽略参数
+    const tables: Array<Table<unknown, string>> = [
+      db.storySpaces as Table<unknown, string>,
+      db.characters as Table<unknown, string>,
+      db.backgrounds as Table<unknown, string>,
+      db.stories as Table<unknown, string>,
+      db.segments as Table<unknown, string>,
+      db.videoTasks as Table<unknown, string>,
+      db.pipelineTasks as Table<unknown, string>,
+      db.finalCuts as Table<unknown, string>,
+      db.savedImages as Table<unknown, string>,
+      db.savedVoices as Table<unknown, string>,
+      db.savedPrompts as Table<unknown, string>,
+      db.savedVideos as Table<unknown, string>,
+      db.snapshots as Table<unknown, string>,
+      db.timelines as Table<unknown, string>,
+      db.generatedFiles as Table<unknown, string>,
+    ];
+    for (const table of tables) {
+      // 三种 hook 的回调签名不同，但 notify 忽略入参，类型断言后注入
+      table.hook('creating', notify as unknown as () => void);
+      table.hook('updating', notify as unknown as () => void);
+      table.hook('deleting', notify as unknown as () => void);
+    }
   }
 
   async listSpaces(): Promise<StorySpace[]> {

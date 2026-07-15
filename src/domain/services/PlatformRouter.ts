@@ -1,6 +1,7 @@
 import type { ApiConfig, PlatformId } from '../entities/platform';
 import type { IVideoGeneratorPort, IImageGeneratorPort, ITextGenerationPort, IVoicePort, IMusicPort } from '../ports/OutboundPorts';
 import type { IApiConfigStore, IPlatformCapabilitiesPort, PlatformCapability } from '../ports/PlatformPorts';
+import type { ILoggerPort } from '../ports/CrossCuttingPorts';
 
 // 导入适配器 —— 已有平台
 import { MiniMaxVideoAdapter } from '../../adapters/outbound/api/MiniMaxVideoAdapter';
@@ -45,7 +46,8 @@ import { UnsupportedCapabilityError } from '../errors/UnsupportedCapabilityError
  * - 内部维护 `Map<PlatformCapability, Map<PlatformId, Factory>>` 注册表，
  *   新增平台只需在 `registerDefaults()` 添加一行，零改动 resolve 主体（OCP 闭合）。
  * - 适配器实例按 `(capability, platform)` 缓存，平台切换时 reset 清空全部缓存。
- * - 火山方舟 Anthropic 协议特例：仅支持 text 能力，video/image 拦截仍在 resolve 内部判定。
+ * - 双协议并存架构：Video/Image 永远走 OpenAI 协议，不再因 Anthropic 协议拦截。
+ *   `volcArkTextProtocol` 仅影响 Text 能力的协议选择。
  *
  * 兼容性：保留 `resolveVideo/resolveImage/resolveText/resolveVoice/resolveMusic`
  * 公共 API 不变，调用方无需修改。
@@ -60,6 +62,7 @@ interface CachedAdapter {
 export class PlatformRouter {
   private configStore: IApiConfigStore;
   private capabilities: IPlatformCapabilitiesPort;
+  private logger: ILoggerPort;
   /** 注册表：capability → platform → factory */
   private readonly registry = new Map<PlatformCapability, Map<PlatformId, AdapterFactory<unknown>>>();
   /** 实例缓存：capability → 已实例化的 adapter */
@@ -67,10 +70,12 @@ export class PlatformRouter {
 
   constructor(
     configStore: IApiConfigStore = apiConfigStoreAdapter,
-    capabilities: IPlatformCapabilitiesPort = platformCapabilitiesAdapter
+    capabilities: IPlatformCapabilitiesPort = platformCapabilitiesAdapter,
+    logger: ILoggerPort,
   ) {
     this.configStore = configStore;
     this.capabilities = capabilities;
+    this.logger = logger;
     this.registerDefaults();
     this.configStore.onPlatformChange(() => {
       this.reset();
@@ -79,8 +84,8 @@ export class PlatformRouter {
 
   /** 注册全部已知平台×能力的工厂函数（OCP：新增平台在此追加即可） */
   private registerDefaults(): void {
-    // video（7 平台）
-    this.register('video', 'volcengine', (c) => new VolcengineVideoAdapter(c));
+    // video（7 平台）—— VolcengineVideoAdapter 注入 logger 用于接口出入参日志
+    this.register('video', 'volcengine', (c) => new VolcengineVideoAdapter(c, this.logger));
     this.register('video', 'kling', (c) => new KlingVideoAdapter(c));
     this.register('video', 'wan', (c) => new WanVideoAdapter(c));
     this.register('video', 'hunyuan', (c) => new HunyuanVideoAdapter(c));
@@ -182,18 +187,13 @@ export class PlatformRouter {
 
   resolveVideo(config: ApiConfig): IVideoGeneratorPort {
     this.ensureCap(config.activePlatform, 'video');
-    // P0-3: 火山方舟 Anthropic 协议仅支持 text 能力，video/image 应拦截
-    if (config.activePlatform === 'volcengine' && config.volcArkProtocol === 'anthropic') {
-      throw new UnsupportedCapabilityError('volcengine', 'video');
-    }
+    // 双协议并存架构：Video 永远走 OpenAI 协议，不再因 Anthropic 协议拦截
     return this.resolveAdapter<IVideoGeneratorPort>('video', config);
   }
 
   resolveImage(config: ApiConfig): IImageGeneratorPort {
     this.ensureCap(config.activePlatform, 'image');
-    if (config.activePlatform === 'volcengine' && config.volcArkProtocol === 'anthropic') {
-      throw new UnsupportedCapabilityError('volcengine', 'image');
-    }
+    // 双协议并存架构：Image 永远走 OpenAI 协议，不再因 Anthropic 协议拦截
     return this.resolveAdapter<IImageGeneratorPort>('image', config);
   }
 
@@ -205,7 +205,7 @@ export class PlatformRouter {
   resolveVoice(config: ApiConfig): IVoicePort {
     this.ensureCap(config.activePlatform, 'voice');
     // 火山引擎语音技术（声音复刻 + 大模型 TTS）独立于方舟 Ark 体系，
-    // 走原生语音端点（openspeech.bytedance.com），与 volcArkProtocol 无关。
+    // 走原生语音端点（openspeech.bytedance.com），与 volcArkTextProtocol 无关。
     // 因此 Anthropic 协议（Agent Plan）下语音能力仍然可用，不再拦截。
     return this.resolveAdapter<IVoicePort>('voice', config);
   }
@@ -229,5 +229,3 @@ export class PlatformRouter {
     this.cache.clear();
   }
 }
-
-export const platformRouter = new PlatformRouter();

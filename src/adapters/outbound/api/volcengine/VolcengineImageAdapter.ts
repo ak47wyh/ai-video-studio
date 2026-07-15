@@ -13,22 +13,13 @@ import { withRetry } from './VolcengineErrorUtils';
  */
 export class VolcengineImageAdapter implements IImageGeneratorPort {
   private http: VolcengineHttpClient;
-  private config: ApiConfig;
 
   constructor(config: ApiConfig) {
-    this.config = config;
-    this.http = new VolcengineHttpClient(config);
-  }
-
-  /** Anthropic 协议（Agent Plan）不支持图片生成，视觉模型需通过 Skill 调用 */
-  private ensureOpenAIProtocol(): void {
-    if (this.config.volcArkProtocol === 'anthropic') {
-      throw new Error('Anthropic 协议（Agent Plan）不支持图片生成，请切换至 OpenAI 协议（标准后付费模式）');
-    }
+    // 双协议并存架构：Image 永远走 OpenAI 协议（火山方舟图片生成仅支持 OpenAI 兼容端点）
+    this.http = VolcengineHttpClient.createOpenAI(config);
   }
 
   async generateImage(context: ImageGenerationContext): Promise<ImageGenerationResult> {
-    this.ensureOpenAIProtocol();
     const payload = this.buildPayload(context);
 
     console.log('[VolcengineImageAdapter] generateImage 入参', {
@@ -68,7 +59,6 @@ export class VolcengineImageAdapter implements IImageGeneratorPort {
    * 流式图片生成（扩展方法，不在 IImageGeneratorPort 中，供新 UI 使用）。
    */
   async *generateImageStream(context: ImageGenerationContext): AsyncIterable<VolcengineImageStreamEvent> {
-    this.ensureOpenAIProtocol();
     const payload = { ...this.buildPayload(context), stream: true };
     yield* this.http.stream<VolcengineImageStreamEvent>('/images/generations', payload);
   }

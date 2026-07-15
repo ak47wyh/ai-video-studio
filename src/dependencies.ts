@@ -58,7 +58,7 @@ import { ToolRegistry } from './domain/services/ToolRegistry';
 import { StoryFilmService } from './domain/services/StoryFilmService';
 
 // ==================== 平台路由 ====================
-import { platformRouter } from './domain/services/PlatformRouter';
+import { PlatformRouter } from './domain/services/PlatformRouter';
 
 // ==================== 基础设施层（横切关注点） ====================
 import { ConsoleLoggerAdapter } from './adapters/outbound/infrastructure/ConsoleLoggerAdapter';
@@ -68,6 +68,7 @@ import { defaultEventBus } from './adapters/outbound/infrastructure/MemoryEventB
 import { defaultMetrics } from './adapters/outbound/infrastructure/NoopMetricsAdapter';
 import { defaultResilience } from './adapters/outbound/infrastructure/DefaultResilienceAdapter';
 import { BrowserFetchAdapter } from './adapters/outbound/infrastructure/BrowserFetchAdapter';
+import { platformCapabilitiesAdapter } from './adapters/outbound/infrastructure/PlatformCapabilitiesAdapter';
 
 /**
  * HTTP 抓取 Port 单例（P1-2）。
@@ -84,6 +85,13 @@ export const defaultLogger = new CompositeLoggerAdapter([
   new ConsoleSinkAdapter(new ConsoleLoggerAdapter(), { service: 'app' }),
   logSink,
 ], { service: 'app' });
+
+// 平台路由器实例（Phase 5：注入 logger 供 VolcengineVideoAdapter 接口出入参日志）
+export const platformRouter = new PlatformRouter(
+  apiConfigStoreAdapter,
+  platformCapabilitiesAdapter,
+  defaultLogger.child({ service: 'PlatformRouter' }),
+);
 
 
 // ==================== 文件存储层（OPFS / IndexedDB） ====================

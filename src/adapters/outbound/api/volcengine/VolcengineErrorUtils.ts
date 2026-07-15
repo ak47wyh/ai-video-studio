@@ -20,7 +20,24 @@ export class VolcengineApiError extends BaseApiError {
   }
 
   /** 生成用户可读的错误信息 */
-  private static toUserMessage(status: number, _code: string, raw: string): string {
+  private static toUserMessage(status: number, code: string, raw: string): string {
+    // 视频生成特有错误码（优先匹配，提供更精准的文案）
+    switch (code) {
+      case 'InvalidParameter':
+        return `请求参数错误：${raw}。请检查分辨率/时长/宽高比是否符合模型支持范围。`;
+      case 'ImageSizeExceeded':
+        return '图片大小超过 30MB 限制，请压缩后重试。';
+      case 'ImageFormatNotSupported':
+        return '图片格式不支持，仅支持 jpeg/png/webp/bmp/tiff/gif。';
+      case 'QuotaExhausted':
+        return '火山引擎额度已耗尽，请前往控制台充值或购买资源包。';
+      case 'ModelNotActivated':
+        return '当前模型未开通，请前往火山方舟控制台开通 Seedance 模型服务。';
+      case 'ContentFilterBlocked':
+        return '内容审核未通过，请调整提示词后重试。';
+    }
+
+    // HTTP 状态码兜底
     switch (status) {
       case 400:
         return `请求参数错误：${raw}。请检查输入内容是否符合接口要求。`;

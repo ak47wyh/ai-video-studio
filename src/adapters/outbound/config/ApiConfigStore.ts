@@ -39,13 +39,13 @@ const DEFAULT_CONFIG: ApiConfig = {
   minimaxBaseUrl: 'https://api.minimaxi.com/v1',
   minimaxAnthropicBaseUrl: 'https://api.minimaxi.com/anthropic',
 
-  // 火山方舟默认值
-  volcArkApiKey: '',
+  // 火山方舟默认值 —— 双协议并存：OpenAI 与 Anthropic 两套 Key 独立配置
+  volcArkOpenAiApiKey: '',
+  volcArkAnthropicApiKey: '',
   volcArkBaseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
   volcArkAnthropicBaseUrl: 'https://ark.cn-beijing.volces.com/api/plan',
-  // 默认 Anthropic 协议（Agent Plan 订阅）：进入设置页默认显示 Anthropic Base URL，
-  // 用户可通过下拉框切换到 OpenAI 协议配置 OpenAI 格式 URL。
-  volcArkProtocol: 'anthropic' as VolcArkProtocol,
+  // Text 默认走 OpenAI 协议（用户可在配置中心切换为 Anthropic）
+  volcArkTextProtocol: 'openai' as VolcArkProtocol,
   volcArkAnthropicModel: 'doubao-seed-2.0-pro',
   // Anthropic CORS 拦截时自动降级到 OpenAI 协议（默认开启，可由设置页关闭）
   volcArkAutoFallback: true,
@@ -148,6 +148,47 @@ export const ApiConfigStore = {
   },
 
   /**
+   * 迁移旧版单 Key 单协议结构 → 双 Key 双协议并存结构。
+   *
+   * 旧字段 → 新字段映射：
+   *  - volcArkApiKey + volcArkProtocol → volcArkOpenAiApiKey 或 volcArkAnthropicApiKey
+   *  - volcArkProtocol → volcArkTextProtocol
+   *
+   * 一次性迁移：检测到旧字段存在时迁移，迁移后立即持久化。
+   * 兼容 localStorage 中残留的旧字段（运行时容错）。
+   */
+  _migrateLegacyVolcArkConfig(config: ApiConfig): ApiConfig {
+    // 使用 as 断言访问旧字段（接口层已移除，但 localStorage 中可能残留）
+    const legacy = config as unknown as Record<string, unknown>;
+    const oldKey = legacy.volcArkApiKey;
+    const oldProtocol = legacy.volcArkProtocol;
+
+    // 仅在检测到旧字段且新字段未迁移时执行
+    if (oldKey !== undefined || oldProtocol !== undefined) {
+      const protocol: VolcArkProtocol = (oldProtocol as VolcArkProtocol) ?? 'openai';
+      // 按原协议把旧 Key 迁移到对应字段（避免 Key 丢失）
+      if (typeof oldKey === 'string' && oldKey.length > 0) {
+        if (protocol === 'anthropic') {
+          if (!config.volcArkAnthropicApiKey) config.volcArkAnthropicApiKey = oldKey;
+          if (!config.volcArkOpenAiApiKey) config.volcArkOpenAiApiKey = '';
+        } else {
+          if (!config.volcArkOpenAiApiKey) config.volcArkOpenAiApiKey = oldKey;
+          if (!config.volcArkAnthropicApiKey) config.volcArkAnthropicApiKey = '';
+        }
+      }
+      // 迁移协议字段
+      if (!config.volcArkTextProtocol) {
+        config.volcArkTextProtocol = protocol;
+      }
+      // 删除旧字段（运行时清理，接口层已不声明）
+      delete legacy.volcArkApiKey;
+      delete legacy.volcArkProtocol;
+    }
+
+    return config;
+  },
+
+  /**
    * 启动时异步初始化：解密 localStorage 中的密文到内存缓存。
    * 必须在渲染前调用一次（main.tsx），以便 load() 能同步返回正确配置。
    * - 密文：解密并迁移代理路径
@@ -163,11 +204,18 @@ export const ApiConfigStore = {
         return;
       }
       if (isEncryptedPayload(raw)) {
-        const config = this._migrateProxyPaths({ ...DEFAULT_CONFIG, ...await decryptJSON<ApiConfig>(raw) });
+        const decrypted = { ...DEFAULT_CONFIG, ...await decryptJSON<ApiConfig>(raw) };
+        const config = this._migrateLegacyVolcArkConfig(this._migrateProxyPaths(decrypted));
         this._cache = config;
+        // 若发生迁移（检测旧字段），立即持久化新结构
+        const legacy = decrypted as unknown as Record<string, unknown>;
+        if (legacy.volcArkApiKey !== undefined || legacy.volcArkProtocol !== undefined) {
+          void this._persistEncrypted(config);
+        }
       } else {
         // 旧版明文：解析、迁移，并异步加密重写升级
-        const config = this._migrateProxyPaths({ ...DEFAULT_CONFIG, ...JSON.parse(raw) });
+        const parsed = { ...DEFAULT_CONFIG, ...JSON.parse(raw) } as ApiConfig;
+        const config = this._migrateLegacyVolcArkConfig(this._migrateProxyPaths(parsed));
         this._cache = config;
         void this._persistEncrypted(config);
       }
@@ -202,7 +250,8 @@ export const ApiConfigStore = {
         // 密文无法同步解密，返回默认值（init 完成后会被纠正）
         return { ...DEFAULT_CONFIG };
       }
-      return this._migrateProxyPaths({ ...DEFAULT_CONFIG, ...JSON.parse(raw) });
+      const parsed = { ...DEFAULT_CONFIG, ...JSON.parse(raw) } as ApiConfig;
+      return this._migrateLegacyVolcArkConfig(this._migrateProxyPaths(parsed));
     } catch {
       return { ...DEFAULT_CONFIG };
     }
@@ -223,9 +272,9 @@ export const ApiConfigStore = {
     const summary = {
       activePlatform: config.activePlatform,
       minimax: !!config.minimaxApiKey.trim(),
-      volcengine: !!config.volcArkApiKey.trim() &&
-        ((config.volcArkProtocol === 'openai' && !!config.volcArkBaseUrl.trim()) ||
-         (config.volcArkProtocol === 'anthropic' && !!config.volcArkAnthropicBaseUrl.trim())),
+      // 双协议并存：任一协议配置完整即视为平台已配置
+      volcengine: (!!config.volcArkOpenAiApiKey.trim() && !!config.volcArkBaseUrl.trim()) ||
+        (!!config.volcArkAnthropicApiKey.trim() && !!config.volcArkAnthropicBaseUrl.trim()),
       kling: !!config.klingAccessKey.trim() && !!config.klingSecretKey.trim(),
       wan: !!config.wanApiKey.trim(),
       hunyuan: !!config.hunyuanSecretId.trim() && !!config.hunyuanSecretKey.trim(),
@@ -251,11 +300,11 @@ export const ApiConfigStore = {
     switch (platform) {
       case 'minimax': return !!config.minimaxApiKey.trim();
       case 'volcengine':
-        // 方舟 Ark 文本/视频/图片能力：仅需 API Key + Base URL
-        // 语音能力（克隆/TTS）需额外配置 AppID/Token/Cluster，由调用方按需校验
-        return !!config.volcArkApiKey.trim() &&
-          ((config.volcArkProtocol === 'openai' && !!config.volcArkBaseUrl.trim()) ||
-           (config.volcArkProtocol === 'anthropic' && !!config.volcArkAnthropicBaseUrl.trim()));
+        // 双协议并存：任一协议配置完整即视为平台已配置。
+        // Video/Image 需要 OpenAI Key；Text 按偏好协议需要对应 Key。
+        // 语音能力（克隆/TTS）需额外配置 AppID/Token/Cluster，由调用方按需校验。
+        return (!!config.volcArkOpenAiApiKey.trim() && !!config.volcArkBaseUrl.trim()) ||
+          (!!config.volcArkAnthropicApiKey.trim() && !!config.volcArkAnthropicBaseUrl.trim());
       case 'kling': return !!config.klingAccessKey.trim() && !!config.klingSecretKey.trim();
       case 'wan': return !!config.wanApiKey.trim();
       case 'hunyuan': return !!config.hunyuanSecretId.trim() && !!config.hunyuanSecretKey.trim();

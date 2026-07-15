@@ -393,14 +393,26 @@ export const Settings: React.FC = () => {
     }
   };
 
-  const handleVolcValidate = async () => {
-    const baseUrl = config.volcArkProtocol === 'anthropic'
-      ? config.volcArkAnthropicBaseUrl
-      : config.volcArkBaseUrl;
+  /** 校验 OpenAI 协议配置（视频/图片/语音 Ark TTS 使用） */
+  const handleVolcValidateOpenAi = async () => {
     const result = await validateArkToken(
-      config.volcArkApiKey,
-      config.volcArkProtocol,
-      baseUrl,
+      config.volcArkOpenAiApiKey,
+      'openai',
+      config.volcArkBaseUrl,
+    );
+    if (result.ok) {
+      showToast('success', t('settings.volcValidateSuccess'));
+    } else {
+      showToast('error', t('settings.volcValidateFailed', { error: result.error ?? '' }));
+    }
+  };
+
+  /** 校验 Anthropic 协议配置（文本生成 Agent Plan 使用） */
+  const handleVolcValidateAnthropic = async () => {
+    const result = await validateArkToken(
+      config.volcArkAnthropicApiKey,
+      'anthropic',
+      config.volcArkAnthropicBaseUrl,
       config.volcArkAnthropicModel,
     );
     if (result.ok) {
@@ -409,24 +421,16 @@ export const Settings: React.FC = () => {
       // CORS 拦截专属提示：引导用户配置反代或开启自动降级
       showToast('error', t('settings.volcCorsBlockedToast', { defaultValue: '跨域请求被拦截，请配置反代地址或开启自动降级' }));
     } else {
-      showToast('error', t('settings.volcValidateFailed', { error: result.error }));
-    }
-  };
-
-  /** 切换火山协议时联动：清空 API Key（两种协议 Key 不通用）并 Toast 提示 */
-  const handleVolcProtocolChange = (protocol: VolcArkProtocol) => {
-    if (protocol === config.volcArkProtocol) return;
-    handleChange('volcArkProtocol', protocol);
-    // 协议切换时清空 API Key（标准 Key 与 Agent Plan Key 不互通）
-    if (config.volcArkApiKey.trim()) {
-      handleChange('volcArkApiKey', '');
-      showToast('info', t('settings.volcArkProtocolSwitched', { defaultValue: '已切换协议，请重新填写 API Key' }));
+      showToast('error', t('settings.volcValidateFailed', { error: result.error ?? '' }));
     }
   };
 
   // 检查平台是否已配置
   const isMiniMaxConfigured = !!config.minimaxApiKey.trim();
-  const isVolcConfigured = !!config.volcArkApiKey.trim();
+  // 双协议并存：任一协议配置完整即视为平台已配置
+  const isVolcOpenAiReady = !!config.volcArkOpenAiApiKey.trim() && !!config.volcArkBaseUrl.trim();
+  const isVolcAnthropicReady = !!config.volcArkAnthropicApiKey.trim() && !!config.volcArkAnthropicBaseUrl.trim();
+  const isVolcConfigured = isVolcOpenAiReady || isVolcAnthropicReady;
   const isKlingConfigured = !!config.klingAccessKey.trim() && !!config.klingSecretKey.trim();
   const isWanConfigured = !!config.wanApiKey.trim();
   const isHunyuanConfigured = !!config.hunyuanSecretId.trim() && !!config.hunyuanSecretKey.trim();
@@ -588,91 +592,137 @@ export const Settings: React.FC = () => {
             expanded={expandedPlatform === 'volcengine'}
             onToggleExpand={() => toggleExpand('volcengine')}
             onActivate={() => handleActivate('volcengine')}
-            onValidate={handleVolcValidate}
+            onValidate={async () => showToast('info', t('settings.volcValidateHint', { defaultValue: '请分别校验 OpenAI 与 Anthropic 两套配置' }))}
             validateLabel={t('settings.volcValidateBtn')}
             externalLink="https://console.volcengine.com/ark"
             externalLinkLabel={t('settings.getTokenLink')}
             docLink={PLATFORM_METADATA.volcengine.docLink}
             accentColor="#f97316"
           >
-            {/* 接入协议下拉：默认 Anthropic，可切换 OpenAI */}
-            <FormField
-              label={t('settings.volcArkProtocolLabel', { defaultValue: '接入协议' })}
-              value={config.volcArkProtocol}
-              onChange={v => handleVolcProtocolChange(v as VolcArkProtocol)}
-              type="select"
-              options={[
-                { value: 'anthropic', label: t('settings.volcArkProtocolAnthropic', { defaultValue: 'Agent Plan 订阅（Anthropic 协议）' }) },
-                { value: 'openai', label: t('settings.volcArkProtocolOpenai', { defaultValue: '标准后付费（OpenAI 协议）' }) },
-              ]}
-              hint={config.volcArkProtocol === 'anthropic'
-                ? t('settings.volcArkProtocolAnthropicHint', { defaultValue: '仅支持文本生成；图片/视频/语音/3D 入口将置灰' })
-                : t('settings.volcArkProtocolOpenaiHint', { defaultValue: '支持文本/图片/视频/语音/3D 全能力' })
-              }
-            />
+            {/* 双协议并存状态摘要 */}
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+              {isVolcOpenAiReady ? (
+                <span className="badge badge-success" style={{ fontSize: '0.72rem', padding: '0.15rem 0.5rem', borderRadius: '0.375rem', background: 'var(--success-color, #10b981)', color: '#fff' }}>
+                  {t('settings.volcOpenAiReady', { defaultValue: '视频/图片/语音 Ark TTS 可用' })}
+                </span>
+              ) : (
+                <span style={{ fontSize: '0.72rem', padding: '0.15rem 0.5rem', borderRadius: '0.375rem', background: 'var(--bg-overlay)', color: 'var(--text-muted)' }}>
+                  {t('settings.volcOpenAiNotReady', { defaultValue: '视频/图片需配置 OpenAI Key' })}
+                </span>
+              )}
+              {isVolcAnthropicReady ? (
+                <span style={{ fontSize: '0.72rem', padding: '0.15rem 0.5rem', borderRadius: '0.375rem', background: 'var(--success-color, #10b981)', color: '#fff' }}>
+                  {t('settings.volcAnthropicReady', { defaultValue: 'Anthropic 文本生成可用' })}
+                </span>
+              ) : (
+                <span style={{ fontSize: '0.72rem', padding: '0.15rem 0.5rem', borderRadius: '0.375rem', background: 'var(--bg-overlay)', color: 'var(--text-muted)' }}>
+                  {t('settings.volcAnthropicNotReady', { defaultValue: 'Anthropic 文本生成未配置' })}
+                </span>
+              )}
+            </div>
 
-            {config.volcArkProtocol === 'anthropic' && (
-              <div className="settings-alert settings-alert-warning" role="status" aria-live="polite">
-                <AlertTriangle size={14} className="settings-alert-icon" />
-                <span>{t('settings.volcArkAnthropicWarning', { defaultValue: 'Agent Plan 模式仅支持文本生成。图片/视频/语音/3D 入口将置灰。请填入 Agent Plan 专属 API Key（非标准 API Key）。' })}</span>
+            {/* ── OpenAI 协议配置卡片（视频/图片/语音 Ark TTS）── */}
+            <div style={{
+              border: '1px solid var(--border-color)',
+              borderRadius: '0.5rem',
+              padding: '0.75rem',
+              marginBottom: '0.75rem',
+              background: 'var(--bg-elevated, var(--bg-overlay))',
+            }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.5rem' }}>
+                {t('settings.volcOpenAiSectionTitle', { defaultValue: 'OpenAI 协议（标准后付费）' })}
               </div>
-            )}
-
-            <FormField
-              label={t('settings.volcArkApiKeyLabel')}
-              value={config.volcArkApiKey}
-              onChange={v => handleChange('volcArkApiKey', v)}
-              maxLength={TEXT_LIMITS.API_KEY_MAX}
-              type="password"
-              placeholder={config.volcArkProtocol === 'anthropic'
-                ? t('settings.volcArkApiKeyAnthropicPlaceholder', { defaultValue: '填入 Agent Plan 专属 API Key' })
-                : t('settings.volcArkApiKeyPlaceholder')}
-              autoComplete="off"
-              showKeyIcon
-            />
-
-            {config.volcArkProtocol === 'openai' ? (
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+                {t('settings.volcOpenAiSectionHint', { defaultValue: '用于：视频生成 / 图片生成 / 语音 Ark TTS / 文本生成（OpenAI 兼容）' })}
+              </div>
+              <FormField
+                label={t('settings.volcArkOpenAiApiKeyLabel', { defaultValue: 'API Key（OpenAI 协议）' })}
+                value={config.volcArkOpenAiApiKey}
+                onChange={v => handleChange('volcArkOpenAiApiKey', v)}
+                maxLength={TEXT_LIMITS.API_KEY_MAX}
+                type="password"
+                placeholder={t('settings.volcArkApiKeyPlaceholder')}
+                autoComplete="off"
+                showKeyIcon
+              />
               <FormField
                 label={t('settings.volcArkBaseUrlLabel', { defaultValue: 'OpenAI Base URL' })}
                 value={config.volcArkBaseUrl}
                 onChange={v => handleChange('volcArkBaseUrl', v)}
                 placeholder={t('settings.volcArkBaseUrlPlaceholder')}
               />
-            ) : (
-              <>
-                <FormField
-                  label={t('settings.volcArkAnthropicBaseUrlLabel', { defaultValue: 'Anthropic Base URL' })}
-                  value={config.volcArkAnthropicBaseUrl}
-                  onChange={v => handleChange('volcArkAnthropicBaseUrl', v)}
-                  placeholder="https://ark.cn-beijing.volces.com/api/plan"
-                />
-                <FormField
-                  label={t('settings.volcArkAnthropicModelLabel', { defaultValue: '文本模型（Agent Plan）' })}
-                  value={config.volcArkAnthropicModel}
-                  onChange={v => handleChange('volcArkAnthropicModel', v)}
-                  placeholder="doubao-seed-2.0-pro"
-                  hint={t('settings.volcArkAnthropicModelHint', { defaultValue: '可选：doubao-seed-2.0-mini/lite/pro/code, deepseek-v4-flash/pro, glm-5.2, kimi-k2.6 等' })}
-                />
+              <button
+                type="button"
+                onClick={handleVolcValidateOpenAi}
+                disabled={!config.volcArkOpenAiApiKey.trim()}
+                style={{
+                  fontSize: '0.75rem', padding: '0.3rem 0.75rem', borderRadius: '0.375rem',
+                  border: '1px solid var(--border-color)', background: 'var(--bg-overlay)',
+                  color: 'var(--text-main)', cursor: config.volcArkOpenAiApiKey.trim() ? 'pointer' : 'not-allowed',
+                  opacity: config.volcArkOpenAiApiKey.trim() ? 1 : 0.5,
+                }}
+              >
+                {t('settings.volcValidateBtn')}
+              </button>
+            </div>
 
-                {/* CORS 反代警告卡片：直连官方端点时浏览器预检会因 anthropic-version 头被拒 */}
-                {config.volcArkAnthropicBaseUrl.includes('ark.cn-beijing.volces.com') && (
-                  <div className="settings-alert settings-alert-warning" role="status" aria-live="polite">
-                    <AlertTriangle size={14} className="settings-alert-icon" />
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                      <span>{t('settings.volcCorsWarning', { defaultValue: 'Anthropic 协议端点不支持浏览器直连 CORS（预检会拒绝 anthropic-version 头）。如遇跨域错误，可将 Base URL 改为您的反代地址，或开启下方自动降级。' })}</span>
-                      <details style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                        <summary style={{ cursor: 'pointer' }}>
-                          {t('settings.volcProxyGuide', { defaultValue: '查看反代示例（Cloudflare Worker）' })}
-                        </summary>
-                        <pre style={{
-                          marginTop: '0.5rem',
-                          padding: '0.5rem',
-                          background: 'var(--bg-overlay)',
-                          borderRadius: '0.375rem',
-                          overflowX: 'auto',
-                          fontSize: '0.7rem',
-                          lineHeight: 1.4,
-                        }}>
+            {/* ── Anthropic 协议配置卡片（文本生成 Agent Plan）── */}
+            <div style={{
+              border: '1px solid var(--border-color)',
+              borderRadius: '0.5rem',
+              padding: '0.75rem',
+              marginBottom: '0.75rem',
+              background: 'var(--bg-elevated, var(--bg-overlay))',
+            }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.5rem' }}>
+                {t('settings.volcAnthropicSectionTitle', { defaultValue: 'Anthropic 协议（Agent Plan 订阅）' })}
+              </div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+                {t('settings.volcAnthropicSectionHint', { defaultValue: '用于：文本生成（Agent Plan 专属模型，如 doubao-seed-2.0-pro）' })}
+              </div>
+              <FormField
+                label={t('settings.volcArkAnthropicApiKeyLabel', { defaultValue: 'API Key（Anthropic 协议）' })}
+                value={config.volcArkAnthropicApiKey}
+                onChange={v => handleChange('volcArkAnthropicApiKey', v)}
+                maxLength={TEXT_LIMITS.API_KEY_MAX}
+                type="password"
+                placeholder={t('settings.volcArkApiKeyAnthropicPlaceholder', { defaultValue: '填入 Agent Plan 专属 API Key' })}
+                autoComplete="off"
+                showKeyIcon
+              />
+              <FormField
+                label={t('settings.volcArkAnthropicBaseUrlLabel', { defaultValue: 'Anthropic Base URL' })}
+                value={config.volcArkAnthropicBaseUrl}
+                onChange={v => handleChange('volcArkAnthropicBaseUrl', v)}
+                placeholder="https://ark.cn-beijing.volces.com/api/plan"
+              />
+              <FormField
+                label={t('settings.volcArkAnthropicModelLabel', { defaultValue: '文本模型（Agent Plan）' })}
+                value={config.volcArkAnthropicModel}
+                onChange={v => handleChange('volcArkAnthropicModel', v)}
+                placeholder="doubao-seed-2.0-pro"
+                hint={t('settings.volcArkAnthropicModelHint', { defaultValue: '可选：doubao-seed-2.0-mini/lite/pro/code, deepseek-v4-flash/pro, glm-5.2, kimi-k2.6 等' })}
+              />
+
+              {/* CORS 反代警告卡片：直连官方端点时浏览器预检会因 anthropic-version 头被拒 */}
+              {config.volcArkAnthropicBaseUrl.includes('ark.cn-beijing.volces.com') && (
+                <div className="settings-alert settings-alert-warning" role="status" aria-live="polite">
+                  <AlertTriangle size={14} className="settings-alert-icon" />
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <span>{t('settings.volcCorsWarning', { defaultValue: 'Anthropic 协议端点不支持浏览器直连 CORS（预检会拒绝 anthropic-version 头）。如遇跨域错误，可将 Base URL 改为您的反代地址，或开启下方自动降级。' })}</span>
+                    <details style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                      <summary style={{ cursor: 'pointer' }}>
+                        {t('settings.volcProxyGuide', { defaultValue: '查看反代示例（Cloudflare Worker）' })}
+                      </summary>
+                      <pre style={{
+                        marginTop: '0.5rem',
+                        padding: '0.5rem',
+                        background: 'var(--bg-overlay)',
+                        borderRadius: '0.375rem',
+                        overflowX: 'auto',
+                        fontSize: '0.7rem',
+                        lineHeight: 1.4,
+                      }}>
 {`export default {
   async fetch(request) {
     const url = new URL(request.url);
@@ -685,43 +735,82 @@ export const Settings: React.FC = () => {
     return r;
   },
 };`}
-                        </pre>
-                      </details>
-                    </div>
+                      </pre>
+                    </details>
                   </div>
-                )}
+                </div>
+              )}
 
-                {/* 自动降级开关：Anthropic CORS 拦截时自动切换到 OpenAI 协议 */}
-                <label style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '0.75rem',
-                  cursor: 'pointer',
-                  padding: '0.5rem 0',
-                }}>
-                  <span className="settings-toggle">
-                    <input
-                      type="checkbox"
-                      role="switch"
-                      aria-checked={config.volcArkAutoFallback}
-                      checked={config.volcArkAutoFallback}
-                      onChange={e => handleChange('volcArkAutoFallback', e.target.checked)}
-                    />
-                    <span className="settings-toggle-track">
-                      <span className="settings-toggle-thumb" />
-                    </span>
+              {/* 自动降级开关：Anthropic CORS 拦截时自动切换到 OpenAI 协议 */}
+              <label style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '0.75rem',
+                cursor: 'pointer',
+                padding: '0.5rem 0',
+              }}>
+                <span className="settings-toggle">
+                  <input
+                    type="checkbox"
+                    role="switch"
+                    aria-checked={config.volcArkAutoFallback}
+                    checked={config.volcArkAutoFallback}
+                    onChange={e => handleChange('volcArkAutoFallback', e.target.checked)}
+                  />
+                  <span className="settings-toggle-track">
+                    <span className="settings-toggle-thumb" />
                   </span>
-                  <div>
-                    <div style={{ fontSize: '0.88rem', fontWeight: 500, color: 'var(--text-main)' }}>
-                      {t('settings.volcAutoFallbackToggle', { defaultValue: 'CORS 拦截时自动降级到 OpenAI 协议' })}
-                    </div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
-                      {t('settings.volcAutoFallbackDesc', { defaultValue: 'Anthropic 端点被浏览器预检拦截时，自动改用 OpenAI 协议发起请求。注意：OpenAI 协议按量计费，且 Agent Plan Key 不一定开通 OpenAI 接口权限。' })}
-                    </div>
+                </span>
+                <div>
+                  <div style={{ fontSize: '0.88rem', fontWeight: 500, color: 'var(--text-main)' }}>
+                    {t('settings.volcAutoFallbackToggle', { defaultValue: 'CORS 拦截时自动降级到 OpenAI 协议' })}
                   </div>
-                </label>
-              </>
-            )}
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                    {t('settings.volcAutoFallbackDesc', { defaultValue: 'Anthropic 端点被浏览器预检拦截时，自动改用 OpenAI 协议发起请求。需独立配置 OpenAI API Key。' })}
+                  </div>
+                </div>
+              </label>
+
+              <button
+                type="button"
+                onClick={handleVolcValidateAnthropic}
+                disabled={!config.volcArkAnthropicApiKey.trim()}
+                style={{
+                  fontSize: '0.75rem', padding: '0.3rem 0.75rem', borderRadius: '0.375rem',
+                  border: '1px solid var(--border-color)', background: 'var(--bg-overlay)',
+                  color: 'var(--text-main)', cursor: config.volcArkAnthropicApiKey.trim() ? 'pointer' : 'not-allowed',
+                  opacity: config.volcArkAnthropicApiKey.trim() ? 1 : 0.5,
+                }}
+              >
+                {t('settings.volcValidateBtn')}
+              </button>
+            </div>
+
+            {/* ── 文本生成协议偏好（仅影响 Text 能力，Video/Image 永远走 OpenAI）── */}
+            <div style={{
+              border: '1px solid var(--border-color)',
+              borderRadius: '0.5rem',
+              padding: '0.75rem',
+              marginBottom: '0.75rem',
+              background: 'var(--bg-elevated, var(--bg-overlay))',
+            }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.5rem' }}>
+                {t('settings.volcTextProtocolTitle', { defaultValue: '文本生成协议偏好' })}
+              </div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+                {t('settings.volcTextProtocolHint', { defaultValue: '仅影响文本生成；视频/图片始终走 OpenAI 协议' })}
+              </div>
+              <FormField
+                label={t('settings.volcArkProtocolLabel', { defaultValue: '默认协议' })}
+                value={config.volcArkTextProtocol}
+                onChange={v => handleChange('volcArkTextProtocol', v as VolcArkProtocol)}
+                type="select"
+                options={[
+                  { value: 'openai', label: t('settings.volcArkProtocolOpenai', { defaultValue: '标准后付费（OpenAI 协议）' }) },
+                  { value: 'anthropic', label: t('settings.volcArkProtocolAnthropic', { defaultValue: 'Agent Plan 订阅（Anthropic 协议）' }) },
+                ]}
+              />
+            </div>
 
             {/* ── 语音技术配置（声音复刻 + 大模型 TTS，独立于方舟 Ark 体系）── */}
             <div className="settings-section-divider" style={{

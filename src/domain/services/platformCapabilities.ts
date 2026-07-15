@@ -72,11 +72,16 @@ export const PLATFORM_METADATA: Record<PlatformId, PlatformMeta> = {
     description: 'Seedance · 视频/图片/文本/语音/3D',
     externalLink: 'https://console.volcengine.com/ark',
     docLink: 'https://www.volcengine.com/docs/82379',
-    // OpenAI 协议下的全能力（与 PlatformRouter 实际行为一致）
+    // 双协议并存：Video/Image 永远走 OpenAI 协议，Text 根据 volcArkProtocol 选择
     capabilities: ['video', 'videoFl2v', 'videoS2v', 'image', 'text', 'voice'],
-    videoModels: ['volcengine-seedance-1-0-pro', 'volcengine-seedance-1-0-lite'],
-    imageModel: 'volcengine-seedream-3-0',
-    textModel: 'volcengine-doubao-pro',
+    videoModels: [
+      'doubao-seedance-1-0-pro-250528',
+      'doubao-seedance-1-0-pro-fast-251015',
+      'doubao-seedance-1-0-lite-t2v-250428',
+      'doubao-seedance-1-0-lite-i2v-250428',
+    ],
+    imageModel: 'doubao-seedream-4-5-251128',
+    textModel: 'doubao-pro-32k',
   },
   kling: {
     id: 'kling',
@@ -176,21 +181,19 @@ export function getVideoCapablePlatforms(): PlatformMeta[] {
 /**
  * 根据火山方舟接入协议获取实际可用能力。
  *
- * - openai:     标准后付费模式，全能力可用（video/image/text/voice 等）
- * - anthropic:  Agent Plan 订阅，仅文本生成可用（视觉模型需 Skill 调用，本系统不集成）
+ * 双协议并存架构（澄清项 1）：
+ *   - Video/Image 永远走 OpenAI 协议（火山方舟视频/图片生成仅支持 OpenAI 兼容端点），
+ *     与 volcArkTextProtocol 选择无关。
+ *   - Text 根据 protocol 选择 OpenAI 兼容 (/chat/completions) 或 Anthropic Messages (/v1/messages)。
+ *   - Voice 走原生语音端点（openspeech.bytedance.com），与方舟协议无关。
  *
- * 用于 UI 层动态渲染入口可用性，以及 PlatformRouter 在分发前预检能力。
+ * 因此 protocol 参数实际上不影响 capabilities 集合，仅影响 VolcengineTextAdapter 内部
+ * 的端点选择。本函数保留 protocol 参数仅为向后兼容签名。
  */
-export function getVolcengineCapabilities(protocol: VolcArkProtocol): {
+export function getVolcengineCapabilities(_protocol: VolcArkProtocol): {
   capabilities: Capability[];
   supportsAgentTemplate: boolean;
 } {
-  if (protocol === 'anthropic') {
-    return {
-      capabilities: ['text'],
-      supportsAgentTemplate: false,
-    };
-  }
   return {
     capabilities: PLATFORM_METADATA.volcengine.capabilities,
     supportsAgentTemplate: false,

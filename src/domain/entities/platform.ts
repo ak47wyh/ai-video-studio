@@ -44,13 +44,20 @@ export interface ApiConfig {
   minimaxBaseUrl: string;
   minimaxAnthropicBaseUrl: string;
 
-  // --- 火山方舟（Ark）---
-  volcArkApiKey: string;
+  // --- 火山方舟（Ark）--- 双协议并存：OpenAI 与 Anthropic 可同时配置
+  /** OpenAI 协议 API Key（标准后付费，Video/Image/Text-openai 使用） */
+  volcArkOpenAiApiKey: string;
+  /** Anthropic 协议 API Key（Agent Plan 订阅，Text-anthropic 使用） */
+  volcArkAnthropicApiKey: string;
   volcArkBaseUrl: string;
   /** Anthropic 协议 Base URL（Agent Plan 专属） */
   volcArkAnthropicBaseUrl: string;
-  /** 接入协议选择：openai=标准后付费，anthropic=Agent Plan 订阅 */
-  volcArkProtocol: VolcArkProtocol;
+  /**
+   * Text 能力默认协议偏好（不影响 Video/Image，它们永远走 openai）。
+   * - openai: Text 优先走 OpenAI 协议
+   * - anthropic: Text 优先走 Anthropic 协议（CORS 拦截时自动降级到 openai）
+   */
+  volcArkTextProtocol: VolcArkProtocol;
   /** Anthropic 协议下使用的文本模型 ID */
   volcArkAnthropicModel: string;
   /** Anthropic 协议 CORS 拦截时是否自动降级到 OpenAI 协议（默认 true） */

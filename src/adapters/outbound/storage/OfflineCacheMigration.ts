@@ -85,19 +85,34 @@ function loadFailedKeys(): Set<string> {
 
 /**
  * 打开旧的 OfflineCache IndexedDB。
+ *
+ * 关键点：indexedDB.open 在 DB 不存在时会触发 onupgradeneeded 并创建一个空壳 DB
+ * （无任何 objectStore）。此时不应在此创建旧 schema——直接让 onsuccess 返回空壳，
+ * 由 readOldEntries 检查 objectStoreNames 跳过迁移。
  */
 function openOldDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(OLD_DB_NAME, OLD_DB_VERSION);
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
+    // 注意：不实现 onupgradeneeded——若旧 DB 不存在，让浏览器创建空壳 DB（无 store），
+    // 后续 readOldEntries 会通过 objectStoreNames.contains() 检测到为空并跳过。
   });
 }
 
 /**
  * 读取旧库中所有 Blob 和元数据。
+ *
+ * P0 修复：先检查 objectStore 是否存在，避免 NotFoundError。
+ * 旧 DB 不存在或已被清理时（新环境 / 用户清除站点数据），objectStoreNames 为空，
+ * 直接返回空数组跳过迁移，不抛错。
  */
 async function readOldEntries(db: IDBDatabase): Promise<{ key: string; blob: Blob; meta: OldCacheMeta }[]> {
+  // 防御性检查：旧 DB 不存在或 schema 不匹配时跳过
+  if (!db.objectStoreNames.contains(OLD_BLOB_STORE) || !db.objectStoreNames.contains(OLD_META_STORE)) {
+    console.log('[FileStorage Migration] Old DB has no blob/meta stores, skipping (new environment or already cleared).');
+    return [];
+  }
   return new Promise((resolve, reject) => {
     const tx = db.transaction([OLD_BLOB_STORE, OLD_META_STORE], 'readonly');
     const blobStore = tx.objectStore(OLD_BLOB_STORE);
@@ -233,6 +248,13 @@ export async function migrateOfflineCache(
     const targets = isRetry
       ? entries.filter(e => previousFailedKeys.has(e.key))
       : entries;
+
+    // 无数据可迁移（新环境 / 旧库已清空）：直接标记完成，避免每次启动都跑空迁移
+    if (entries.length === 0) {
+      markMigrated();
+      console.log('[FileStorage Migration] No entries to migrate, marking as done.');
+      return 0;
+    }
 
     for (const { key, blob, meta } of targets) {
       try {
