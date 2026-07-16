@@ -5,10 +5,12 @@
  *   1. UI 层 Lab 入口的可用性判断（不支持的能力置灰）
  *   2. Settings 页平台徽标的能力摘要
  *   3. 切换平台时决定哪些适配器需要实例化
+ *   4. 图片模型 ID 的唯一权威来源(imageModels[] + defaultImageModel)
  *
  * 修改能力支持情况时只需更新此文件。
  */
 import type { PlatformId, VolcArkProtocol } from '../entities/platform';
+import type { ImageAspectRatio } from '../ports/OutboundPorts';
 
 /** 能力类型 */
 export type Capability =
@@ -19,6 +21,38 @@ export type Capability =
   | 'text'         // 文本生成
   | 'voice'        // 语音合成
   | 'music';       // 音乐生成
+
+/** 图片模型能力标志 */
+export interface ImageModelCapabilities {
+  /** 支持文生图 */
+  t2i: boolean;
+  /** 支持图生图 */
+  i2i: boolean;
+  /** 支持流式生成 */
+  stream: boolean;
+  /** 支持自定义尺寸 */
+  customSize: boolean;
+  /** 支持风格选择 */
+  style: boolean;
+}
+
+/** 图片模型描述符(注册表条目) */
+export interface ImageModelDescriptor {
+  /** 真实模型 ID(发送给 API 的值) */
+  id: string;
+  /** 显示名称(中文) */
+  label: string;
+  /** 模型系列/品牌简述 */
+  description: string;
+  /** 能力标志 */
+  capabilities: ImageModelCapabilities;
+  /** 支持的宽高比列表(空数组表示全支持) */
+  supportedAspectRatios: ImageAspectRatio[];
+  /** 最大生成数量 */
+  maxN: number;
+  /** 是否推荐(排序权重,推荐模型排前) */
+  recommended: boolean;
+}
 
 /** 平台元信息 */
 export interface PlatformMeta {
@@ -41,7 +75,11 @@ export interface PlatformMeta {
   capabilities: Capability[];
   /** 默认视频模型列表（用于 VideoLab 模型选择器） */
   videoModels: string[];
-  /** 默认图片模型 */
+  /** 该平台支持的图片模型列表(单一数据源,替代旧 imageModel: string) */
+  imageModels: ImageModelDescriptor[];
+  /** 默认图片模型 ID(从 imageModels 中选一个,对应 ApiConfig 默认值) */
+  defaultImageModel: string;
+  /** @deprecated 使用 imageModels + defaultImageModel */
   imageModel?: string;
   /** 默认文本模型 */
   textModel?: string;
@@ -60,6 +98,27 @@ export const PLATFORM_METADATA: Record<PlatformId, PlatformMeta> = {
     docLink: 'https://platform.minimaxi.com/document/Platform%20Introduction',
     capabilities: ['video', 'videoFl2v', 'videoS2v', 'image', 'text', 'voice', 'music'],
     videoModels: ['MiniMax-Hailuo-2.3', 'MiniMax-Hailuo-02', 'T2V-01-Director', 'I2V-01'],
+    imageModels: [
+      {
+        id: 'image-01',
+        label: 'Image-01 (写实/通用)',
+        description: '写实风格 · 支持自定义尺寸与 21:9',
+        capabilities: { t2i: true, i2i: true, stream: false, customSize: true, style: false },
+        supportedAspectRatios: ['1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3', '21:9'],
+        maxN: 9,
+        recommended: true,
+      },
+      {
+        id: 'image-01-live',
+        label: 'Image-01-Live (二次元/动漫)',
+        description: '动漫画风增强 · 支持风格设置',
+        capabilities: { t2i: true, i2i: true, stream: false, customSize: false, style: true },
+        supportedAspectRatios: ['1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3'],
+        maxN: 9,
+        recommended: false,
+      },
+    ],
+    defaultImageModel: 'image-01',
     imageModel: 'image-01',
     textModel: 'MiniMax-M3',
   },
@@ -80,7 +139,65 @@ export const PLATFORM_METADATA: Record<PlatformId, PlatformMeta> = {
       'doubao-seedance-2-0-mini-260615',
       'doubao-seedance-1-0-pro-250528',
     ],
-    imageModel: 'doubao-seedream-5-0-lite',
+    imageModels: [
+      // P2 补充:Seedream 5.0 系列(2025 旗舰,官方文档 82379/1824121)
+      {
+        id: 'doubao-seedream-5-0-pro-260628',
+        label: 'Seedream 5.0 Pro',
+        description: '最新旗舰 · 4K 超高清 · 多图融合 · 流式输出',
+        capabilities: { t2i: true, i2i: true, stream: true, customSize: true, style: false },
+        supportedAspectRatios: ['1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3', '21:9'],
+        maxN: 1,  // 5.0 Pro 官方仅支持单图生成
+        recommended: true,
+      },
+      {
+        id: 'doubao-seedream-5-0-260128',
+        label: 'Seedream 5.0 Lite',
+        description: '5.0 轻量版 · 2K/4K · 流式输出 · 多图批量',
+        capabilities: { t2i: true, i2i: true, stream: true, customSize: true, style: false },
+        supportedAspectRatios: ['1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3'],
+        maxN: 4,
+        recommended: false,
+      },
+      {
+        id: 'doubao-seedream-4-5-251128',
+        label: 'Seedream 4.5',
+        description: '稳定版 · 2K/4K · 多图融合 · 风格参数支持',
+        capabilities: { t2i: true, i2i: true, stream: true, customSize: true, style: true },
+        supportedAspectRatios: ['1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3', '21:9'],
+        maxN: 9,
+        recommended: false,
+      },
+      {
+        id: 'doubao-seedream-4-0-250828',
+        label: 'Seedream 4.0',
+        description: '4.0 版本 · 1K/2K/4K · 基础文生图/图生图',
+        capabilities: { t2i: true, i2i: true, stream: true, customSize: true, style: true },
+        supportedAspectRatios: ['1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3'],
+        maxN: 4,
+        recommended: false,
+      },
+      {
+        id: 'doubao-seedream-3-0-t2i',
+        label: 'Seedream 3.0 (文生图)',
+        description: '稳定版 · 文生图专用',
+        capabilities: { t2i: true, i2i: false, stream: false, customSize: true, style: true },
+        supportedAspectRatios: ['1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3'],
+        maxN: 9,
+        recommended: false,
+      },
+      {
+        id: 'doubao-seededit-3-0-i2i',
+        label: 'Seededit 3.0 (图生图)',
+        description: '图生图专用 · 精准编辑',
+        capabilities: { t2i: false, i2i: true, stream: false, customSize: true, style: true },
+        supportedAspectRatios: ['1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3'],
+        maxN: 9,
+        recommended: false,
+      },
+    ],
+    defaultImageModel: 'doubao-seedream-5-0-pro-260628',
+    imageModel: 'doubao-seedream-5-0-pro-260628',
     textModel: 'doubao-pro-32k',
   },
   kling: {
@@ -94,6 +211,8 @@ export const PLATFORM_METADATA: Record<PlatformId, PlatformMeta> = {
     docLink: 'https://docs.qingque.cn/d/home/eZQBmTMbY0cTSoxYLxgT5RTgn',
     capabilities: ['video', 'videoS2v', 'image'],
     videoModels: ['kling-v2.1', 'kling-v2-master', 'kling-v1.6'],
+    imageModels: [],
+    defaultImageModel: 'kling-v1',
     imageModel: 'kling-v1',
   },
   wan: {
@@ -107,6 +226,8 @@ export const PLATFORM_METADATA: Record<PlatformId, PlatformMeta> = {
     docLink: 'https://help.aliyun.com/zh/model-studio/developer-reference/use-qwen-by-calling-api',
     capabilities: ['video', 'videoFl2v', 'videoS2v', 'image', 'text', 'voice'],
     videoModels: ['wanx2.1-t2v-turbo', 'wanx2.1-t2v-plus', 'wanx2.1-i2v-turbo', 'wanx2.1-i2v-plus'],
+    imageModels: [],
+    defaultImageModel: 'wanx2.1-t2i-turbo',
     imageModel: 'wanx2.1-t2i-turbo',
     textModel: 'qwen-plus',
   },
@@ -121,6 +242,8 @@ export const PLATFORM_METADATA: Record<PlatformId, PlatformMeta> = {
     docLink: 'https://cloud.tencent.com/document/product/1729/97731',
     capabilities: ['video', 'text', 'voice'],
     videoModels: ['hunyuan-video', 'hunyuan-video-i2v'],
+    imageModels: [],
+    defaultImageModel: '',
     textModel: 'hunyuan-turbos-latest',
   },
   zhipu: {
@@ -134,6 +257,8 @@ export const PLATFORM_METADATA: Record<PlatformId, PlatformMeta> = {
     docLink: 'https://docs.bigmodel.cn/cn/guide/start/quick-start',
     capabilities: ['video', 'videoS2v', 'image', 'text', 'voice'],
     videoModels: ['cogvideox-2', 'cogvideox-flash'],
+    imageModels: [],
+    defaultImageModel: 'cogview-3-plus',
     imageModel: 'cogview-3-plus',
     textModel: 'glm-4-plus',
   },
@@ -148,6 +273,8 @@ export const PLATFORM_METADATA: Record<PlatformId, PlatformMeta> = {
     docLink: 'https://docs.vidu.cn/page/start',
     capabilities: ['video', 'videoFl2v', 'videoS2v', 'image'],
     videoModels: ['viduq1', 'vidu-1', 'vidu-2'],
+    imageModels: [],
+    defaultImageModel: 'viduq1',
     imageModel: 'viduq1',
   },
 };
@@ -176,6 +303,34 @@ export function getCapabilitySummary(platform: PlatformId): string {
 /** 获取所有支持视频生成的平台（用于 Settings 下拉过滤） */
 export function getVideoCapablePlatforms(): PlatformMeta[] {
   return Object.values(PLATFORM_METADATA).filter(p => p.capabilities.includes('video'));
+}
+
+/**
+ * 获取指定平台的图片模型列表(按 recommended 排序,推荐模型排前)。
+ * 仅返回注册表中声明的模型,未声明模型的平台返回空数组。
+ */
+export function getImageModels(platform: PlatformId): ImageModelDescriptor[] {
+  const meta = PLATFORM_METADATA[platform];
+  if (!meta?.imageModels?.length) return [];
+  return [...meta.imageModels].sort((a, b) => Number(b.recommended) - Number(a.recommended));
+}
+
+/**
+ * 获取指定平台的默认图片模型 ID。
+ * 优先取 defaultImageModel,其次回退到 deprecated imageModel 字段。
+ */
+export function getDefaultImageModel(platform: PlatformId): string {
+  const meta = PLATFORM_METADATA[platform];
+  if (!meta) return '';
+  return meta.defaultImageModel || meta.imageModel || '';
+}
+
+/**
+ * 根据平台 + 模型 ID 查找描述符。
+ * 用于 UI 层根据当前选中模型查询其能力标志(如 customSize/style)。
+ */
+export function findImageModel(platform: PlatformId, modelId: string): ImageModelDescriptor | undefined {
+  return PLATFORM_METADATA[platform]?.imageModels?.find(m => m.id === modelId);
 }
 
 /**

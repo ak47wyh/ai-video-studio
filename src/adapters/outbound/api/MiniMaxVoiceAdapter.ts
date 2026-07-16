@@ -161,7 +161,8 @@ export class MiniMaxVoiceAdapter implements IVoicePort {
         format: context.audioFormat || 'mp3',
         channel: context.channel ?? 1,
       },
-      ...(context.languageBoost ? { language_boost: context.languageBoost } : { language_boost: 'auto' }),
+      // P1 修复：language_boost 仅在用户显式指定时传递，原实现强制 'auto' 导致无法关闭语言增强
+      ...(context.languageBoost ? { language_boost: context.languageBoost } : {}),
     };
 
     // 文本输入：直接文本 或 文件 ID
@@ -362,7 +363,8 @@ export class MiniMaxVoiceAdapter implements IVoicePort {
         channel: context.channel ?? 1,
       },
       output_format: context.outputFormat || 'url',
-      ...(context.languageBoost ? { language_boost: context.languageBoost } : { language_boost: 'auto' }),
+      // P1 修复：language_boost 仅在用户显式指定时传递，原实现强制 'auto' 导致无法关闭语言增强
+      ...(context.languageBoost ? { language_boost: context.languageBoost } : {}),
       ...(context.aigcWatermark !== undefined ? { aigc_watermark: context.aigcWatermark } : {}),
     };
 
@@ -433,8 +435,10 @@ export class MiniMaxVoiceAdapter implements IVoicePort {
 
     // WebSocket 端点: wss://api.minimaxi.com/ws/v1/t2a_v2
     // 注意: baseUrl 是 https://api.minimaxi.com/v1，需要去掉 /v1 再拼接 /ws/v1/t2a_v2
+    // P1 修复：WebSocket 握手无法设置 Authorization 头，通过 URL query 传递 apikey 鉴权
     const baseHost = config.minimaxBaseUrl.replace(/\/+$/, '').replace(/\/v\d+$/, '');
-    const wsUrl = `${baseHost.replace(/^https?:/, (m) => m === 'https:' ? 'wss:' : 'ws:')}/ws/v1/t2a_v2`;
+    const wsBaseUrl = `${baseHost.replace(/^https?:/, (m) => m === 'https:' ? 'wss:' : 'ws:')}/ws/v1/t2a_v2`;
+    const wsUrl = `${wsBaseUrl}?apikey=${encodeURIComponent(config.minimaxApiKey)}`;
 
     let ws: WebSocket | null = null;
     let closed = false;
@@ -501,7 +505,10 @@ export class MiniMaxVoiceAdapter implements IVoicePort {
           format: context.audioFormat || 'mp3',
           channel: context.channel ?? 1,
         },
-        ...(context.languageBoost ? { language_boost: context.languageBoost } : { language_boost: 'auto' }),
+        // P1 修复：WebSocket task_start 携带 group_id 辅助鉴权（与 URL apikey 双重保障）
+        ...(config.minimaxGroupId ? { group_id: config.minimaxGroupId } : {}),
+        // P1 修复：language_boost 仅在显式指定时传递，不再强制 'auto'
+        ...(context.languageBoost ? { language_boost: context.languageBoost } : {}),
       };
 
       if (context.pronunciationDict) payload.pronunciation_dict = context.pronunciationDict;

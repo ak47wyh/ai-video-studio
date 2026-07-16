@@ -1,6 +1,7 @@
 import type { IModelManagementPort, ModelInfo } from '../ports/OutboundPorts';
 import type { IModelCachePort, CachedModels } from '../ports/ModelCachePort';
 import type { ILoggerPort, LogContext } from '../ports/CrossCuttingPorts';
+import { getImageModels } from './platformCapabilities';
 
 export class ModelManagementService {
   private modelPort: IModelManagementPort;
@@ -117,13 +118,16 @@ export class ModelManagementService {
   }
 
   /**
-   * Static image models (API does not provide these).
+   * Static image models — 从平台能力注册表读取真实模型 ID。
+   * 聚合所有平台的 imageModels,供 UI 层模型管理面板展示。
    */
   getStaticImageModels(): ModelInfo[] {
-    return [
-      { id: 'image-01', createdAt: '', displayName: 'Image-01', type: 'image' },
-      { id: 'image-01-live', createdAt: '', displayName: 'Image-01 Live', type: 'image' },
-    ];
+    return getImageModels('minimax').map(m => ({
+      id: m.id,
+      createdAt: '',
+      displayName: m.label,
+      type: 'image' as const,
+    }));
   }
 
   /**

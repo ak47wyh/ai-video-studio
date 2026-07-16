@@ -439,6 +439,8 @@
     "volcVoiceModelDitStandard": "DiT 標準版(スタイル復元なし)",
     "volcVoiceModelDitRestore": "DiT 復元版(アクセント/速度復元)",
     "volcVoiceModelMega": "MEGA 効果(早期,非推奨)",
+    "volcSeedTtsEnabledLabel": "Doubao Seed TTS 2.0 を有効化(実験的)",
+    "volcSeedTtsEnabledHint": "火山エンジンコンソールで doubao-seed-tts-2.0 モデルを有効化する必要があります。自動切り替えはサポートされていません。有効化すると、音声とダビングメニューにモデルオプションが表示されます。",
     "volcArkOpenAiApiKeyLabel": "API Key (OpenAI Protocol)",
     "volcArkAnthropicApiKeyLabel": "API Key (Anthropic Protocol)",
     "volcOpenAiReady": "Video/Image/Voice Ark TTS available",
@@ -817,6 +819,18 @@
     "categoryScene": "シーン説明",
     "categoryNarration": "ナレーションテキスト",
     "categoryOther": "その他"
+  },
+  "imageStyle": {
+    "default": "デフォルト",
+    "photorealistic": "写実的",
+    "anime": "アニメ",
+    "oilPainting": "油絵",
+    "watercolor": "水彩画",
+    "sketch": "スケッチ",
+    "3dRender": "3D レンダリング",
+    "chinesePainting": "中国画",
+    "cyberpunk": "サイバーパンク",
+    "pixelArt": "ドット絵"
   },
   "voiceLab": {
     "rename": "名前変更",

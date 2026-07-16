@@ -1,8 +1,8 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Image as ImageIcon, Sparkles, RefreshCw, Type, ImagePlus } from 'lucide-react';
 import { imageGenerationService, assetLibraryService } from '../../dependencies';
-import type { ImageModel, ImageAspectRatio, ImageGenerationContext } from '../../domain/ports/OutboundPorts';
+import type { ImageAspectRatio, ImageGenerationContext } from '../../domain/ports/OutboundPorts';
 import { useToast } from '../contexts/ToastContext';
 import { getErrorMessage } from '../utils/errorUtils';
 import { useSpace } from '../contexts/SpaceContext';
@@ -10,10 +10,13 @@ import { AssetSaveDialog } from '../components/AssetPicker';
 import { ImageUploadField } from '../components/ImageUploadField';
 import { ImageGallery, type GalleryImage } from '../components/ImageGallery';
 import { ImageAdvancedSettings, type ImageAdvancedSettingsValue } from '../components/ImageAdvancedSettings';
+import { ImageModelSelector } from '../components/ImageModelSelector';
+import { ImageStyleSelector } from '../components/ImageStyleSelector';
 import { LabPageLayout } from '../components/LabPageLayout';
 import { AsyncState } from '../components/AsyncState';
 import { UnsupportedCapabilityNotice } from '../components/UnsupportedCapabilityNotice';
 import { usePlatformCapabilities } from '../hooks/usePlatformCapabilities';
+import { useImageModels } from '../hooks/useImageModels';
 import { usePlatform } from '../contexts/PlatformContext';
 import { ApiConfigStore } from '../../adapters/outbound/config/ApiConfigStore';
 import { isPlatformReady } from '../utils/platformReady';
@@ -21,11 +24,27 @@ import { TextAreaWithCounter } from '../components/TextAreaWithCounter';
 import { SavedRecordsPanel } from '../components/SavedRecordsPanel';
 import { SegmentPicker, type SegmentBindField } from '../components/SegmentPicker';
 import type { SavedImage } from '../../domain/entities/models';
+import type { ImageStyleKey } from '../../domain/data/imageStylePresets';
 import { TEXT_LIMITS } from '../../domain/constants/textLimits';
 import { validateTextLimit } from '../utils/validateTextLimit';
 import {
   triggerNativeDownload,
 } from '../../utils/imageCache';
+
+/** 全量宽高比(当模型未声明 supportedAspectRatios 时回退使用) */
+const ALL_ASPECT_RATIOS: ImageAspectRatio[] = ['16:9', '9:16', '1:1', '4:3', '3:4', '3:2', '2:3', '21:9'];
+
+/** 宽高比显示标签 */
+const ASPECT_RATIO_LABELS: Record<ImageAspectRatio, string> = {
+  '16:9': '16:9 (横屏视频)',
+  '9:16': '9:16 (竖屏视频)',
+  '1:1': '1:1 (正方形)',
+  '4:3': '4:3 (标准)',
+  '3:4': '3:4',
+  '3:2': '3:2',
+  '2:3': '2:3',
+  '21:9': '21:9 (宽屏电影)',
+};
 
 type ImageLabTab = 't2i' | 'i2i';
 
@@ -36,7 +55,6 @@ const DEFAULT_ADVANCED: ImageAdvancedSettingsValue = {
   customSizeEnabled: false,
   customWidth: 1024,
   customHeight: 1024,
-  style: '',
 };
 
 // 语义化下载文件名
@@ -56,10 +74,13 @@ export const ImageLab: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ImageLabTab>('t2i');
 
   // ==================== 共享 State ====================
-  const [model, setModel] = useState<ImageModel>('image-01');
+  // model 初始值为空字符串,由 useImageModels 的 fallbackModelId 自动填充
+  const [model, setModel] = useState<string>('');
   const [aspectRatio, setAspectRatio] = useState<ImageAspectRatio>('16:9');
   const [promptOptimizer, setPromptOptimizer] = useState(false);
   const [advanced, setAdvanced] = useState<ImageAdvancedSettingsValue>(DEFAULT_ADVANCED);
+  // 风格提升为一级控件(独立于 advanced)
+  const [style, setStyle] = useState<ImageStyleKey>('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [gallery, setGallery] = useState<GalleryImage[]>([]);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
@@ -80,16 +101,44 @@ export const ImageLab: React.FC = () => {
   // ==================== I2I 专用 State ====================
   const [i2iPrompt, setI2iPrompt] = useState('');
 
-  // ==================== 模型联动 ====================
-  const handleModelChange = (newModel: ImageModel) => {
-    setModel(newModel);
-    // image-01-live 不支持 21:9
-    if (newModel === 'image-01-live' && aspectRatio === '21:9') {
+  // ==================== 模型注册表联动 ====================
+  const { models, currentModel, fallbackModelId } = useImageModels(activePlatform, activeTab, model);
+
+  // 当前选中模型不在过滤后列表中(如切换 Tab/平台),自动回退到推荐模型
+  useEffect(() => {
+    if (!currentModel && fallbackModelId) {
+      setModel(fallbackModelId);
+    }
+  }, [currentModel, fallbackModelId]);
+
+  // 当前模型支持的宽高比列表(空数组回退到全量)
+  const availableAspectRatios = useMemo<ImageAspectRatio[]>(() => {
+    if (currentModel && currentModel.supportedAspectRatios.length > 0) {
+      return currentModel.supportedAspectRatios;
+    }
+    return ALL_ASPECT_RATIOS;
+  }, [currentModel]);
+
+  // ==================== 模型联动(基于 ImageModelDescriptor 能力标志) ====================
+  const handleModelChange = (newModelId: string) => {
+    const newModel = models.find(m => m.id === newModelId);
+    setModel(newModelId);
+    if (!newModel) return;
+    // 若当前比例不在新模型支持列表,回退到 16:9
+    if (newModel.supportedAspectRatios.length > 0 && !newModel.supportedAspectRatios.includes(aspectRatio)) {
       setAspectRatio('16:9');
     }
-    // 切换模型时重置自定义尺寸（仅 image-01 支持）
-    if (newModel === 'image-01-live') {
+    // 若新模型不支持自定义尺寸,重置
+    if (!newModel.capabilities.customSize) {
       setAdvanced(prev => ({ ...prev, customSizeEnabled: false }));
+    }
+    // 若新模型不支持风格,重置
+    if (!newModel.capabilities.style) {
+      setStyle('');
+    }
+    // 若当前数量超过新模型 maxN,截断
+    if (advanced.n > newModel.maxN) {
+      setAdvanced(prev => ({ ...prev, n: newModel.maxN }));
     }
   };
 
@@ -110,15 +159,15 @@ export const ImageLab: React.FC = () => {
       context.seed = Number(advanced.seed);
     }
 
-    // 自定义尺寸（仅 image-01）
-    if (model === 'image-01' && advanced.customSizeEnabled && advanced.customWidth && advanced.customHeight) {
+    // 自定义尺寸(仅当模型支持)
+    if (currentModel?.capabilities.customSize && advanced.customSizeEnabled && advanced.customWidth && advanced.customHeight) {
       context.width = advanced.customWidth;
       context.height = advanced.customHeight;
     }
 
-    // 画风（仅 image-01-live）
-    if (model === 'image-01-live' && advanced.style) {
-      context.style = { style: advanced.style };
+    // 风格(仅当模型支持)
+    if (currentModel?.capabilities.style && style) {
+      context.style = { style };
     }
 
     // I2I 主体参考
@@ -127,7 +176,7 @@ export const ImageLab: React.FC = () => {
     }
 
     return context;
-  }, [model, aspectRatio, promptOptimizer, advanced, referenceImage]);
+  }, [model, aspectRatio, promptOptimizer, advanced, referenceImage, currentModel, style]);
 
   // ==================== 生成 ====================
   const handleGenerate = async (prompt: string, isI2I: boolean) => {
@@ -363,26 +412,31 @@ export const ImageLab: React.FC = () => {
           </div>
 
           <div className="lab-model-config">
-            <div className="lab-model-config-item" style={{ minWidth: '180px' }}>
-              <label className="form-label">{t('imageLab.model', '生成模型')}</label>
-              <select className="form-select" value={model} onChange={e => handleModelChange(e.target.value as ImageModel)}>
-                <option value="image-01">image-01 (写实/通用)</option>
-                <option value="image-01-live">image-01-live (二次元/动漫)</option>
-              </select>
-            </div>
+            <ImageModelSelector
+              models={models}
+              value={model}
+              onChange={handleModelChange}
+              disabled={!platformReady}
+            />
             <div className="lab-model-config-item" style={{ minWidth: '140px' }}>
               <label className="form-label">{t('imageLab.aspectRatio', '图片比例')}</label>
-              <select className="form-select" value={aspectRatio} onChange={e => setAspectRatio(e.target.value as ImageAspectRatio)}>
-                <option value="16:9">16:9 (横屏视频)</option>
-                <option value="9:16">9:16 (竖屏视频)</option>
-                <option value="1:1">1:1 (正方形)</option>
-                <option value="4:3">4:3 (标准)</option>
-                <option value="3:4">3:4</option>
-                <option value="3:2">3:2</option>
-                <option value="2:3">2:3</option>
-                {model === 'image-01' && <option value="21:9">21:9 (宽屏电影)</option>}
+              <select
+                className="form-select"
+                value={aspectRatio}
+                onChange={e => setAspectRatio(e.target.value as ImageAspectRatio)}
+                disabled={!platformReady}
+              >
+                {availableAspectRatios.map(ratio => (
+                  <option key={ratio} value={ratio}>{ASPECT_RATIO_LABELS[ratio]}</option>
+                ))}
               </select>
             </div>
+            <ImageStyleSelector
+              value={style}
+              onChange={setStyle}
+              supported={currentModel?.capabilities.style ?? false}
+              disabled={!platformReady}
+            />
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
@@ -397,11 +451,13 @@ export const ImageLab: React.FC = () => {
             </label>
           </div>
 
-          <ImageAdvancedSettings
-            value={advanced}
-            onChange={setAdvanced}
-            model={model}
-          />
+          {currentModel && (
+            <ImageAdvancedSettings
+              value={advanced}
+              onChange={setAdvanced}
+              model={currentModel}
+            />
+          )}
 
           <button
             className="btn btn-primary btn-generate"
@@ -439,26 +495,31 @@ export const ImageLab: React.FC = () => {
           </div>
 
           <div className="lab-model-config">
-            <div className="lab-model-config-item" style={{ minWidth: '180px' }}>
-              <label className="form-label">{t('imageLab.model', '生成模型')}</label>
-              <select className="form-select" value={model} onChange={e => handleModelChange(e.target.value as ImageModel)}>
-                <option value="image-01">image-01 (写实/通用)</option>
-                <option value="image-01-live">image-01-live (二次元/动漫)</option>
-              </select>
-            </div>
+            <ImageModelSelector
+              models={models}
+              value={model}
+              onChange={handleModelChange}
+              disabled={!platformReady}
+            />
             <div className="lab-model-config-item" style={{ minWidth: '140px' }}>
               <label className="form-label">{t('imageLab.aspectRatio', '图片比例')}</label>
-              <select className="form-select" value={aspectRatio} onChange={e => setAspectRatio(e.target.value as ImageAspectRatio)}>
-                <option value="16:9">16:9 (横屏视频)</option>
-                <option value="9:16">9:16 (竖屏视频)</option>
-                <option value="1:1">1:1 (正方形)</option>
-                <option value="4:3">4:3 (标准)</option>
-                <option value="3:4">3:4</option>
-                <option value="3:2">3:2</option>
-                <option value="2:3">2:3</option>
-                {model === 'image-01' && <option value="21:9">21:9 (宽屏电影)</option>}
+              <select
+                className="form-select"
+                value={aspectRatio}
+                onChange={e => setAspectRatio(e.target.value as ImageAspectRatio)}
+                disabled={!platformReady}
+              >
+                {availableAspectRatios.map(ratio => (
+                  <option key={ratio} value={ratio}>{ASPECT_RATIO_LABELS[ratio]}</option>
+                ))}
               </select>
             </div>
+            <ImageStyleSelector
+              value={style}
+              onChange={setStyle}
+              supported={currentModel?.capabilities.style ?? false}
+              disabled={!platformReady}
+            />
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
@@ -473,11 +534,13 @@ export const ImageLab: React.FC = () => {
             </label>
           </div>
 
-          <ImageAdvancedSettings
-            value={advanced}
-            onChange={setAdvanced}
-            model={model}
-          />
+          {currentModel && (
+            <ImageAdvancedSettings
+              value={advanced}
+              onChange={setAdvanced}
+              model={currentModel}
+            />
+          )}
 
           <button
             className="btn btn-primary btn-generate"

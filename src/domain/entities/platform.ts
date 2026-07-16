@@ -62,12 +62,18 @@ export interface ApiConfig {
   volcArkAnthropicModel: string;
   /** Anthropic 协议 CORS 拦截时是否自动降级到 OpenAI 协议（默认 true） */
   volcArkAutoFallback: boolean;
+  /** 图片生成模型 ID(默认 doubao-seedream-4-5-251128,用户可在注册表选项中切换) */
+  volcArkImageModel: string;
 
   // --- 火山引擎语音技术 ---
   volcVoiceAppId: string;
   volcVoiceAccessToken: string;
   volcVoiceCluster: string;
   volcVoiceCloneModelType: 0 | 1 | 2 | 3 | 4;
+  /** 豆包语音合成 2.0 模型 ID（默认 doubao-seed-tts-2.0，不支持 Auto 切换，需显式路由） */
+  volcSeedTtsModel: string;
+  /** 是否启用豆包语音合成 2.0（用户在控制台开通后手动开启，默认 false） */
+  volcSeedTtsEnabled: boolean;
 
   // --- 可灵 Kling ---
   klingAccessKey: string;

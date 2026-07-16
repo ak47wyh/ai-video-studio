@@ -338,6 +338,8 @@
     "volcVoiceModelDitStandard": "DiT 표준(스타일 복원 없음)",
     "volcVoiceModelDitRestore": "DiT 복원(억양/속도 복원)",
     "volcVoiceModelMega": "MEGA 효과(초기, 권장하지 않음)",
+    "volcSeedTtsEnabledLabel": "Doubao Seed TTS 2.0 활성화(실험적)",
+    "volcSeedTtsEnabledHint": "Volcengine 콘솔에서 doubao-seed-tts-2.0 모델을 활성화해야 합니다. 자동 전환은 지원되지 않습니다. 활성화하면 음성 및 더빙 메뉴에 모델 옵션이 표시됩니다.",
     "volcArkOpenAiApiKeyLabel": "API Key (OpenAI Protocol)",
     "volcArkAnthropicApiKeyLabel": "API Key (Anthropic Protocol)",
     "volcOpenAiReady": "Video/Image/Voice Ark TTS available",
@@ -634,6 +636,18 @@
     "tabGenerating": "생성 중",
     "tabPreview": "미리보기",
     "previewHint": "워크벤치에서 비디오를 편집하거나 다시 생성할 수 있습니다."
+  },
+  "imageStyle": {
+    "default": "기본",
+    "photorealistic": "실사",
+    "anime": "애니메이션",
+    "oilPainting": "유화",
+    "watercolor": "수채화",
+    "sketch": "스케치",
+    "3dRender": "3D 렌더링",
+    "chinesePainting": "중국화",
+    "cyberpunk": "사이버펑크",
+    "pixelArt": "픽셀 아트"
   },
   "notFound": {
     "message": "찾으시는 페이지가 존재하지 않습니다",

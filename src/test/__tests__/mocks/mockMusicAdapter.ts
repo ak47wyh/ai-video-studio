@@ -27,6 +27,8 @@ export function createMockMusicAdapter(overrides?: Partial<IMusicPort>): IMusicP
       bitrate: 256000,
     }),
     generateLyrics: vi.fn<(_context: LyricsGenerationContext) => Promise<LyricsGenerationResult>>().mockResolvedValue({
+      songTitle: 'Mock Song',
+      styleTags: 'pop',
       lyrics: 'Mock lyrics content',
     }),
     preprocessCover: vi.fn<(_audioUrl: string) => Promise<CoverPreprocessResult>>().mockResolvedValue({

@@ -484,6 +484,8 @@
     "volcVoiceModelDitStandard": "DiT Standard (no style restore)",
     "volcVoiceModelDitRestore": "DiT Restore (restore accent/speed)",
     "volcVoiceModelMega": "MEGA (early, not recommended)",
+    "volcSeedTtsEnabledLabel": "Enable Doubao Seed TTS 2.0 (Experimental)",
+    "volcSeedTtsEnabledHint": "Requires activating the doubao-seed-tts-2.0 model in the Volcengine console. Auto switching is not supported. Once enabled, the model option will appear in the Voice & Dubbing menu.",
     "volcArkOpenAiApiKeyLabel": "API Key (OpenAI Protocol)",
     "volcArkAnthropicApiKeyLabel": "API Key (Anthropic Protocol)",
     "volcOpenAiReady": "Video/Image/Voice Ark TTS available",
@@ -828,6 +830,18 @@
     "categoryScene": "Scene Description",
     "categoryNarration": "Narration Text",
     "categoryOther": "Other"
+  },
+  "imageStyle": {
+    "default": "Default",
+    "photorealistic": "Photorealistic",
+    "anime": "Anime",
+    "oilPainting": "Oil Painting",
+    "watercolor": "Watercolor",
+    "sketch": "Sketch",
+    "3dRender": "3D Render",
+    "chinesePainting": "Chinese Painting",
+    "cyberpunk": "Cyberpunk",
+    "pixelArt": "Pixel Art"
   },
   "pipeline": {
     "title": "Pipeline",

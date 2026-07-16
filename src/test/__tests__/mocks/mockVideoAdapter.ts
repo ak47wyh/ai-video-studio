@@ -19,8 +19,10 @@ export function createMockVideoAdapter(overrides?: Partial<IVideoGeneratorPort>)
       videoUrl: 'blob:http://localhost/test-video',
     }),
     downloadVideo: vi.fn<(_fileId: string) => Promise<VideoDownloadResult>>().mockResolvedValue({
-      blob: new Blob([new Uint8Array(1024)], { type: 'video/mp4' }),
-      url: 'blob:http://localhost/test-video',
+      downloadUrl: 'blob:http://localhost/test-video',
+      filename: 'mock-video.mp4',
+      bytes: 1024,
+      createdAt: Date.now(),
     }),
     ...overrides,
   };

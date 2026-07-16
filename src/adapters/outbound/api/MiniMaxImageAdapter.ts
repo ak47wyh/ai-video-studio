@@ -1,4 +1,6 @@
 import type { IImageGeneratorPort, ImageGenerationContext, ImageGenerationResult } from '../../../domain/ports/OutboundPorts';
+import type { ImageStyleKey } from '../../../domain/data/imageStylePresets';
+import { findImageModel, getDefaultImageModel } from '../../../domain/services/platformCapabilities';
 import { ApiConfigStore } from '../config/ApiConfigStore';
 import { getMiniMaxErrorMessage } from './MiniMaxErrorUtils';
 import axios from 'axios';
@@ -15,6 +17,11 @@ import axios from 'axios';
  * Endpoint: POST https://api.minimaxi.com/v1/image_generation
  * Models: image-01, image-01-live
  * Response format: url (24h validity) or base64
+ *
+ * 关键改造点（P2）：
+ *   - 模型默认值改为从注册表 getDefaultImageModel('minimax') 读取
+ *   - 模型能力判断改为基于 ImageModelDescriptor,不再硬编码 model === 'image-01-live'
+ *   - 风格透传接入统一抽象风格映射(MINIMAX_STYLE_MAP),不支持的画风降级为空
  */
 export class MiniMaxImageAdapter implements IImageGeneratorPort {
 
@@ -28,8 +35,12 @@ export class MiniMaxImageAdapter implements IImageGeneratorPort {
       return { imageDataUri: `data:image/png;base64,${mockBase64}` };
     }
 
-    // ── Build request payload ──────────────────────────────────────────────
-    const model = context.model || 'image-01';
+    // ── 解析模型 ID:context.model → 注册表默认值 ────────────────────────────
+    const model = context.model || getDefaultImageModel('minimax');
+
+    // 从注册表查询模型能力(替代硬编码 if model === 'image-01-live')
+    const descriptor = findImageModel('minimax', model);
+
     const responseFormat = context.responseFormat || 'url';
 
     const payload: Record<string, unknown> = {
@@ -42,19 +53,18 @@ export class MiniMaxImageAdapter implements IImageGeneratorPort {
       payload.response_format = responseFormat;
     }
 
-    // Aspect ratio — 21:9 only valid for image-01
-    const LIVE_UNSUPPORTED_RATIOS = ['21:9'];
+    // 尺寸:基于描述符能力,而非硬编码模型名
+    // P1 修复:aspect_ratio 与 width/height 同时设置时,官方优先使用 aspect_ratio
+    // 因此仅在未设置 aspect_ratio 时才透传 width/height,避免冗余字段冲突
     if (context.aspectRatio) {
-      if (model === 'image-01-live' && LIVE_UNSUPPORTED_RATIOS.includes(context.aspectRatio)) {
+      if (!descriptor?.supportedAspectRatios.includes(context.aspectRatio)) {
         console.warn(`[MiniMaxImageAdapter] aspect_ratio "${context.aspectRatio}" not supported by ${model}, falling back to 16:9`);
         payload.aspect_ratio = '16:9';
       } else {
         payload.aspect_ratio = context.aspectRatio;
       }
-    }
-
-    // Custom width/height (only for image-01)
-    if (model === 'image-01' && context.width && context.height) {
+    } else if (descriptor?.capabilities.customSize && context.width && context.height) {
+      // 自定义尺寸:仅 customSize 能力为 true 的模型支持,且未设置 aspect_ratio 时才生效
       payload.width = context.width;
       payload.height = context.height;
     }
@@ -86,9 +96,15 @@ export class MiniMaxImageAdapter implements IImageGeneratorPort {
       payload.subject_reference = subjectRef;
     }
 
-    // Style (only for image-01-live)
-    if (model === 'image-01-live' && context.style) {
-      payload.style = context.style;
+    // 风格:基于描述符能力,映射为 MiniMax 原生 style key
+    // P1 修复:官方 style 参数类型为 object(非 string),仅 image-01-live 生效
+    // 官方文档:https://platform.minimaxi.com/docs/api-reference/image-generation-t2i
+    if (descriptor?.capabilities.style && context.style?.style) {
+      const nativeStyle = MINIMAX_STYLE_MAP[context.style.style as ImageStyleKey];
+      if (nativeStyle) {
+        // 官方 style 为 object 类型,字段结构为 { style: string }
+        payload.style = { style: nativeStyle };
+      }
     }
 
     console.log(`[MiniMaxImageAdapter] Generating image, model: ${model}, format: ${responseFormat}`);
@@ -157,3 +173,22 @@ export class MiniMaxImageAdapter implements IImageGeneratorPort {
     };
   }
 }
+
+/**
+ * 统一抽象风格 → MiniMax 原生 style key 映射。
+ * MiniMax 仅 image-01-live 支持 style,且官方明确支持前 6 种;
+ * 不支持的画风(国画/赛博朋克/像素艺术)降级为空字符串,等同默认,避免 API 报错。
+ */
+const MINIMAX_STYLE_MAP: Record<ImageStyleKey, string> = {
+  '': '',
+  photorealistic: 'photorealistic',
+  anime: 'anime',
+  oil_painting: 'oil_painting',
+  watercolor: 'watercolor',
+  sketch: 'sketch',
+  '3d_render': '3d_render',
+  chinese_painting: '',
+  cyberpunk: '',
+  pixel_art: '',
+};
+

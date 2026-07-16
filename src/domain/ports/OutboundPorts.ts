@@ -199,7 +199,8 @@ export interface IStoryBreakdownPort {
 
 // --- Image Generation ---
 
-export type ImageModel = 'image-01' | 'image-01-live';
+/** 图片模型 ID(开放 string,真实 ID 由 platformCapabilities.ts 注册表约束) */
+export type ImageModel = string;
 export type ImageResponseFormat = 'url' | 'base64';
 export type ImageAspectRatio = '1:1' | '16:9' | '4:3' | '3:2' | '2:3' | '3:4' | '9:16' | '21:9';
 
@@ -226,6 +227,8 @@ export interface ImageGenerationContext {
   subjectReference?: ImageSubjectReference[];
   style?: ImageStyle;
   subjectReferenceUrl?: string;
+  /** 流式生成(仅支持流式的模型生效) */
+  stream?: boolean;
 }
 
 export interface ImageGenerationResult {
@@ -246,8 +249,10 @@ export interface IImageGeneratorPort {
 export type T2ASyncModel =
   // MiniMax 系列
   | 'speech-2.8-hd' | 'speech-2.8-turbo' | 'speech-02-hd' | 'speech-02-turbo' | 'speech-01-hd' | 'speech-01-turbo'
-  // 火山引擎豆包 TTS 系列
-  | 'doubao-tts-base' | 'doubao-tts-pro' | 'doubao-tts-pro-max';
+  // 火山引擎豆包 TTS 系列（Ark OpenAI 协议）
+  | 'doubao-tts-base' | 'doubao-tts-pro' | 'doubao-tts-pro-max'
+  // 火山引擎豆包语音合成 2.0（2025 新发布，走原生 /api/v3/plan/tts 端点，不支持 Auto 切换）
+  | 'doubao-seed-tts-2-0';
 
 export interface VoiceModify {
   pitch?: number;

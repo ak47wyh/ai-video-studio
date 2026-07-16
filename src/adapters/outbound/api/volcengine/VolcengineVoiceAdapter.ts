@@ -62,8 +62,14 @@ export class VolcengineVoiceAdapter implements IVoicePort {
   // ==================== 同步合成 ====================
 
   /**
-   * 同步 TTS：复刻音色（S_ 开头）走原生语音，标准音色走方舟 Ark。
-   * Anthropic 协议（Agent Plan）下仅原生语音可用（与方舟协议无关）。
+   * 同步 TTS：按音色类型与模型路由。
+   *  - 复刻音色（S_ 开头）→ 原生语音 V1（cluster 用配置值 volcano_icl）
+   *  - doubao-seed-tts-2.0 模型 → 原生语音 V3 plan 端点（Resource-Id: seed-tts-2.0）
+   *  - 其他标准音色 → 优先方舟 Ark，降级原生语音 V1（cluster 覆盖为 volcano_tts）
+   *
+   * P0 修复：
+   *  - 标准音色降级路径新增 clusterOverride: 'volcano_tts'，原用配置中的 volcano_icl 导致 BV001 等无法合成
+   *  - 复刻音色路径新增 capability: 'clone'，确保 Resource-Id 为 seed-icl-1.0
    */
   async synthesizeSpeechSync(context: T2ASyncContext): Promise<T2ASyncResult> {
     const text = context.text;
@@ -77,12 +83,20 @@ export class VolcengineVoiceAdapter implements IVoicePort {
         encoding: context.audioFormat || 'mp3',
         speedRatio: context.speed ?? 1.0,
         volumeRatio: context.volume ?? 1.0,
+        capability: 'clone',  // 复刻用 seed-icl-1.0
       });
       return {
         audioUrl: `data:audio/${context.audioFormat || 'mp3'};base64,${result.audioBase64}`,
         audioSize: Math.floor(result.audioBase64.length * 0.75),
         usageCharacters: text.length,
       };
+    }
+
+    // P2 新增：豆包语音合成 2.0 走专属 V3 plan 端点（不支持 Auto 切换，必须显式路由）
+    // P0 修复：模型 ID 判断改为使用配置中的 volcSeedTtsModel(默认 doubao-seed-tts-2.0),
+    //          原硬编码 'doubao-seed-tts-2-0' 与配置默认值 'doubao-seed-tts-2.0' 不匹配(点号 vs 连字符)
+    if (this.config.volcSeedTtsEnabled && context.model === this.config.volcSeedTtsModel) {
+      return this.synthesizeViaSeedTtsV2(context);
     }
 
     // 标准音色：优先走方舟 Ark（若配置了 OpenAI API Key）
@@ -92,14 +106,37 @@ export class VolcengineVoiceAdapter implements IVoicePort {
     }
 
     // 降级：走原生语音技术 + 标准音色 cluster
-    // 此时需临时切换 cluster 到 volcano_tts，但配置中是复刻 cluster
-    // 为避免污染配置，直接调用原生 TTS 但用标准音色 ID
+    // P0 修复：标准音色必须用 volcano_tts 集群，原实现用配置中的 volcano_icl 导致 404/空音频
     const result = await this.speechClient.synthesizeSync({
       text,
       voiceType: voiceId,
       encoding: context.audioFormat || 'mp3',
       speedRatio: context.speed ?? 1.0,
       volumeRatio: context.volume ?? 1.0,
+      clusterOverride: 'volcano_tts',  // 标准音色强制用 volcano_tts
+      capability: 'tts',
+    });
+    return {
+      audioUrl: `data:audio/${context.audioFormat || 'mp3'};base64,${result.audioBase64}`,
+      audioSize: Math.floor(result.audioBase64.length * 0.75),
+      usageCharacters: text.length,
+    };
+  }
+
+  /**
+   * 豆包语音合成 2.0（doubao-seed-tts-2.0）专属路由。
+   * 走原生语音 /api/v3/plan/tts 端点，Resource-Id 为 seed-tts-2.0。
+   */
+  private async synthesizeViaSeedTtsV2(context: T2ASyncContext): Promise<T2ASyncResult> {
+    const text = context.text;
+    const result = await this.speechClient.synthesizeSeedTtsV2({
+      text,
+      voiceType: context.voiceId,
+      encoding: context.audioFormat || 'mp3',
+      speedRatio: context.speed ?? 1.0,
+      volumeRatio: context.volume ?? 1.0,
+      pitchRatio: context.pitch ?? 1.0,
+      emotion: context.emotion,
     });
     return {
       audioUrl: `data:audio/${context.audioFormat || 'mp3'};base64,${result.audioBase64}`,
@@ -129,14 +166,21 @@ export class VolcengineVoiceAdapter implements IVoicePort {
   // ==================== 流式合成 ====================
 
   /**
-   * WebSocket 流式 TTS（火山引擎 V1 二进制协议）。
-   * 走原生语音技术，与方舟协议无关。
+   * WebSocket 流式 TTS。
+   * 路由策略:
+   *  - Seed TTS V2 模型(doubao-seed-tts-2.0)→ V3 unidirectional/stream(支持新模型音色)
+   *  - 其他音色(复刻 S_ / 标准音色)→ V1 ws_binary(兼容旧协议)
+   *
+   * 走原生语音技术,与方舟协议无关。
    */
   synthesizeSpeechStream(context: T2ASyncContext, callbacks: T2AStreamCallbacks): T2AStreamHandle {
+    // P0 修复:Seed TTS V2 模型必须走 V3 端点,V1 不支持 doubao-seed-tts-2.0 音色(返回 404)
+    const useV3 = this.config.volcSeedTtsEnabled && context.model === this.config.volcSeedTtsModel;
     return this.speechClient.createStreamWebSocket({
       text: context.text,
       voiceType: context.voiceId,
       encoding: context.audioFormat || 'mp3',
+      ...(useV3 ? { useV3: true, clusterOverride: 'volcano_tts' } : {}),
     }, callbacks);
   }
 

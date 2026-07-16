@@ -338,6 +338,8 @@
     "volcVoiceModelDitStandard": "DiT Стандарт (без восстановления стиля)",
     "volcVoiceModelDitRestore": "DiT Восстановление (восстановление акцента/скорости)",
     "volcVoiceModelMega": "Эффект MEGA (ранний, не рекомендуется)",
+    "volcSeedTtsEnabledLabel": "Включить Doubao Seed TTS 2.0 (экспериментально)",
+    "volcSeedTtsEnabledHint": "Требует активации модели doubao-seed-tts-2.0 в консоли Volcengine. Автоматическое переключение не поддерживается. После включения опция модели появится в меню Голос и озвучка.",
     "volcArkOpenAiApiKeyLabel": "API Key (OpenAI Protocol)",
     "volcArkAnthropicApiKeyLabel": "API Key (Anthropic Protocol)",
     "volcOpenAiReady": "Video/Image/Voice Ark TTS available",
@@ -634,6 +636,18 @@
     "tabGenerating": "Генерация",
     "tabPreview": "Предпросмотр",
     "previewHint": "Вы можете отредактировать видео в рабочей области или перегенерировать его."
+  },
+  "imageStyle": {
+    "default": "По умолчанию",
+    "photorealistic": "Фотореалистичный",
+    "anime": "Аниме",
+    "oilPainting": "Масляная живопись",
+    "watercolor": "Акварель",
+    "sketch": "Эскиз",
+    "3dRender": "3D-рендеринг",
+    "chinesePainting": "Китайская живопись",
+    "cyberpunk": "Киберпанк",
+    "pixelArt": "Пиксель-арт"
   },
   "notFound": {
     "message": "Страница, которую вы ищете, не существует",

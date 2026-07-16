@@ -20,8 +20,25 @@ function extractHttpStatus(err: unknown): number {
   return 0;
 }
 
-/** 声音复刻资源 ID（固定值，区分 ICL 版本） */
-const RESOURCE_ID = 'seed-icl-1.0';
+/**
+ * P0 修复：Resource-Id 按能力动态切换。
+ * - clone: 声音复刻 ICL 1.0（seed-icl-1.0）
+ * - tts:   豆包语音合成 2.0（seed-tts-2.0），用于 doubao-seed-tts-2.0 模型
+ * - asr:   豆包流式语音识别 2.0（volc.seedasr.sauc.duration），用于 doubao-seed-asr-2.0 模型
+ *
+ * 原实现全局硬编码 seed-icl-1.0，导致 TTS/ASR 调用时 Resource-Id 语义错配。
+ * 官方说明：当前语音模型不支持通过 Auto 及控制台切换使用，必须按能力显式指定 Resource-Id。
+ */
+const RESOURCE_ID_BY_CAPABILITY = {
+  clone: 'seed-icl-1.0',
+  tts: 'seed-tts-2.0',
+  asr: 'volc.seedasr.sauc.duration',
+} as const;
+
+type VoiceCapability = keyof typeof RESOURCE_ID_BY_CAPABILITY;
+
+/** 声音复刻使用的默认 Resource-Id（构造时写入 default header，保持向后兼容） */
+const DEFAULT_RESOURCE_ID = RESOURCE_ID_BY_CAPABILITY.clone;
 
 /** 声音复刻 upload 接口响应 */
 export interface SpeakerUploadResult {
@@ -75,7 +92,7 @@ export class VolcengineSpeechClient {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer;${config.volcVoiceAccessToken}`,
-        'Resource-Id': RESOURCE_ID,
+        'Resource-Id': DEFAULT_RESOURCE_ID,
       },
     });
   }
@@ -151,21 +168,33 @@ export class VolcengineSpeechClient {
     }
   }
 
-  /** HTTP 非流式 TTS（operation=query，一次性返回完整音频） */
+  /**
+   * HTTP 非流式 TTS（operation=query，一次性返回完整音频）。
+   *
+   * P0 修复：
+   *  - 新增 clusterOverride 参数：标准音色路径传 'volcano_tts'，复刻音色不传（用配置中的 volcano_icl）
+   *  - 新增 capability 参数：动态切换 Resource-Id 头（TTS 用 seed-tts-2.0，复刻用 seed-icl-1.0）
+   *  - app.token 改为真实 token：虽然 Header 已鉴权，但部分服务端版本会校验 body 内 token 一致性
+   */
   async synthesizeSync(params: {
     text: string;
     voiceType: string;
     encoding?: string;
     speedRatio?: number;
     volumeRatio?: number;
+    /** 标准音色传 'volcano_tts'，复刻音色不传（用配置中的 cluster） */
+    clusterOverride?: string;
+    /** 能力类型，决定 Resource-Id 头（默认 tts） */
+    capability?: VoiceCapability;
   }): Promise<TtsSyncResult> {
     this.ensureConfigured();
     const reqid = this.generateReqid();
+    const capability = params.capability ?? 'tts';
     const body = {
       app: {
         appid: this.config.volcVoiceAppId,
-        token: 'access_token',  // token 已在 Header 中鉴权，body 内 token 字段仅占位
-        cluster: this.config.volcVoiceCluster,
+        token: this.config.volcVoiceAccessToken,  // P0 修复：原为 'access_token' 字面量
+        cluster: params.clusterOverride ?? this.config.volcVoiceCluster,
       },
       user: { uid: 'ai-video-studio' },
       audio: {
@@ -182,7 +211,9 @@ export class VolcengineSpeechClient {
       },
     };
     try {
-      const resp = await this.client.post('/api/v1/tts', body);
+      const resp = await this.client.post('/api/v1/tts', body, {
+        headers: { 'Resource-Id': RESOURCE_ID_BY_CAPABILITY[capability] },
+      });
       const code: number = resp.data?.code ?? -1;
       if (code !== 3000) {
         throw parseTtsError(code, resp.data?.message ?? 'TTS synthesis failed', 200);
@@ -199,14 +230,23 @@ export class VolcengineSpeechClient {
   }
 
   /**
-   * 创建 WebSocket V1 流式 TTS 连接（二进制协议）。
+   * 创建 WebSocket 流式 TTS 连接。
    *
-   * 协议要点（参考 https://www.volcengine.com/docs/6561/79821）：
-   *  - 报头 4 字节：协议版本(4bit) + 报头大小(4bit) + 消息类型(4bit) + 消息标志(4bit)
+   * 双端点路由：
+   *  - Seed TTS V2 模型(doubao-seed-tts-2.0)→ V3 unidirectional/stream(支持新模型音色)
+   *  - 其他音色(复刻 S_ / 标准音色)→ V1 ws_binary(兼容旧协议)
+   *
+   * V1 二进制协议要点(参考 https://www.volcengine.com/docs/6561/79821):
+   *  - 报头 4 字节:协议版本(4bit) + 报头大小(4bit) + 消息类型(4bit) + 消息标志(4bit)
    *                  + 序列化方法(4bit) + 压缩方法(4bit) + 保留(8bit)
-   *  - 客户端请求消息类型 = 0b0001（full client request），序列化 = 0b0001（JSON）
-   *  - 服务端响应消息类型 = 0b1011（audio-only），0b1111（error）
+   *  - 客户端请求消息类型 = 0b0001(full client request),序列化 = 0b0001(JSON)
+   *  - 服务端响应消息类型 = 0b1011(audio-only),0b1111(error)
    *  - sequence < 0 表示合成完毕
+   *
+   * V3 协议说明:
+   *  - 端点:wss://openspeech.bytedance.com/api/v3/plan/tts/unidirectional/stream
+   *  - 浏览器 WebSocket 不支持自定义头,Resource-Id 通过 body.resource_id 传递
+   *  - 报文格式与 V1 一致(二进制报头 + JSON payload),V3 服务端兼容 V1 报文结构
    *
    * @returns T2AStreamHandle 用于关闭连接
    */
@@ -214,9 +254,18 @@ export class VolcengineSpeechClient {
     text: string;
     voiceType: string;
     encoding?: string;
+    /** 标准音色传 'volcano_tts'，复刻音色不传（用配置中的 cluster） */
+    clusterOverride?: string;
+    /** 能力类型，决定 Resource-Id（WebSocket 无法设头，仅用于日志与语义对齐） */
+    capability?: VoiceCapability;
+    /** 是否使用 V3 端点(Seed TTS V2 模型需 V3) */
+    useV3?: boolean;
   }, callbacks: T2AStreamCallbacks): T2AStreamHandle {
     this.ensureConfigured();
-    const wsUrl = `wss://openspeech.bytedance.com/api/v1/tts/ws_binary`;
+    // P0 修复:Seed TTS V2 模型必须走 V3 端点,V1 不支持 doubao-seed-tts-2.0 音色
+    const wsUrl = params.useV3
+      ? `wss://openspeech.bytedance.com/api/v3/plan/tts/unidirectional/stream`
+      : `wss://openspeech.bytedance.com/api/v1/tts/ws_binary`;
     const ws = new WebSocket(wsUrl);
     ws.binaryType = 'arraybuffer';
     let closed = false;
@@ -226,8 +275,8 @@ export class VolcengineSpeechClient {
       const payload = JSON.stringify({
         app: {
           appid: this.config.volcVoiceAppId,
-          token: 'access_token',
-          cluster: this.config.volcVoiceCluster,
+          token: this.config.volcVoiceAccessToken,  // P0 修复：原为 'access_token' 字面量，WebSocket 无法用 Header 鉴权，必须填真实 token
+          cluster: params.clusterOverride ?? this.config.volcVoiceCluster,
         },
         user: { uid: 'ai-video-studio' },
         audio: {
@@ -239,6 +288,8 @@ export class VolcengineSpeechClient {
           text: params.text,
           operation: 'submit',
         },
+        // V3 端点需在 body 指定 resource_id(浏览器 WS 不支持自定义头)
+        ...(params.useV3 ? { resource_id: RESOURCE_ID_BY_CAPABILITY.tts } : {}),
       });
       // 构造二进制报文：4 字节报头 + JSON payload
       // 报头：00010001 00010000 00010000 00000000
@@ -566,5 +617,77 @@ export class VolcengineSpeechClient {
       offset += arr.byteLength;
     }
     return merged;
+  }
+
+  // ==================== 豆包语音合成 2.0（Seed TTS V2）====================
+
+  /**
+   * 豆包语音合成 2.0 HTTP 接口（doubao-seed-tts-2.0 模型专属）。
+   *
+   * 与 V1 TTS 的差异：
+   *  - 端点：/api/v3/plan/tts（非 /api/v1/tts）
+   *  - Resource-Id：seed-tts-2.0（非 seed-icl-1.0）
+   *  - 官方说明：当前语音模型不支持通过 Auto 及控制台切换使用，必须显式指定 Resource-Id
+   *  - 支持 emotion 情感参数
+   *
+   * 端点参考（用户提供 + 官方文档 6561/1257584）：
+ *  - HTTP 接口：https://openspeech.bytedance.com/api/v3/plan/tts/unidirectional
+ *  - 流式输出：wss://openspeech.bytedance.com/api/v3/plan/tts/unidirectional/stream
+ *  - 双向流式：wss://openspeech.bytedance.com/api/v3/plan/tts/bidirection
+ *
+ * V1 端点（/api/v1/tts）不支持 doubao-seed-tts-2.0 模型音色（zh_female_*_bigtts 系列），
+ * 官方明确声明需使用 V3 接口，否则返回 404。
+ */
+  async synthesizeSeedTtsV2(params: {
+    text: string;
+    voiceType: string;
+    encoding?: string;
+    speedRatio?: number;
+    volumeRatio?: number;
+    pitchRatio?: number;
+    emotion?: string;
+  }): Promise<TtsSyncResult> {
+    this.ensureConfigured();
+    const reqid = this.generateReqid();
+    const body = {
+      app: {
+        appid: this.config.volcVoiceAppId,
+        token: this.config.volcVoiceAccessToken,
+        cluster: 'volcano_tts',  // Seed TTS 2.0 走标准音色集群
+      },
+      user: { uid: 'ai-video-studio' },
+      audio: {
+        voice_type: params.voiceType,
+        encoding: params.encoding ?? 'mp3',
+        speed_ratio: params.speedRatio ?? 1.0,
+        volume_ratio: params.volumeRatio ?? 1.0,
+        pitch_ratio: params.pitchRatio ?? 1.0,
+        ...(params.emotion ? { emotion: params.emotion } : {}),
+      },
+      request: {
+        reqid,
+        text: params.text,
+        text_type: 'plain',
+        operation: 'query',
+      },
+    };
+    try {
+      // P0 修复：V3 端点必须为 /api/v3/plan/tts/unidirectional（原 /api/v3/plan/tts 会导致 404）
+      const resp = await this.client.post('/api/v3/plan/tts/unidirectional', body, {
+        headers: { 'Resource-Id': RESOURCE_ID_BY_CAPABILITY.tts },
+      });
+      const code: number = resp.data?.code ?? -1;
+      if (code !== 3000) {
+        throw parseTtsError(code, resp.data?.message ?? 'Seed TTS V2 synthesis failed', 200);
+      }
+      return {
+        audioBase64: resp.data.data,
+        duration: resp.data?.addition?.duration,
+        reqid: resp.data?.reqid ?? reqid,
+      };
+    } catch (err) {
+      if (err instanceof VolcengineApiError) throw err;
+      throw parseTtsError(-1, (err as Error).message, extractHttpStatus(err));
+    }
   }
 }

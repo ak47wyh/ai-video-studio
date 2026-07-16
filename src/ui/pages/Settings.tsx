@@ -651,6 +651,13 @@ export const Settings: React.FC = () => {
                 onChange={v => handleChange('volcArkBaseUrl', v)}
                 placeholder={t('settings.volcArkBaseUrlPlaceholder')}
               />
+              <FormField
+                label={t('settings.volcArkImageModelLabel', { defaultValue: '图片生成模型 ID' })}
+                value={config.volcArkImageModel}
+                onChange={v => handleChange('volcArkImageModel', v)}
+                placeholder="doubao-seedream-4-5-251128"
+                hint={t('settings.volcArkImageModelHint', { defaultValue: '可选:doubao-seedream-4-5-251128(推荐旗舰) / doubao-seedream-3-0-t2i(文生图) / doubao-seededit-3-0-i2i(图生图)。留空则使用推荐模型。' })}
+              />
               <button
                 type="button"
                 onClick={handleVolcValidateOpenAi}
@@ -865,6 +872,28 @@ export const Settings: React.FC = () => {
                 <option value={3}>{t('settings.volcVoiceModelDitRestore', { defaultValue: 'DiT 还原版（还原口音/语速）' })}</option>
                 <option value={0}>{t('settings.volcVoiceModelMega', { defaultValue: 'MEGA 效果（早期，不推荐）' })}</option>
               </select>
+            </div>
+
+            {/* 豆包语音合成 2.0 启用开关（2025 新模型，不支持 Auto 切换，需用户手动开通） */}
+            <div className="settings-form-row" style={{ marginBottom: '0.75rem' }}>
+              <label style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                fontSize: '0.78rem',
+                color: 'var(--text-main)',
+                cursor: 'pointer',
+              }}>
+                <input
+                  type="checkbox"
+                  checked={config.volcSeedTtsEnabled}
+                  onChange={e => setConfig(prev => ({ ...prev, volcSeedTtsEnabled: e.target.checked }))}
+                />
+                {t('settings.volcSeedTtsEnabledLabel', { defaultValue: '启用豆包语音合成 2.0（实验性）' })}
+              </label>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                {t('settings.volcSeedTtsEnabledHint', { defaultValue: '需在火山引擎控制台开通 doubao-seed-tts-2.0 模型，不支持 Auto 切换。启用后音色与配音菜单将显示该模型选项。' })}
+              </div>
             </div>
           </PlatformCard>
         </div>

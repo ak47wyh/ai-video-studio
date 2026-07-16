@@ -27,6 +27,8 @@ export class TextGenerationService {
       resolveImageModel: () => 'image-01',
       resolveVideoModel: () => 'T2V-01-Director',
     };
+    // 注:resolveImageModel 的默认值 'image-01' 为 MiniMax 默认模型,
+    // 实际运行时由 PlatformModelRegistry.resolveImageModel() 从注册表读取真实 ID。
   }
 
   /**

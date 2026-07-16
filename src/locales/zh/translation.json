@@ -497,7 +497,9 @@
     "volcVoiceModelIcl2": "ICL 2.0(最新,2025.10)",
     "volcVoiceModelDitStandard": "DiT 标准版(不还原风格)",
     "volcVoiceModelDitRestore": "DiT 还原版(还原口音/语速)",
-    "volcVoiceModelMega": "MEGA 效果(早期,不推荐)"
+    "volcVoiceModelMega": "MEGA 效果(早期,不推荐)",
+    "volcSeedTtsEnabledLabel": "启用豆包语音合成 2.0(实验性)",
+    "volcSeedTtsEnabledHint": "需在火山引擎控制台开通 doubao-seed-tts-2.0 模型,不支持 Auto 切换。启用后音色与配音菜单将显示该模型选项。"
   },
   "models": {
     "title": "可用模型",
@@ -863,6 +865,18 @@
     "categoryScene": "场景描述",
     "categoryNarration": "旁白文本",
     "categoryOther": "其他"
+  },
+  "imageStyle": {
+    "default": "默认",
+    "photorealistic": "写实",
+    "anime": "动漫",
+    "oilPainting": "油画",
+    "watercolor": "水彩",
+    "sketch": "素描",
+    "3dRender": "3D 渲染",
+    "chinesePainting": "国画",
+    "cyberpunk": "赛博朋克",
+    "pixelArt": "像素艺术"
   },
   "voiceLab": {
     "rename": "重命名",

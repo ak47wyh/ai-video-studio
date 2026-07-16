@@ -81,10 +81,11 @@ export class PlatformModelRegistry implements IModelRegistry {
   resolveImageModel(): string {
     const platformId = this.configStore.getActivePlatform();
     const meta = PLATFORM_METADATA[platformId];
-    if (meta?.imageModel && meta.capabilities.includes('image')) {
-      return meta.imageModel;
+    if (meta?.defaultImageModel && meta.capabilities.includes('image')) {
+      return meta.defaultImageModel;
     }
-    return 'image-01'; // MiniMax 默认图片模型
+    // 回退到 deprecated imageModel 字段,最后回退到 MiniMax 默认
+    return meta?.imageModel || 'image-01';
   }
 
   resolveVideoModel(): string {

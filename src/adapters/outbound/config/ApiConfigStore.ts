@@ -43,21 +43,29 @@ const DEFAULT_CONFIG: ApiConfig = {
   volcArkOpenAiApiKey: '',
   volcArkAnthropicApiKey: '',
   // 开发环境走 Vite 代理（解决 CORS），生产环境直连
+  // P0 修复：移除多余的 /plan/ 段。OpenAI 与 Anthropic 协议均走 /api/v3 前缀，
+  // 通过 anthropic-version 头区分协议，而非路径段。原 /api/plan/v3 会导致 /audio/speech 404。
   volcArkBaseUrl: import.meta.env.DEV
     ? '/volcengine-ark'
-    : 'https://ark.cn-beijing.volces.com/api/plan/v3',
-  volcArkAnthropicBaseUrl: 'https://ark.cn-beijing.volces.com/api/plan',
+    : 'https://ark.cn-beijing.volces.com/api/v3',
+  volcArkAnthropicBaseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
   // Text 默认走 OpenAI 协议（用户可在配置中心切换为 Anthropic）
   volcArkTextProtocol: 'openai' as VolcArkProtocol,
   volcArkAnthropicModel: 'doubao-seed-2.0-pro',
   // Anthropic CORS 拦截时自动降级到 OpenAI 协议（默认开启，可由设置页关闭）
   volcArkAutoFallback: true,
+  // 火山方舟图片生成模型 ID(Seedream 5.0 Pro 为最新旗舰,2025-06 发布)
+  // 用户可在设置页切换为 5.0 Lite / 4.5 / 4.0 / 3.0 t2i / Seededit 3.0 i2i
+  volcArkImageModel: 'doubao-seedream-5-0-pro-260628',
 
   // 火山引擎语音技术默认值（独立于方舟 Ark，需单独开通语音技术服务）
   volcVoiceAppId: '',
   volcVoiceAccessToken: '',
   volcVoiceCluster: 'volcano_icl',  // 默认复刻字符版集群
   volcVoiceCloneModelType: 1,        // 默认 ICL 1.0 模型
+  // 豆包语音合成 2.0（2025 新发布，不支持 Auto 切换，需用户在控制台开通后手动启用）
+  volcSeedTtsModel: 'doubao-seed-tts-2.0',
+  volcSeedTtsEnabled: false,
 
   // 可灵 Kling 默认值
   klingAccessKey: '',
@@ -101,6 +109,9 @@ const PROXY_PATH_MIGRATIONS: Record<string, Partial<ApiConfig>> = {
   '/zhipu': { zhipuBaseUrl: DEFAULT_CONFIG.zhipuBaseUrl },
   '/vidu': { viduBaseUrl: DEFAULT_CONFIG.viduBaseUrl },
   '/volcengine-ark': { volcArkBaseUrl: DEFAULT_CONFIG.volcArkBaseUrl },
+  // P0 修复：迁移历史遗留的错误 Base URL（含多余 /plan/ 段，会导致 /audio/speech 404）
+  'https://ark.cn-beijing.volces.com/api/plan/v3': { volcArkBaseUrl: 'https://ark.cn-beijing.volces.com/api/v3' },
+  'https://ark.cn-beijing.volces.com/api/plan': { volcArkAnthropicBaseUrl: 'https://ark.cn-beijing.volces.com/api/v3' },
 };
 
 export const ApiConfigStore = {

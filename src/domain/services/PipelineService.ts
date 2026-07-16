@@ -460,7 +460,7 @@ export class PipelineService {
             const imgResult = await this.getImagePort().generateImage({
               prompt: imagePrompt,
               aspectRatio: '16:9',
-              model: 'image-01-live',
+              // 模型 ID 由 Adapter 从注册表/配置读取,此处不硬编码
             });
             if (imgResult.imageUrls?.[0] || imgResult.imageDataUri) {
               seg.firstFrameImage = imgResult.imageUrls?.[0] || imgResult.imageDataUri;

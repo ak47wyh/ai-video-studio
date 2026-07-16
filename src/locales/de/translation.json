@@ -338,6 +338,8 @@
     "volcVoiceModelDitStandard": "DiT Standard (keine Stilwiederherstellung)",
     "volcVoiceModelDitRestore": "DiT Wiederherstellung (Akzent/Tempo wiederherstellen)",
     "volcVoiceModelMega": "MEGA Effekt (früh, nicht empfohlen)",
+    "volcSeedTtsEnabledLabel": "Doubao Seed TTS 2.0 aktivieren (Experimentell)",
+    "volcSeedTtsEnabledHint": "Erfordert Aktivierung des Modells doubao-seed-tts-2.0 in der Volcengine-Konsole. Auto-Wechsel wird nicht unterstützt. Nach Aktivierung erscheint die Modellauswahl im Menü Stimme & Synchronisation.",
     "volcArkOpenAiApiKeyLabel": "API Key (OpenAI Protocol)",
     "volcArkAnthropicApiKeyLabel": "API Key (Anthropic Protocol)",
     "volcOpenAiReady": "Video/Image/Voice Ark TTS available",
@@ -634,6 +636,18 @@
     "tabGenerating": "Generierung",
     "tabPreview": "Vorschau",
     "previewHint": "Sie können das Video im Arbeitsbereich bearbeiten oder neu generieren."
+  },
+  "imageStyle": {
+    "default": "Standard",
+    "photorealistic": "Fotorealistisch",
+    "anime": "Anime",
+    "oilPainting": "Ölmalerei",
+    "watercolor": "Aquarell",
+    "sketch": "Skizze",
+    "3dRender": "3D-Rendering",
+    "chinesePainting": "Chinesische Malerei",
+    "cyberpunk": "Cyberpunk",
+    "pixelArt": "Pixel-Art"
   },
   "notFound": {
     "message": "Die gesuchte Seite existiert nicht",
