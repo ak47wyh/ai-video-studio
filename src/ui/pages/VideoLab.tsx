@@ -48,8 +48,10 @@ const PLATFORM_MODEL_CONFIG: Record<PlatformId, Record<string, ModelDurationConf
     'S2V-01': { durations: [6], resolutions6s: ['720P'], resolutions10s: [], supportsFastPretreatment: false, supportsCameraDirective: false },
   },
   volcengine: {
-    'doubao-seedance-2.0-pro': { durations: [6, 10], resolutions6s: ['720P', '1080P'], resolutions10s: ['720P'], supportsFastPretreatment: false, supportsCameraDirective: false },
-    'doubao-seedance-1.5-pro': { durations: [6, 10], resolutions6s: ['720P', '1080P'], resolutions10s: ['720P'], supportsFastPretreatment: false, supportsCameraDirective: false },
+    'doubao-seedance-2-0-260128': { durations: [6, 10], resolutions6s: ['720P', '1080P'], resolutions10s: ['720P'], supportsFastPretreatment: false, supportsCameraDirective: false },
+    'doubao-seedance-2-0-fast-260128': { durations: [6, 10], resolutions6s: ['720P'], resolutions10s: ['720P'], supportsFastPretreatment: false, supportsCameraDirective: false },
+    'doubao-seedance-2-0-mini-260615': { durations: [6, 10], resolutions6s: ['720P'], resolutions10s: ['720P'], supportsFastPretreatment: false, supportsCameraDirective: false },
+    'doubao-seedance-1-0-pro-250528': { durations: [6, 10], resolutions6s: ['720P', '1080P'], resolutions10s: ['720P'], supportsFastPretreatment: false, supportsCameraDirective: false },
   },
   kling: {
     'kling-v2.1': { durations: [6, 10], resolutions6s: ['720P', '1080P'], resolutions10s: ['720P'], supportsFastPretreatment: false, supportsCameraDirective: false },
@@ -86,10 +88,10 @@ const PLATFORM_MODE_MODELS: Record<PlatformId, Partial<Record<VideoGenerationMod
     s2v: ['S2V-01'],
   },
   volcengine: {
-    t2v: ['doubao-seedance-2.0-pro', 'doubao-seedance-1.5-pro'],
-    i2v: ['doubao-seedance-2.0-pro', 'doubao-seedance-1.5-pro'],
-    fl2v: ['doubao-seedance-2.0-pro', 'doubao-seedance-1.5-pro'],
-    s2v: ['doubao-seedance-2.0-pro', 'doubao-seedance-1.5-pro'],
+    t2v: ['doubao-seedance-2-0-260128', 'doubao-seedance-2-0-fast-260128', 'doubao-seedance-2-0-mini-260615', 'doubao-seedance-1-0-pro-250528'],
+    i2v: ['doubao-seedance-2-0-260128', 'doubao-seedance-2-0-fast-260128', 'doubao-seedance-2-0-mini-260615', 'doubao-seedance-1-0-pro-250528'],
+    fl2v: ['doubao-seedance-2-0-260128', 'doubao-seedance-1-0-pro-250528'],
+    s2v: ['doubao-seedance-2-0-260128', 'doubao-seedance-1-0-pro-250528'],
   },
   kling: {
     t2v: ['kling-v2.1', 'kling-v2-master', 'kling-v1.6'],

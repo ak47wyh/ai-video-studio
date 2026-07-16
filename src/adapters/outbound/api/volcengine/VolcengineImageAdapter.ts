@@ -67,7 +67,7 @@ export class VolcengineImageAdapter implements IImageGeneratorPort {
     // 直接透传原始 prompt，不做截断
     const prompt = context.prompt;
     return {
-      model: 'doubao-seedream-4-5-251128',
+      model: 'doubao-seedream-5-0-lite',
       prompt,
       ...(context.subjectReferenceUrl && { image: [context.subjectReferenceUrl] }),
       ...(context.width && context.height && { size: `${context.width}x${context.height}` }),

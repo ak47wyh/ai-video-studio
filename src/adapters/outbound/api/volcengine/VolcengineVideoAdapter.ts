@@ -192,7 +192,7 @@ export class VolcengineVideoAdapter implements IVideoGeneratorPort {
       }
     }
 
-    const model = context.model || 'doubao-seedance-2.0-pro';
+    const model = context.model || 'doubao-seedance-2-0-260128';
     const isSeedance2 = model.startsWith('doubao-seedance-2-0');
 
     // Seedance 1.0 系列不支持参考音频，自动忽略并告警
