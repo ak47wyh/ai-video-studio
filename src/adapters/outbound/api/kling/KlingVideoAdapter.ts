@@ -34,11 +34,8 @@ export class KlingVideoAdapter implements IVideoGeneratorPort {
   }
 
   async submitVideoTask(context: VideoPromptContext): Promise<string> {
-    // ── Mock 模式 ──
     if (!this.config.klingAccessKey || !this.config.klingSecretKey) {
-      console.warn('[KlingVideoAdapter] No AccessKey/SecretKey — running in mock mode.');
-      await new Promise(r => setTimeout(r, 1000));
-      return `mock-kling-task-${Date.now()}`;
+      throw new Error('请先在设置中配置可灵 Kling 的 AccessKey 和 SecretKey');
     }
 
     const mode = this.inferMode(context);
@@ -56,17 +53,8 @@ export class KlingVideoAdapter implements IVideoGeneratorPort {
   }
 
   async queryTaskStatus(taskId: string): Promise<VideoTaskResult> {
-    // ── Mock 模式 ──
-    if (!this.config.klingAccessKey || !this.config.klingSecretKey || taskId.startsWith('mock-kling-task-')) {
-      await new Promise(r => setTimeout(r, 800));
-      return Math.random() > 0.65
-        ? {
-            status: 'SUCCESS',
-            videoUrl: 'https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4',
-            fileId: 'mock-kling-file',
-            videoWidth: 1280, videoHeight: 720,
-          }
-        : { status: 'PROCESSING' };
+    if (!this.config.klingAccessKey || !this.config.klingSecretKey) {
+      throw new Error('请先在设置中配置可灵 Kling 的 AccessKey 和 SecretKey');
     }
 
     // 查询端点需与提交端点匹配；mock-task 之外的任务 id 优先用 text2video 查询

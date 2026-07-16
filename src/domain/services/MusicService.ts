@@ -191,28 +191,26 @@ export class MusicService {
     segment.bgmIsInstrumental = isInstrumental;
 
     // Phase 2-B：尝试下载音频并持久化到 OPFS
-    if (!audioUrl.startsWith('mock://')) {
-      try {
-        // P1-2：优先走 IHttpFetchPort（自动 NetworkError/TimeoutError 归一化）
-        const blob = this.httpFetch
-          ? await this.httpFetch.fetchBlob(audioUrl)
-          : await (async () => {
-              const res = await fetch(audioUrl);
-              if (!res.ok) throw new Error(`HTTP ${res.status}`);
-              return res.blob();
-            })();
-        const storagePath = `audio/bgm_${segmentId}.mp3`;
-        await this.getFileStorage().storeBlob(storagePath, blob);
-        segment.bgmStoragePath = storagePath;
-      } catch (e) {
-        const err = e instanceof Error ? e : new Error(String(e));
-        this.logger.warn(`Failed to cache BGM for segment ${segmentId}`, {
-          service: 'MusicService',
-          method: 'generateBGM',
-          segmentId,
-          error: err.message,
-        });
-      }
+    try {
+      // P1-2：优先走 IHttpFetchPort（自动 NetworkError/TimeoutError 归一化）
+      const blob = this.httpFetch
+        ? await this.httpFetch.fetchBlob(audioUrl)
+        : await (async () => {
+            const res = await fetch(audioUrl);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return res.blob();
+          })();
+      const storagePath = `audio/bgm_${segmentId}.mp3`;
+      await this.getFileStorage().storeBlob(storagePath, blob);
+      segment.bgmStoragePath = storagePath;
+    } catch (e) {
+      const err = e instanceof Error ? e : new Error(String(e));
+      this.logger.warn(`Failed to cache BGM for segment ${segmentId}`, {
+        service: 'MusicService',
+        method: 'generateBGM',
+        segmentId,
+        error: err.message,
+      });
     }
 
     await this.segmentRepo.save(segment);

@@ -18,6 +18,9 @@ import { LabPageLayout } from '../components/LabPageLayout';
 import { AsyncState } from '../components/AsyncState';
 import { UnsupportedCapabilityNotice } from '../components/UnsupportedCapabilityNotice';
 import { usePlatformCapabilities } from '../hooks/usePlatformCapabilities';
+import { usePlatform } from '../contexts/PlatformContext';
+import { ApiConfigStore } from '../../adapters/outbound/config/ApiConfigStore';
+import { isPlatformReady } from '../utils/platformReady';
 import { AudioPreviewPlayer } from '../components/AudioPreviewPlayer';
 import { AudioUploadField } from '../components/AudioUploadField';
 import { LyricsDisplay } from '../components/LyricsDisplay';
@@ -50,6 +53,8 @@ export const MusicLab: React.FC = () => {
   const { showToast } = useToast();
   const { currentSpaceId } = useSpace();
   const { hasCapability } = usePlatformCapabilities();
+  const { activePlatform } = usePlatform();
+  const platformReady = isPlatformReady(ApiConfigStore.load(), activePlatform);
 
   const [activeTab, setActiveTab] = useState<MusicLabTab>('compose');
 
@@ -434,7 +439,7 @@ export const MusicLab: React.FC = () => {
           <button
             className="btn btn-primary btn-generate"
             style={{ background: '#8b5cf6' }}
-            disabled={!composePrompt.trim() || (!isInstrumental && !composeLyrics.trim()) || isComposing}
+            disabled={!composePrompt.trim() || (!isInstrumental && !composeLyrics.trim()) || isComposing || !platformReady}
             onClick={handleCompose}
           >
             {isComposing ? <RefreshCw className="spin" size={20} /> : <Sparkles size={20} />}
@@ -540,7 +545,7 @@ export const MusicLab: React.FC = () => {
           <button
             className="btn btn-primary btn-generate"
             style={{ background: '#3b82f6' }}
-            disabled={(lyricsMode === 'write_full_song' && !lyricsPrompt.trim()) || (lyricsMode === 'edit' && !lyricsInput.trim()) || isGeneratingLyrics}
+            disabled={(lyricsMode === 'write_full_song' && !lyricsPrompt.trim()) || (lyricsMode === 'edit' && !lyricsInput.trim()) || isGeneratingLyrics || !platformReady}
             onClick={handleGenerateLyrics}
           >
             {isGeneratingLyrics ? <RefreshCw className="spin" size={20} /> : <FileText size={20} />}
@@ -603,7 +608,7 @@ export const MusicLab: React.FC = () => {
             <button
               className="btn btn-primary btn-sm"
               style={{ marginTop: '0.5rem', background: 'var(--lab-color-voice)' }}
-              disabled={!coverAudio || isPreprocessing}
+              disabled={!coverAudio || isPreprocessing || !platformReady}
               onClick={handlePreprocessCover}
             >
               {isPreprocessing ? <RefreshCw className="spin" size={18} /> : <Mic2 size={18} />}
@@ -679,7 +684,7 @@ export const MusicLab: React.FC = () => {
                 <button
                   className="btn btn-primary btn-generate"
                   style={{ background: 'var(--lab-color-music)' }}
-            disabled={!coverPrompt.trim() || !coverLyrics.trim() || isGeneratingCover}
+            disabled={!coverPrompt.trim() || !coverLyrics.trim() || isGeneratingCover || !platformReady}
                   onClick={handleGenerateCover}
                 >
                   {isGeneratingCover ? <RefreshCw className="spin" size={20} /> : <Mic2 size={20} />}

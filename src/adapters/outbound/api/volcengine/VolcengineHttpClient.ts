@@ -29,6 +29,7 @@ export class VolcengineHttpClient extends BaseHttpClient {
     const baseUrl = isAnthropic
       ? config.volcArkAnthropicBaseUrl
       : config.volcArkBaseUrl;
+
     // 双协议并存：按协议取对应的 Key 字段
     const apiKey = isAnthropic
       ? config.volcArkAnthropicApiKey

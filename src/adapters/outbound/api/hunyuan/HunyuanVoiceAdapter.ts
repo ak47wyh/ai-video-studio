@@ -41,10 +41,8 @@ export class HunyuanVoiceAdapter implements IVoicePort {
   }
 
   async synthesizeSpeechSync(context: T2ASyncContext): Promise<T2ASyncResult> {
-    // ── Mock 模式 ──
     if (!this.config.hunyuanSecretId || !this.config.hunyuanSecretKey) {
-      console.warn('[HunyuanVoiceAdapter] No SecretId/SecretKey — returning mock audio.');
-      return { audioUrl: 'mock://hunyuan-tts', audioLength: 3000, audioSize: 0, usageCharacters: 0 };
+      throw new Error('请先在设置中配置腾讯混元的 SecretId 和 SecretKey');
     }
 
     const payload: Record<string, unknown> = {

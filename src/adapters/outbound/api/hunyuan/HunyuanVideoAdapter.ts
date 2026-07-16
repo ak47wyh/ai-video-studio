@@ -29,11 +29,8 @@ export class HunyuanVideoAdapter implements IVideoGeneratorPort {
   }
 
   async submitVideoTask(context: VideoPromptContext): Promise<string> {
-    // ── Mock 模式 ──
     if (!this.config.hunyuanSecretId || !this.config.hunyuanSecretKey) {
-      console.warn('[HunyuanVideoAdapter] No SecretId/SecretKey — running in mock mode.');
-      await new Promise(r => setTimeout(r, 1000));
-      return `mock-hunyuan-job-${Date.now()}`;
+      throw new Error('请先在设置中配置腾讯混元的 SecretId 和 SecretKey');
     }
 
     const isI2v = !!context.firstFrameImage;
@@ -59,17 +56,8 @@ export class HunyuanVideoAdapter implements IVideoGeneratorPort {
   }
 
   async queryTaskStatus(taskId: string): Promise<VideoTaskResult> {
-    // ── Mock 模式 ──
-    if (!this.config.hunyuanSecretId || !this.config.hunyuanSecretKey || taskId.startsWith('mock-hunyuan-job-')) {
-      await new Promise(r => setTimeout(r, 800));
-      return Math.random() > 0.65
-        ? {
-            status: 'SUCCESS',
-            videoUrl: 'https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4',
-            fileId: 'mock-hunyuan-file',
-            videoWidth: 1280, videoHeight: 720,
-          }
-        : { status: 'PROCESSING' };
+    if (!this.config.hunyuanSecretId || !this.config.hunyuanSecretKey) {
+      throw new Error('请先在设置中配置腾讯混元的 SecretId 和 SecretKey');
     }
 
     const result = await this.http.call<HunyuanQueryResponse>('QueryHunyuanVideoJob', { JobId: taskId });

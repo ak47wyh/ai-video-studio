@@ -37,10 +37,8 @@ export class ZhipuVoiceAdapter implements IVoicePort {
   }
 
   async synthesizeSpeechSync(context: T2ASyncContext): Promise<T2ASyncResult> {
-    // ── Mock 模式 ──
     if (!this.config.zhipuApiKey) {
-      console.warn('[ZhipuVoiceAdapter] No API key — returning mock audio.');
-      return { audioUrl: 'mock://zhipu-tts', audioLength: 3000, audioSize: 0, usageCharacters: 0 };
+      throw new Error('请先在设置中配置智谱 AI 的 API Key');
     }
 
     const payload: Record<string, unknown> = {

@@ -8,6 +8,15 @@ export default defineConfig({
   // dev server 启动后自动打开浏览器到 base 路径
   server: {
     open: '/ai-video-studio/',
+    // 火山引擎视频/图片生成代理（CORS 不支持直连）
+    proxy: {
+      '/volcengine-ark': {
+        target: 'https://ark.cn-beijing.volces.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/volcengine-ark/, '/api/plan/v3'),
+        secure: true,
+      },
+    },
   },
   plugins: [
     react(),

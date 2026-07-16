@@ -47,11 +47,8 @@ export class VolcengineVideoAdapter implements IVideoGeneratorPort {
   }
 
   async submitVideoTask(context: VideoPromptContext): Promise<string> {
-    // ── Mock 模式：未配置 OpenAI API Key 时返回 mock taskId，便于开发期 UI 联调 ──
     if (!this.config.volcArkOpenAiApiKey.trim()) {
-      this.logger.warn('No volcArkOpenAiApiKey — running in mock mode', this.ctx({ method: 'submitVideoTask' }));
-      await new Promise(r => setTimeout(r, 800));
-      return `mock-volc-task-${Date.now()}`;
+      throw new Error('请先在设置中配置火山引擎的 API Key');
     }
 
     const payload = this.buildPayload(context);
@@ -86,22 +83,8 @@ export class VolcengineVideoAdapter implements IVideoGeneratorPort {
   }
 
   async queryTaskStatus(taskId: string): Promise<VideoTaskResult> {
-    // ── Mock 模式 ──
-    if (!this.config.volcArkOpenAiApiKey.trim() || taskId.startsWith('mock-volc-task-')) {
-      await new Promise(r => setTimeout(r, 800));
-      const success = Math.random() > 0.65;
-      const result: VideoTaskResult = success
-        ? {
-            status: 'SUCCESS',
-            videoUrl: 'https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4',
-          }
-        : { status: 'PROCESSING' };
-      this.logger.info('queryTaskStatus (mock) 出参', this.ctx({
-        method: 'queryTaskStatus',
-        taskId,
-        status: result.status,
-      }));
-      return result;
+    if (!this.config.volcArkOpenAiApiKey.trim()) {
+      throw new Error('请先在设置中配置火山引擎的 API Key');
     }
 
     const result = await this.http.get<VolcengineTaskResponse>(`/contents/generations/tasks/${taskId}`);
@@ -209,7 +192,7 @@ export class VolcengineVideoAdapter implements IVideoGeneratorPort {
       }
     }
 
-    const model = context.model || 'doubao-seedance-1-0-pro-250528';
+    const model = context.model || 'doubao-seedance-2.0-pro';
     const isSeedance2 = model.startsWith('doubao-seedance-2-0');
 
     // Seedance 1.0 系列不支持参考音频，自动忽略并告警

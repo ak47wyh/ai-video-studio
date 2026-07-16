@@ -17,6 +17,8 @@ import { usePlatformCapabilities } from '../hooks/usePlatformCapabilities';
 import { useVoiceCapabilities } from '../hooks/useVoiceCapabilities';
 import { useAsyncTaskTracker, type AsyncTaskBase } from '../hooks/useAsyncTaskTracker';
 import { usePlatform } from '../contexts/PlatformContext';
+import { ApiConfigStore } from '../../adapters/outbound/config/ApiConfigStore';
+import { isPlatformReady } from '../utils/platformReady';
 import { TextAreaWithCounter } from '../components/TextAreaWithCounter';
 import { InputWithCounter } from '../components/InputWithCounter';
 import { SegmentPicker, type SegmentBindField } from '../components/SegmentPicker';
@@ -46,6 +48,7 @@ export const VoiceLab: React.FC = () => {
   const { hasCapability } = usePlatformCapabilities();
   const { capabilities: voiceCaps, volcVoiceConfigured } = useVoiceCapabilities();
   const activePlatform = usePlatform().activePlatform;
+  const platformReady = isPlatformReady(ApiConfigStore.load(), activePlatform);
 
   const [activeTab, setActiveTab] = useState<VoiceLabTab>('tts');
 
@@ -690,7 +693,7 @@ export const VoiceLab: React.FC = () => {
 
           <button
             className="btn btn-primary btn-generate"
-            disabled={!ttsText.trim() || !ttsVoiceId.trim() || isGeneratingTTS}
+            disabled={!ttsText.trim() || !ttsVoiceId.trim() || isGeneratingTTS || !platformReady}
             onClick={handleGenerateTTS}
           >
             {isGeneratingTTS ? <RefreshCw className="spin" size={20} /> : <Volume2 size={20} />}
@@ -788,7 +791,7 @@ export const VoiceLab: React.FC = () => {
           <button
             className="btn btn-primary btn-generate"
             style={{ background: 'var(--lab-color-voice)' }}
-            disabled={!cloneFile || !cloneName.trim() || isCloning}
+            disabled={!cloneFile || !cloneName.trim() || isCloning || !platformReady}
             onClick={handleCloneVoice}
           >
             {isCloning ? <RefreshCw className="spin" size={20} /> : <Save size={20} />}
@@ -868,7 +871,7 @@ export const VoiceLab: React.FC = () => {
           <button
             className="btn btn-primary btn-generate"
             style={{ background: 'var(--lab-color-image)' }}
-            disabled={!designPrompt.trim() || !designPreviewText.trim() || isDesigning}
+            disabled={!designPrompt.trim() || !designPreviewText.trim() || isDesigning || !platformReady}
             onClick={handleDesignVoice}
           >
             {isDesigning ? <RefreshCw className="spin" size={20} /> : <Palette size={20} />}
@@ -935,7 +938,7 @@ export const VoiceLab: React.FC = () => {
           <button
             className="btn btn-primary btn-generate"
             style={{ background: 'var(--color-warning)' }}
-            disabled={!asyncText.trim() || isCreatingAsyncTask}
+            disabled={!asyncText.trim() || isCreatingAsyncTask || !platformReady}
             onClick={handleCreateAsyncTask}
           >
             {isCreatingAsyncTask ? <RefreshCw className="spin" size={20} /> : <FileText size={20} />}

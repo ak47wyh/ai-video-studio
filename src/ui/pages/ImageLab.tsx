@@ -14,6 +14,9 @@ import { LabPageLayout } from '../components/LabPageLayout';
 import { AsyncState } from '../components/AsyncState';
 import { UnsupportedCapabilityNotice } from '../components/UnsupportedCapabilityNotice';
 import { usePlatformCapabilities } from '../hooks/usePlatformCapabilities';
+import { usePlatform } from '../contexts/PlatformContext';
+import { ApiConfigStore } from '../../adapters/outbound/config/ApiConfigStore';
+import { isPlatformReady } from '../utils/platformReady';
 import { TextAreaWithCounter } from '../components/TextAreaWithCounter';
 import { SavedRecordsPanel } from '../components/SavedRecordsPanel';
 import { SegmentPicker, type SegmentBindField } from '../components/SegmentPicker';
@@ -47,6 +50,8 @@ export const ImageLab: React.FC = () => {
   const { showToast } = useToast();
   const { currentSpaceId } = useSpace();
   const { hasCapability } = usePlatformCapabilities();
+  const { activePlatform } = usePlatform();
+  const platformReady = isPlatformReady(ApiConfigStore.load(), activePlatform);
 
   const [activeTab, setActiveTab] = useState<ImageLabTab>('t2i');
 
@@ -400,7 +405,7 @@ export const ImageLab: React.FC = () => {
 
           <button
             className="btn btn-primary btn-generate"
-            disabled={!t2iPrompt.trim() || isGenerating}
+            disabled={!t2iPrompt.trim() || isGenerating || !platformReady}
             onClick={() => handleGenerate(t2iPrompt, false)}
           >
             {isGenerating ? <RefreshCw className="spin" size={20} /> : <Sparkles size={20} />}
@@ -477,7 +482,7 @@ export const ImageLab: React.FC = () => {
           <button
             className="btn btn-primary btn-generate"
             style={{ background: 'var(--lab-color-image)' }}
-            disabled={!i2iPrompt.trim() || !referenceImage || isGenerating}
+            disabled={!i2iPrompt.trim() || !referenceImage || isGenerating || !platformReady}
             onClick={() => handleGenerate(i2iPrompt, true)}
           >
             {isGenerating ? <RefreshCw className="spin" size={20} /> : <ImagePlus size={20} />}

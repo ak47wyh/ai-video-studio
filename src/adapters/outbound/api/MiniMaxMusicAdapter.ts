@@ -29,13 +29,7 @@ export class MiniMaxMusicAdapter implements IMusicPort {
   async generateMusic(context: MusicGenerationContext): Promise<MusicGenerationResult> {
     const config = ApiConfigStore.load();
     if (!config.minimaxApiKey) {
-      console.warn('[MiniMaxMusicAdapter] No API Key configured — returning mock result');
-      return {
-        audioUrl: 'mock://music-placeholder',
-        duration: 30000,
-        sampleRate: 44100,
-        bitrate: 256000,
-      };
+      throw new Error('请先在设置中配置 MiniMax 的 API Key');
     }
 
     const baseUrl = config.minimaxBaseUrl.replace(/\/+$/, '');

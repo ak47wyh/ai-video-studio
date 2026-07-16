@@ -38,10 +38,8 @@ export class WanVoiceAdapter implements IVoicePort {
   }
 
   async synthesizeSpeechSync(context: T2ASyncContext): Promise<T2ASyncResult> {
-    // ── Mock 模式 ──
     if (!this.config.wanApiKey) {
-      console.warn('[WanVoiceAdapter] No API key — returning mock audio.');
-      return { audioUrl: 'mock://wan-tts', audioLength: 3000, audioSize: 0, usageCharacters: 0 };
+      throw new Error('请先在设置中配置通义万相的 API Key');
     }
 
     const payload = {

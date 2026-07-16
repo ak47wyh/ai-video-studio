@@ -75,12 +75,10 @@ export const PLATFORM_METADATA: Record<PlatformId, PlatformMeta> = {
     // 双协议并存：Video/Image 永远走 OpenAI 协议，Text 根据 volcArkProtocol 选择
     capabilities: ['video', 'videoFl2v', 'videoS2v', 'image', 'text', 'voice'],
     videoModels: [
-      'doubao-seedance-1-0-pro-250528',
-      'doubao-seedance-1-0-pro-fast-251015',
-      'doubao-seedance-1-0-lite-t2v-250428',
-      'doubao-seedance-1-0-lite-i2v-250428',
+      'doubao-seedance-2.0-pro',
+      'doubao-seedance-1.5-pro',
     ],
-    imageModel: 'doubao-seedream-4-5-251128',
+    imageModel: 'doubao-seedream-5.0-lite',
     textModel: 'doubao-pro-32k',
   },
   kling: {

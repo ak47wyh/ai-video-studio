@@ -42,7 +42,10 @@ const DEFAULT_CONFIG: ApiConfig = {
   // 火山方舟默认值 —— 双协议并存：OpenAI 与 Anthropic 两套 Key 独立配置
   volcArkOpenAiApiKey: '',
   volcArkAnthropicApiKey: '',
-  volcArkBaseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
+  // 开发环境走 Vite 代理（解决 CORS），生产环境直连
+  volcArkBaseUrl: import.meta.env.DEV
+    ? '/volcengine-ark'
+    : 'https://ark.cn-beijing.volces.com/api/plan/v3',
   volcArkAnthropicBaseUrl: 'https://ark.cn-beijing.volces.com/api/plan',
   // Text 默认走 OpenAI 协议（用户可在配置中心切换为 Anthropic）
   volcArkTextProtocol: 'openai' as VolcArkProtocol,
@@ -183,6 +186,16 @@ export const ApiConfigStore = {
       // 删除旧字段（运行时清理，接口层已不声明）
       delete legacy.volcArkApiKey;
       delete legacy.volcArkProtocol;
+    }
+
+    // 迁移旧的 Base URL 到新的 /api/plan/v3 格式
+    if (config.volcArkBaseUrl === 'https://ark.cn-beijing.volces.com/api/v3') {
+      config.volcArkBaseUrl = 'https://ark.cn-beijing.volces.com/api/plan/v3';
+    }
+
+    // 开发环境：迁移直连 URL 到代理路径（解决 CORS）
+    if (import.meta.env.DEV && config.volcArkBaseUrl === 'https://ark.cn-beijing.volces.com/api/plan/v3') {
+      config.volcArkBaseUrl = '/volcengine-ark';
     }
 
     return config;

@@ -165,10 +165,6 @@ export class MusicLabService {
       return this.hexToAudioBlob(result.audioHex);
     }
     if (result.audioUrl) {
-      // Mock 模式：构造占位 Blob
-      if (result.audioUrl.startsWith('mock://')) {
-        return new Blob([new Uint8Array(1024)], { type: 'audio/mpeg' });
-      }
       // P1-2：优先走 IHttpFetchPort（自动错误归一化）
       if (this.httpFetch) return this.httpFetch.fetchBlob(result.audioUrl);
       const res = await fetch(result.audioUrl);

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { Film, Image, Layers, User, FileText, RefreshCw, ChevronDown, ChevronUp, AlertCircle, SplitSquareHorizontal } from 'lucide-react';
 import { videoLabService } from '../../dependencies';
 import type { VideoModel, VideoResolution, VideoGenerationMode, VideoAgentContext } from '../../domain/ports/OutboundPorts';
@@ -14,35 +14,110 @@ import { LabPageLayout } from '../components/LabPageLayout';
 import { AsyncState } from '../components/AsyncState';
 import { UnsupportedCapabilityNotice } from '../components/UnsupportedCapabilityNotice';
 import { usePlatformCapabilities } from '../hooks/usePlatformCapabilities';
+import { usePlatform } from '../contexts/PlatformContext';
+import { ApiConfigStore } from '../../adapters/outbound/config/ApiConfigStore';
+import { isPlatformReady } from '../utils/platformReady';
 import { TextAreaWithCounter } from '../components/TextAreaWithCounter';
 import { InputWithCounter } from '../components/InputWithCounter';
 import { SegmentPicker, type SegmentBindField } from '../components/SegmentPicker';
 import { TEXT_LIMITS } from '../../domain/constants/textLimits';
 import { validateTextLimit } from '../utils/validateTextLimit';
+import type { PlatformId } from '../../domain/entities/platform';
 
 type VideoLabTab = 't2v' | 'i2v' | 'fl2v' | 's2v' | 'agent' | 'tasks';
 
 // ==================== 模型/时长/分辨率联动配置 ====================
-const MODEL_CONFIG: Record<string, {
+interface ModelDurationConfig {
   durations: number[];
   resolutions6s: VideoResolution[];
   resolutions10s: VideoResolution[];
   supportsFastPretreatment: boolean;
   supportsCameraDirective: boolean;
-}> = {
-  'MiniMax-Hailuo-2.3': { durations: [6, 10], resolutions6s: ['768P', '1080P'], resolutions10s: ['768P'], supportsFastPretreatment: true, supportsCameraDirective: true },
-  'MiniMax-Hailuo-2.3-Fast': { durations: [6, 10], resolutions6s: ['768P', '1080P'], resolutions10s: ['768P'], supportsFastPretreatment: true, supportsCameraDirective: true },
-  'MiniMax-Hailuo-02': { durations: [6, 10], resolutions6s: ['512P', '768P', '1080P'], resolutions10s: ['512P', '768P'], supportsFastPretreatment: true, supportsCameraDirective: true },
-  'T2V-01-Director': { durations: [6], resolutions6s: ['720P'], resolutions10s: [], supportsFastPretreatment: false, supportsCameraDirective: true },
-  'T2V-01': { durations: [6], resolutions6s: ['720P'], resolutions10s: [], supportsFastPretreatment: false, supportsCameraDirective: false },
-  'I2V-01-Director': { durations: [6], resolutions6s: ['720P'], resolutions10s: [], supportsFastPretreatment: false, supportsCameraDirective: true },
-  'I2V-01-live': { durations: [6], resolutions6s: ['720P'], resolutions10s: [], supportsFastPretreatment: false, supportsCameraDirective: false },
-  'I2V-01': { durations: [6], resolutions6s: ['720P'], resolutions10s: [], supportsFastPretreatment: false, supportsCameraDirective: false },
-  'S2V-01': { durations: [6], resolutions6s: ['720P'], resolutions10s: [], supportsFastPretreatment: false, supportsCameraDirective: false },
+}
+
+const PLATFORM_MODEL_CONFIG: Record<PlatformId, Record<string, ModelDurationConfig>> = {
+  minimax: {
+    'MiniMax-Hailuo-2.3': { durations: [6, 10], resolutions6s: ['768P', '1080P'], resolutions10s: ['768P'], supportsFastPretreatment: true, supportsCameraDirective: true },
+    'MiniMax-Hailuo-2.3-Fast': { durations: [6, 10], resolutions6s: ['768P', '1080P'], resolutions10s: ['768P'], supportsFastPretreatment: true, supportsCameraDirective: true },
+    'MiniMax-Hailuo-02': { durations: [6, 10], resolutions6s: ['512P', '768P', '1080P'], resolutions10s: ['512P', '768P'], supportsFastPretreatment: true, supportsCameraDirective: true },
+    'T2V-01-Director': { durations: [6], resolutions6s: ['720P'], resolutions10s: [], supportsFastPretreatment: false, supportsCameraDirective: true },
+    'T2V-01': { durations: [6], resolutions6s: ['720P'], resolutions10s: [], supportsFastPretreatment: false, supportsCameraDirective: false },
+    'I2V-01-Director': { durations: [6], resolutions6s: ['720P'], resolutions10s: [], supportsFastPretreatment: false, supportsCameraDirective: true },
+    'I2V-01-live': { durations: [6], resolutions6s: ['720P'], resolutions10s: [], supportsFastPretreatment: false, supportsCameraDirective: false },
+    'I2V-01': { durations: [6], resolutions6s: ['720P'], resolutions10s: [], supportsFastPretreatment: false, supportsCameraDirective: false },
+    'S2V-01': { durations: [6], resolutions6s: ['720P'], resolutions10s: [], supportsFastPretreatment: false, supportsCameraDirective: false },
+  },
+  volcengine: {
+    'doubao-seedance-2.0-pro': { durations: [6, 10], resolutions6s: ['720P', '1080P'], resolutions10s: ['720P'], supportsFastPretreatment: false, supportsCameraDirective: false },
+    'doubao-seedance-1.5-pro': { durations: [6, 10], resolutions6s: ['720P', '1080P'], resolutions10s: ['720P'], supportsFastPretreatment: false, supportsCameraDirective: false },
+  },
+  kling: {
+    'kling-v2.1': { durations: [6, 10], resolutions6s: ['720P', '1080P'], resolutions10s: ['720P'], supportsFastPretreatment: false, supportsCameraDirective: false },
+    'kling-v2-master': { durations: [6, 10], resolutions6s: ['720P', '1080P'], resolutions10s: ['720P'], supportsFastPretreatment: false, supportsCameraDirective: false },
+    'kling-v1.6': { durations: [6, 10], resolutions6s: ['720P'], resolutions10s: ['720P'], supportsFastPretreatment: false, supportsCameraDirective: false },
+  },
+  wan: {
+    'wanx2.1-t2v-turbo': { durations: [6, 10], resolutions6s: ['720P'], resolutions10s: ['720P'], supportsFastPretreatment: false, supportsCameraDirective: false },
+    'wanx2.1-t2v-plus': { durations: [6, 10], resolutions6s: ['720P', '1080P'], resolutions10s: ['720P'], supportsFastPretreatment: false, supportsCameraDirective: false },
+    'wanx2.1-i2v-turbo': { durations: [6, 10], resolutions6s: ['720P'], resolutions10s: ['720P'], supportsFastPretreatment: false, supportsCameraDirective: false },
+    'wanx2.1-i2v-plus': { durations: [6, 10], resolutions6s: ['720P', '1080P'], resolutions10s: ['720P'], supportsFastPretreatment: false, supportsCameraDirective: false },
+  },
+  hunyuan: {
+    'hunyuan-video': { durations: [6, 10], resolutions6s: ['720P'], resolutions10s: ['720P'], supportsFastPretreatment: false, supportsCameraDirective: false },
+    'hunyuan-video-i2v': { durations: [6, 10], resolutions6s: ['720P'], resolutions10s: ['720P'], supportsFastPretreatment: false, supportsCameraDirective: false },
+  },
+  zhipu: {
+    'cogvideox-2': { durations: [6], resolutions6s: ['720P'], resolutions10s: [], supportsFastPretreatment: false, supportsCameraDirective: false },
+    'cogvideox-flash': { durations: [6], resolutions6s: ['720P'], resolutions10s: [], supportsFastPretreatment: false, supportsCameraDirective: false },
+  },
+  vidu: {
+    'viduq1': { durations: [6, 8, 10], resolutions6s: ['720P', '1080P'], resolutions10s: ['720P'], supportsFastPretreatment: false, supportsCameraDirective: false },
+    'vidu-1': { durations: [6, 8, 10], resolutions6s: ['720P', '1080P'], resolutions10s: ['720P'], supportsFastPretreatment: false, supportsCameraDirective: false },
+    'vidu-2': { durations: [6, 8, 10], resolutions6s: ['720P', '1080P'], resolutions10s: ['720P'], supportsFastPretreatment: false, supportsCameraDirective: false },
+  },
 };
 
-const T2V_MODELS: VideoModel[] = ['MiniMax-Hailuo-2.3', 'MiniMax-Hailuo-02', 'T2V-01-Director', 'T2V-01'];
-const I2V_MODELS: VideoModel[] = ['MiniMax-Hailuo-2.3', 'MiniMax-Hailuo-2.3-Fast', 'MiniMax-Hailuo-02', 'I2V-01-Director', 'I2V-01-live', 'I2V-01'];
+// 平台 -> 模式 -> 可用模型列表
+const PLATFORM_MODE_MODELS: Record<PlatformId, Partial<Record<VideoGenerationMode, string[]>>> = {
+  minimax: {
+    t2v: ['MiniMax-Hailuo-2.3', 'MiniMax-Hailuo-02', 'T2V-01-Director', 'T2V-01'],
+    i2v: ['MiniMax-Hailuo-2.3', 'MiniMax-Hailuo-2.3-Fast', 'MiniMax-Hailuo-02', 'I2V-01-Director', 'I2V-01-live', 'I2V-01'],
+    fl2v: ['MiniMax-Hailuo-02'],
+    s2v: ['S2V-01'],
+  },
+  volcengine: {
+    t2v: ['doubao-seedance-2.0-pro', 'doubao-seedance-1.5-pro'],
+    i2v: ['doubao-seedance-2.0-pro', 'doubao-seedance-1.5-pro'],
+    fl2v: ['doubao-seedance-2.0-pro', 'doubao-seedance-1.5-pro'],
+    s2v: ['doubao-seedance-2.0-pro', 'doubao-seedance-1.5-pro'],
+  },
+  kling: {
+    t2v: ['kling-v2.1', 'kling-v2-master', 'kling-v1.6'],
+    i2v: ['kling-v2.1', 'kling-v2-master', 'kling-v1.6'],
+    s2v: ['kling-v2.1', 'kling-v2-master'],
+  },
+  wan: {
+    t2v: ['wanx2.1-t2v-turbo', 'wanx2.1-t2v-plus'],
+    i2v: ['wanx2.1-i2v-turbo', 'wanx2.1-i2v-plus'],
+    fl2v: ['wanx2.1-t2v-plus'],
+    s2v: ['wanx2.1-t2v-plus'],
+  },
+  hunyuan: {
+    t2v: ['hunyuan-video'],
+    i2v: ['hunyuan-video-i2v'],
+  },
+  zhipu: {
+    t2v: ['cogvideox-2', 'cogvideox-flash'],
+    i2v: ['cogvideox-2'],
+    s2v: ['cogvideox-2'],
+  },
+  vidu: {
+    t2v: ['viduq1', 'vidu-1', 'vidu-2'],
+    i2v: ['viduq1', 'vidu-1', 'vidu-2'],
+    fl2v: ['viduq1', 'vidu-2'],
+    s2v: ['viduq1', 'vidu-2'],
+  },
+};
 
 const VIDEO_AGENT_TEMPLATES = [
   { id: '393769180141805569', name: '人物动态', description: '上传人物照片，生成动态视频' },
@@ -52,6 +127,7 @@ const POLLING_TIMEOUT_MS = 5 * 60 * 1000; // 5 分钟轮询超时
 
 // ==================== 共享子组件: VideoModelConfig ====================
 interface VideoModelConfigProps {
+  activePlatform: PlatformId;
   models: VideoModel[];
   model: VideoModel;
   onModelChange: (m: VideoModel) => void;
@@ -70,18 +146,18 @@ interface VideoModelConfigProps {
 }
 
 const VideoModelConfig: React.FC<VideoModelConfigProps> = ({
-  models, model, onModelChange, duration, onDurationChange, resolution, onResolutionChange,
+  activePlatform, models, model, onModelChange, duration, onDurationChange, resolution, onResolutionChange,
   promptOptimizer, onPromptOptimizerChange, fastPretreatment, onFastPretreatmentChange,
   watermark, onWatermarkChange, showDuration = true, showAdvanced = true,
 }) => {
   const [expanded, setExpanded] = useState(false);
-  const cfg = MODEL_CONFIG[model];
+  const cfg = PLATFORM_MODEL_CONFIG[activePlatform]?.[model];
   const availableDurations = cfg?.durations || [6];
   const availableResolutions = duration === 10 ? (cfg?.resolutions10s || []) : (cfg?.resolutions6s || ['720P']);
 
   const handleModelChange = (m: VideoModel) => {
     onModelChange(m);
-    const newCfg = MODEL_CONFIG[m];
+    const newCfg = PLATFORM_MODEL_CONFIG[activePlatform]?.[m];
     if (newCfg) {
       const resList = duration === 10 ? newCfg.resolutions10s : newCfg.resolutions6s;
       if (!resList.includes(resolution) && resList.length > 0) onResolutionChange(resList[0]);
@@ -154,6 +230,33 @@ const VideoModelConfig: React.FC<VideoModelConfigProps> = ({
 export const VideoLab: React.FC = () => {
   const { showToast } = useToast();
   const { hasCapability: hasCap } = usePlatformCapabilities();
+  const { activePlatform } = usePlatform();
+  const platformReady = isPlatformReady(ApiConfigStore.load(), activePlatform);
+
+  // 动态模型列表：基于当前激活平台
+  const currentT2vModels = useMemo(() => {
+    return (PLATFORM_MODE_MODELS[activePlatform]?.t2v ?? []) as VideoModel[];
+  }, [activePlatform]);
+
+  const currentI2vModels = useMemo(() => {
+    return (PLATFORM_MODE_MODELS[activePlatform]?.i2v ?? []) as VideoModel[];
+  }, [activePlatform]);
+
+  const currentFl2vModels = useMemo(() => {
+    return (PLATFORM_MODE_MODELS[activePlatform]?.fl2v ?? []) as VideoModel[];
+  }, [activePlatform]);
+
+  const currentS2vModels = useMemo(() => {
+    return (PLATFORM_MODE_MODELS[activePlatform]?.s2v ?? []) as VideoModel[];
+  }, [activePlatform]);
+
+  // 平台切换时重置模型选择为该平台的默认模型
+  useEffect(() => {
+    const defaultT2v = PLATFORM_MODE_MODELS[activePlatform]?.t2v?.[0];
+    const defaultI2v = PLATFORM_MODE_MODELS[activePlatform]?.i2v?.[0];
+    if (defaultT2v) setT2vModel(defaultT2v as VideoModel);
+    if (defaultI2v) setI2vModel(defaultI2v as VideoModel);
+  }, [activePlatform]);
 
   const [activeTab, setActiveTab] = useState<VideoLabTab>('t2v');
 
@@ -334,13 +437,14 @@ export const VideoLab: React.FC = () => {
     if (!validateTextLimit(fl2vPrompt, TEXT_LIMITS.VIDEO_PROMPT_MAX, '视频描述', showToast)) return;
     setIsSubmittingFL2V(true);
     try {
+      const fl2vModel = currentFl2vModels[0] ?? 'MiniMax-Hailuo-02';
       const taskId = await videoLabService.submitTask({
-        mode: 'fl2v', model: 'MiniMax-Hailuo-02', prompt: fl2vPrompt,
+        mode: 'fl2v', model: fl2vModel, prompt: fl2vPrompt,
         firstFrameImage: fl2vFirstFrame, lastFrameImage: fl2vLastFrame,
         promptOptimizer: fl2vPromptOptimizer, duration: fl2vDuration,
         resolution: fl2vResolution, aigcWatermark: fl2vWatermark,
       });
-      addTaskAndPoll(taskId, 'fl2v', fl2vPrompt || '首尾帧视频', 'MiniMax-Hailuo-02', fl2vDuration, fl2vResolution);
+      addTaskAndPoll(taskId, 'fl2v', fl2vPrompt || '首尾帧视频', fl2vModel, fl2vDuration, fl2vResolution);
       showToast('success', '首尾帧视频任务已提交');
     } catch (e) {
       showToast('error', getErrorMessage(e, '任务提交失败'));
@@ -354,12 +458,13 @@ export const VideoLab: React.FC = () => {
     if (!validateTextLimit(s2vPrompt, TEXT_LIMITS.VIDEO_PROMPT_MAX, '视频描述', showToast)) return;
     setIsSubmittingS2V(true);
     try {
+      const s2vModel = currentS2vModels[0] ?? 'S2V-01';
       const taskId = await videoLabService.submitTask({
-        mode: 's2v', model: 'S2V-01', prompt: s2vPrompt,
+        mode: 's2v', model: s2vModel, prompt: s2vPrompt,
         subjectReference: [{ type: 'character', image: [s2vSubjectImage] }],
         promptOptimizer: s2vPromptOptimizer, aigcWatermark: s2vWatermark,
       });
-      addTaskAndPoll(taskId, 's2v', s2vPrompt, 'S2V-01');
+      addTaskAndPoll(taskId, 's2v', s2vPrompt, s2vModel);
       showToast('success', '主体参考视频任务已提交');
     } catch (e) {
       showToast('error', getErrorMessage(e, '任务提交失败'));
@@ -457,13 +562,14 @@ export const VideoLab: React.FC = () => {
               placeholder="描述你想要生成的视频内容，支持 [运镜指令] 语法，例如：一个人拿起一本书 [推进], 然后阅读 [固定]"
               maxLength={TEXT_LIMITS.VIDEO_PROMPT_MAX}
             />
-            {MODEL_CONFIG[t2vModel]?.supportsCameraDirective && (
+            {PLATFORM_MODEL_CONFIG[activePlatform]?.[t2vModel]?.supportsCameraDirective && (
               <CameraDirectivePanel onInsert={d => insertDirective(setT2vPrompt, d)} style={{ marginTop: '0.5rem' }} />
             )}
           </div>
 
           <VideoModelConfig
-            models={T2V_MODELS} model={t2vModel} onModelChange={setT2vModel}
+            activePlatform={activePlatform}
+            models={currentT2vModels} model={t2vModel} onModelChange={setT2vModel}
             duration={t2vDuration} onDurationChange={setT2vDuration}
             resolution={t2vResolution} onResolutionChange={setT2vResolution}
             promptOptimizer={t2vPromptOptimizer} onPromptOptimizerChange={setT2vPromptOptimizer}
@@ -473,7 +579,7 @@ export const VideoLab: React.FC = () => {
 
           <button
             className="btn btn-primary btn-generate"
-            disabled={!t2vPrompt.trim() || isSubmittingT2V}
+            disabled={!t2vPrompt.trim() || isSubmittingT2V || !platformReady}
             onClick={handleT2VSubmit}
           >
             {isSubmittingT2V ? <RefreshCw className="spin" size={20} /> : <Film size={20} />}
@@ -503,13 +609,14 @@ export const VideoLab: React.FC = () => {
               placeholder="描述视频内容，支持 [运镜指令]"
               maxLength={TEXT_LIMITS.VIDEO_PROMPT_MAX}
             />
-            {MODEL_CONFIG[i2vModel]?.supportsCameraDirective && (
+            {PLATFORM_MODEL_CONFIG[activePlatform]?.[i2vModel]?.supportsCameraDirective && (
               <CameraDirectivePanel onInsert={d => insertDirective(setI2vPrompt, d)} style={{ marginTop: '0.5rem' }} />
             )}
           </div>
 
           <VideoModelConfig
-            models={I2V_MODELS} model={i2vModel} onModelChange={setI2vModel}
+            activePlatform={activePlatform}
+            models={currentI2vModels} model={i2vModel} onModelChange={setI2vModel}
             duration={i2vDuration} onDurationChange={setI2vDuration}
             resolution={i2vResolution} onResolutionChange={setI2vResolution}
             promptOptimizer={i2vPromptOptimizer} onPromptOptimizerChange={setI2vPromptOptimizer}
@@ -520,7 +627,7 @@ export const VideoLab: React.FC = () => {
           <button
             className="btn btn-primary btn-generate"
             style={{ background: 'var(--lab-color-image)' }}
-            disabled={!i2vFirstFrame || isSubmittingI2V}
+            disabled={!i2vFirstFrame || isSubmittingI2V || !platformReady}
             onClick={handleI2VSubmit}
           >
             {isSubmittingI2V ? <RefreshCw className="spin" size={20} /> : <Image size={20} />}
@@ -573,7 +680,8 @@ export const VideoLab: React.FC = () => {
           </div>
 
           <VideoModelConfig
-            models={['MiniMax-Hailuo-02'] as VideoModel[]} model="MiniMax-Hailuo-02" onModelChange={() => {}}
+            activePlatform={activePlatform}
+            models={currentFl2vModels} model={currentFl2vModels[0] ?? 'MiniMax-Hailuo-02'} onModelChange={() => {}}
             duration={fl2vDuration} onDurationChange={setFl2vDuration}
             resolution={fl2vResolution} onResolutionChange={setFl2vResolution}
             promptOptimizer={fl2vPromptOptimizer} onPromptOptimizerChange={setFl2vPromptOptimizer}
@@ -584,7 +692,7 @@ export const VideoLab: React.FC = () => {
           <button
             className="btn btn-primary btn-generate"
             style={{ background: 'var(--lab-color-image)' }}
-            disabled={!fl2vFirstFrame || !fl2vLastFrame || isSubmittingFL2V}
+            disabled={!fl2vFirstFrame || !fl2vLastFrame || isSubmittingFL2V || !platformReady}
             onClick={handleFL2VSubmit}
           >
             {isSubmittingFL2V ? <RefreshCw className="spin" size={20} /> : <Layers size={20} />}
@@ -631,7 +739,7 @@ export const VideoLab: React.FC = () => {
           <button
             className="btn btn-primary btn-generate"
             style={{ background: '#ec4899' }}
-            disabled={!s2vSubjectImage || !s2vPrompt.trim() || isSubmittingS2V}
+            disabled={!s2vSubjectImage || !s2vPrompt.trim() || isSubmittingS2V || !platformReady}
             onClick={handleS2VSubmit}
           >
             {isSubmittingS2V ? <RefreshCw className="spin" size={20} /> : <User size={20} />}
@@ -678,7 +786,7 @@ export const VideoLab: React.FC = () => {
           <button
             className="btn btn-primary btn-generate"
             style={{ background: 'var(--color-warning)' }}
-            disabled={!agentTemplateId || isSubmittingAgent}
+            disabled={!agentTemplateId || isSubmittingAgent || !platformReady}
             onClick={handleAgentSubmit}
           >
             {isSubmittingAgent ? <RefreshCw className="spin" size={20} /> : <FileText size={20} />}

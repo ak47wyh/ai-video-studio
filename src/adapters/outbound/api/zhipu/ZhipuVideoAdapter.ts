@@ -30,11 +30,8 @@ export class ZhipuVideoAdapter implements IVideoGeneratorPort {
   }
 
   async submitVideoTask(context: VideoPromptContext): Promise<string> {
-    // ── Mock 模式 ──
     if (!this.config.zhipuApiKey) {
-      console.warn('[ZhipuVideoAdapter] No API key — running in mock mode.');
-      await new Promise(r => setTimeout(r, 1000));
-      return `mock-zhipu-task-${Date.now()}`;
+      throw new Error('请先在设置中配置智谱 AI 的 API Key');
     }
 
     const payload = this.buildPayload(context);
@@ -48,17 +45,8 @@ export class ZhipuVideoAdapter implements IVideoGeneratorPort {
   }
 
   async queryTaskStatus(taskId: string): Promise<VideoTaskResult> {
-    // ── Mock 模式 ──
-    if (!this.config.zhipuApiKey || taskId.startsWith('mock-zhipu-task-')) {
-      await new Promise(r => setTimeout(r, 800));
-      return Math.random() > 0.65
-        ? {
-            status: 'SUCCESS',
-            videoUrl: 'https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4',
-            fileId: 'mock-zhipu-file',
-            videoWidth: 1280, videoHeight: 720,
-          }
-        : { status: 'PROCESSING' };
+    if (!this.config.zhipuApiKey) {
+      throw new Error('请先在设置中配置智谱 AI 的 API Key');
     }
 
     const result = await this.http.get<ZhipuVideoTaskResponse>(`/videos/generations/${taskId}`);

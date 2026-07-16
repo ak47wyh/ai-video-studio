@@ -28,11 +28,8 @@ export class MiniMaxVideoAdapter implements IVideoGeneratorPort {
   async submitVideoTask(context: VideoPromptContext): Promise<string> {
     const config = ApiConfigStore.load();
 
-    // ── Mock mode (no API key configured) ──────────────────────────────────
     if (!config.minimaxApiKey) {
-      console.warn('[MiniMaxVideoAdapter] No API key configured — running in mock mode.');
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      return `mock-task-${Date.now()}`;
+      throw new Error('请先在设置中配置 MiniMax 的 API Key');
     }
 
     // ── Build prompt from legacy fields if prompt not directly provided ─────
@@ -130,20 +127,8 @@ export class MiniMaxVideoAdapter implements IVideoGeneratorPort {
   async queryTaskStatus(externalTaskId: string): Promise<VideoTaskResult> {
     const config = ApiConfigStore.load();
 
-    // ── Mock mode ───────────────────────────────────────────────────────────
-    if (!config.minimaxApiKey || externalTaskId.startsWith('mock-task-')) {
-      await new Promise(resolve => setTimeout(resolve, 800));
-      const isDone = Math.random() > 0.65;
-      if (isDone) {
-        return {
-          status: 'SUCCESS',
-          videoUrl: 'https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4',
-          fileId: 'mock-file-id',
-          videoWidth: 1280,
-          videoHeight: 720,
-        };
-      }
-      return { status: 'PROCESSING' };
+    if (!config.minimaxApiKey) {
+      throw new Error('请先在设置中配置 MiniMax 的 API Key');
     }
 
     // ── Real API call ───────────────────────────────────────────────────────
@@ -242,9 +227,7 @@ export class MiniMaxVideoAdapter implements IVideoGeneratorPort {
     const config = ApiConfigStore.load();
 
     if (!config.minimaxApiKey) {
-      console.warn('[MiniMaxVideoAdapter] No API key configured — running in mock mode for Agent.');
-      await new Promise(r => setTimeout(r, 1000));
-      return `mock-agent-${Date.now()}`;
+      throw new Error('请先在设置中配置 MiniMax 的 API Key');
     }
 
     const payload: Record<string, unknown> = {
@@ -279,11 +262,8 @@ export class MiniMaxVideoAdapter implements IVideoGeneratorPort {
   async queryAgentTask(taskId: string): Promise<VideoAgentTaskResult> {
     const config = ApiConfigStore.load();
 
-    if (!config.minimaxApiKey || taskId.startsWith('mock-agent-')) {
-      await new Promise(r => setTimeout(r, 800));
-      return Math.random() > 0.5
-        ? { status: 'Success', videoUrl: 'https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4' }
-        : { status: 'Processing' };
+    if (!config.minimaxApiKey) {
+      throw new Error('请先在设置中配置 MiniMax 的 API Key');
     }
 
     const baseUrl = config.minimaxBaseUrl.replace(/\/+$/, '');

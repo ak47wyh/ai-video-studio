@@ -46,18 +46,32 @@ export abstract class BaseHttpClient {
   }
 
   async post<T>(path: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
-    const response = await this.client.post<T>(path, data, config);
+    const response = await this.client.post<T>(this.resolvePath(path), data, config);
     return response.data;
   }
 
   async get<T>(path: string, params?: Record<string, unknown>): Promise<T> {
-    const response = await this.client.get<T>(path, { params });
+    const response = await this.client.get<T>(this.resolvePath(path), { params });
     return response.data;
   }
 
   async delete<T>(path: string): Promise<T> {
-    const response = await this.client.delete<T>(path);
+    const response = await this.client.delete<T>(this.resolvePath(path));
     return response.data;
+  }
+
+  /**
+   * 解析请求路径，确保相对于 baseURL 正确拼接。
+   * 当 baseURL 是相对路径（如 /volcengine-ark）时，axios 会将 / 开头的 path 视为绝对路径，
+   * 导致 baseURL 被忽略。此方法确保 path 始终相对于 baseURL。
+   */
+  private resolvePath(path: string): string {
+    // 如果 baseURL 是相对路径（不以 http/https 开头），需要确保 path 相对于 baseURL
+    if (!this.baseUrl.startsWith('http')) {
+      // 移除 path 开头的 /，使其相对于 baseURL
+      return path.replace(/^\//, '');
+    }
+    return path;
   }
 
   /**
