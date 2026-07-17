@@ -18,23 +18,12 @@ import { LabPageLayout } from '../components/LabPageLayout';
 import { AsyncState } from '../components/AsyncState';
 import { UnsupportedCapabilityNotice } from '../components/UnsupportedCapabilityNotice';
 import { usePlatformCapabilities } from '../hooks/usePlatformCapabilities';
+import { usePlatformTextModels } from '../hooks/usePlatformTextModels';
 import { TextAreaWithCounter } from '../components/TextAreaWithCounter';
 import { SegmentPicker, type SegmentBindField } from '../components/SegmentPicker';
 import { TEXT_LIMITS } from '../../domain/constants/textLimits';
 
 type TextLabTab = 'chat' | 'refine' | 'models';
-
-// ==================== 模型配置 ====================
-const MODEL_OPTIONS: { value: TextModel; label: string; desc: string; multimodal: boolean }[] = [
-  { value: 'MiniMax-M3', label: 'MiniMax-M3', desc: '多模态+深度思考', multimodal: true },
-  { value: 'MiniMax-M2.7', label: 'M2.7', desc: '高质量文本', multimodal: false },
-  { value: 'MiniMax-M2.7-highspeed', label: 'M2.7-fast', desc: '快速文本', multimodal: false },
-  { value: 'MiniMax-M2.5', label: 'M2.5', desc: '性价比文本', multimodal: false },
-  { value: 'MiniMax-M2.5-highspeed', label: 'M2.5-fast', desc: '快速文本', multimodal: false },
-  { value: 'MiniMax-M2.1', label: 'M2.1', desc: '基础文本', multimodal: false },
-  { value: 'MiniMax-M2.1-highspeed', label: 'M2.1-fast', desc: '快速基础', multimodal: false },
-  { value: 'MiniMax-M2', label: 'M2', desc: '入门级', multimodal: false },
-];
 
 // ==================== 场景模板 ====================
 const SCENE_TEMPLATES: { key: TextRefineScene; label: string; icon: React.ReactNode; color: string }[] = [
@@ -60,6 +49,7 @@ export const TextLab: React.FC = () => {
   const { showToast } = useToast();
   const { currentSpaceId } = useSpace();
   const { hasCapability } = usePlatformCapabilities();
+  const { textModels, defaultModel } = usePlatformTextModels();
 
   const [activeTab, setActiveTab] = useState<TextLabTab>('chat');
 
@@ -85,6 +75,12 @@ export const TextLab: React.FC = () => {
   const [refineInput, setRefineInput] = useState('');
   const [refineStyle, setRefineStyle] = useState<RefineStyle>('standard');
   const [refineModel, setRefineModel] = useState<TextModel>('MiniMax-M3');
+
+  // 平台切换时同步模型选择
+  useEffect(() => {
+    setChatModel(defaultModel);
+    setRefineModel(defaultModel);
+  }, [defaultModel]);
   const [isRefining, setIsRefining] = useState(false);
   const [refineResult, setRefineResult] = useState<{ content: string; thinking?: string; usage?: TextGenerationResult['usage'] } | null>(null);
   const [refineStreamingContent, setRefineStreamingContent] = useState('');
@@ -316,9 +312,10 @@ export const TextLab: React.FC = () => {
           {/* Top bar — compact inline */}
           <div className="chat-top-bar">
             <select className="form-select btn-sm" style={{ width: 'auto', fontSize: '0.8rem' }} value={chatModel} onChange={e => setChatModel(e.target.value as TextModel)}>
-              {MODEL_OPTIONS.map(m => (
-                <option key={m.value} value={m.value}>{m.label} — {m.desc}</option>
+              {textModels.map(m => (
+                <option key={m.id} value={m.id}>{m.label} — {m.description}</option>
               ))}
+              {textModels.length === 0 && <option disabled>当前平台不支持文本生成</option>}
             </select>
             <button className="btn btn-secondary btn-xs" onClick={() => setShowAdvanced(!showAdvanced)}>
               {showAdvanced ? <ChevronUp size={12} /> : <ChevronDown size={12} />} {t('textLab.advanced', '高级参数')}
@@ -463,8 +460,8 @@ export const TextLab: React.FC = () => {
                 ))}
               </div>
               <select className="form-select btn-xs" style={{ width: '130px' }} value={refineModel} onChange={e => setRefineModel(e.target.value as TextModel)}>
-                {MODEL_OPTIONS.map(m => (
-                  <option key={m.value} value={m.value}>{m.label}</option>
+                {textModels.map(m => (
+                  <option key={m.id} value={m.id}>{m.label}</option>
                 ))}
               </select>
             </div>
@@ -551,27 +548,21 @@ export const TextLab: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {[
-                  { id: 'MiniMax-M3', text: true, image: true, thinking: 'adaptive', tools: true, rec: '深度思考、多模态' },
-                  { id: 'MiniMax-M2.7', text: true, image: false, thinking: 'always', tools: true, rec: '高质量文本' },
-                  { id: 'MiniMax-M2.7-highspeed', text: true, image: false, thinking: 'always', tools: true, rec: '快速文本' },
-                  { id: 'MiniMax-M2.5', text: true, image: false, thinking: 'always', tools: true, rec: '性价比文本' },
-                  { id: 'MiniMax-M2.5-highspeed', text: true, image: false, thinking: 'always', tools: true, rec: '快速文本' },
-                  { id: 'MiniMax-M2.1', text: true, image: false, thinking: 'always', tools: true, rec: '基础文本' },
-                  { id: 'MiniMax-M2.1-highspeed', text: true, image: false, thinking: 'always', tools: true, rec: '快速基础' },
-                  { id: 'MiniMax-M2', text: true, image: false, thinking: 'always', tools: true, rec: '入门级' },
-                ].map(m => (
+                {textModels.map(m => (
                   <tr key={m.id}>
                     <td><strong>{m.id}</strong></td>
-                    <td style={{ textAlign: 'center' }}>{m.text ? '✅' : '—'}</td>
-                    <td style={{ textAlign: 'center' }}>{m.image ? '✅' : '—'}</td>
+                    <td style={{ textAlign: 'center' }}>{'✅'}</td>
+                    <td style={{ textAlign: 'center' }}>{m.multimodal ? '✅' : '—'}</td>
                     <td style={{ textAlign: 'center', color: m.thinking === 'adaptive' ? 'var(--lab-color-image)' : 'var(--text-muted)' }}>
-                      {m.thinking === 'adaptive' ? '可控' : '始终'}
+                      {m.thinking === 'adaptive' ? '可控' : m.thinking === 'always' ? '始终' : '—'}
                     </td>
                     <td style={{ textAlign: 'center' }}>{m.tools ? '✅' : '—'}</td>
                     <td style={{ color: 'var(--text-muted)' }}>{m.rec}</td>
                   </tr>
                 ))}
+                {textModels.length === 0 && (
+                  <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>当前平台不支持文本模型</td></tr>
+                )}
               </tbody>
             </table>
           </div>

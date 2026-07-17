@@ -54,6 +54,24 @@ export interface ImageModelDescriptor {
   recommended: boolean;
 }
 
+/** 文本模型描述符(注册表条目) */
+export interface TextModelDescriptor {
+  /** 真实模型 ID(发送给 API 的值) */
+  id: string;
+  /** 显示名称 */
+  label: string;
+  /** 简短描述 */
+  description: string;
+  /** 是否支持多模态输入(图片理解) */
+  multimodal: boolean;
+  /** 是否支持 Thinking(深度思考) */
+  thinking: 'adaptive' | 'always' | 'none';
+  /** 是否支持工具调用 */
+  tools: boolean;
+  /** 推荐场景描述 */
+  rec: string;
+}
+
 /** 平台元信息 */
 export interface PlatformMeta {
   id: PlatformId;
@@ -81,6 +99,8 @@ export interface PlatformMeta {
   defaultImageModel: string;
   /** @deprecated 使用 imageModels + defaultImageModel */
   imageModel?: string;
+  /** 该平台支持的文本模型列表(用于 TextLab 模型选择器) */
+  textModels: TextModelDescriptor[];
   /** 默认文本模型 */
   textModel?: string;
 }
@@ -120,6 +140,16 @@ export const PLATFORM_METADATA: Record<PlatformId, PlatformMeta> = {
     ],
     defaultImageModel: 'image-01',
     imageModel: 'image-01',
+    textModels: [
+      { id: 'MiniMax-M3', label: 'MiniMax-M3', description: '多模态+深度思考', multimodal: true, thinking: 'adaptive', tools: true, rec: '深度思考、多模态' },
+      { id: 'MiniMax-M2.7', label: 'M2.7', description: '高质量文本', multimodal: false, thinking: 'always', tools: true, rec: '高质量文本' },
+      { id: 'MiniMax-M2.7-highspeed', label: 'M2.7-fast', description: '快速文本', multimodal: false, thinking: 'always', tools: true, rec: '快速文本' },
+      { id: 'MiniMax-M2.5', label: 'M2.5', description: '性价比文本', multimodal: false, thinking: 'always', tools: true, rec: '性价比文本' },
+      { id: 'MiniMax-M2.5-highspeed', label: 'M2.5-fast', description: '快速文本', multimodal: false, thinking: 'always', tools: true, rec: '快速文本' },
+      { id: 'MiniMax-M2.1', label: 'M2.1', description: '基础文本', multimodal: false, thinking: 'always', tools: true, rec: '基础文本' },
+      { id: 'MiniMax-M2.1-highspeed', label: 'M2.1-fast', description: '快速基础', multimodal: false, thinking: 'always', tools: true, rec: '快速基础' },
+      { id: 'MiniMax-M2', label: 'M2', description: '入门级', multimodal: false, thinking: 'always', tools: true, rec: '入门级' },
+    ],
     textModel: 'MiniMax-M3',
   },
   volcengine: {
@@ -198,6 +228,12 @@ export const PLATFORM_METADATA: Record<PlatformId, PlatformMeta> = {
     ],
     defaultImageModel: 'doubao-seedream-5-0-pro-260628',
     imageModel: 'doubao-seedream-5-0-pro-260628',
+    textModels: [
+      { id: 'doubao-seed-2.0-pro', label: 'Doubao Seed 2.0 Pro', description: '旗舰推理模型', multimodal: false, thinking: 'adaptive', tools: true, rec: '深度推理' },
+      { id: 'doubao-pro-32k', label: 'Doubao Pro 32K', description: '高质量文本', multimodal: false, thinking: 'always', tools: true, rec: '通用文本' },
+      { id: 'doubao-lite-32k', label: 'Doubao Lite 32K', description: '轻量快速', multimodal: false, thinking: 'always', tools: true, rec: '快速文本' },
+      { id: 'doubao-pro-128k', label: 'Doubao Pro 128K', description: '长文本', multimodal: false, thinking: 'always', tools: true, rec: '长文本处理' },
+    ],
     textModel: 'doubao-pro-32k',
   },
   kling: {
@@ -214,6 +250,7 @@ export const PLATFORM_METADATA: Record<PlatformId, PlatformMeta> = {
     imageModels: [],
     defaultImageModel: 'kling-v1',
     imageModel: 'kling-v1',
+    textModels: [],
   },
   wan: {
     id: 'wan',
@@ -229,6 +266,11 @@ export const PLATFORM_METADATA: Record<PlatformId, PlatformMeta> = {
     imageModels: [],
     defaultImageModel: 'wanx2.1-t2i-turbo',
     imageModel: 'wanx2.1-t2i-turbo',
+    textModels: [
+      { id: 'qwen-plus', label: 'Qwen Plus', description: '高质量文本', multimodal: false, thinking: 'always', tools: true, rec: '通用文本' },
+      { id: 'qwen-turbo', label: 'Qwen Turbo', description: '快速文本', multimodal: false, thinking: 'always', tools: true, rec: '快速文本' },
+      { id: 'qwen-max', label: 'Qwen Max', description: '旗舰模型', multimodal: false, thinking: 'adaptive', tools: true, rec: '深度推理' },
+    ],
     textModel: 'qwen-plus',
   },
   hunyuan: {
@@ -244,6 +286,9 @@ export const PLATFORM_METADATA: Record<PlatformId, PlatformMeta> = {
     videoModels: ['hunyuan-video', 'hunyuan-video-i2v'],
     imageModels: [],
     defaultImageModel: '',
+    textModels: [
+      { id: 'hunyuan-turbos-latest', label: 'Hunyuan TurboS', description: '快速文本', multimodal: false, thinking: 'always', tools: true, rec: '快速文本' },
+    ],
     textModel: 'hunyuan-turbos-latest',
   },
   zhipu: {
@@ -260,6 +305,10 @@ export const PLATFORM_METADATA: Record<PlatformId, PlatformMeta> = {
     imageModels: [],
     defaultImageModel: 'cogview-3-plus',
     imageModel: 'cogview-3-plus',
+    textModels: [
+      { id: 'glm-4-plus', label: 'GLM-4 Plus', description: '高质量文本', multimodal: false, thinking: 'always', tools: true, rec: '通用文本' },
+      { id: 'glm-4-flash', label: 'GLM-4 Flash', description: '快速文本', multimodal: false, thinking: 'always', tools: true, rec: '快速文本' },
+    ],
     textModel: 'glm-4-plus',
   },
   vidu: {
@@ -276,6 +325,7 @@ export const PLATFORM_METADATA: Record<PlatformId, PlatformMeta> = {
     imageModels: [],
     defaultImageModel: 'viduq1',
     imageModel: 'viduq1',
+    textModels: [],
   },
 };
 
@@ -331,6 +381,25 @@ export function getDefaultImageModel(platform: PlatformId): string {
  */
 export function findImageModel(platform: PlatformId, modelId: string): ImageModelDescriptor | undefined {
   return PLATFORM_METADATA[platform]?.imageModels?.find(m => m.id === modelId);
+}
+
+/**
+ * 获取指定平台的文本模型列表(用于 TextLab 模型选择器)。
+ * 不支持 text 能力的平台返回空数组。
+ */
+export function getTextModels(platform: PlatformId): TextModelDescriptor[] {
+  const meta = PLATFORM_METADATA[platform];
+  if (!meta?.textModels?.length || !meta.capabilities.includes('text')) return [];
+  return meta.textModels;
+}
+
+/**
+ * 获取指定平台的默认文本模型 ID。
+ */
+export function getDefaultTextModel(platform: PlatformId): string {
+  const meta = PLATFORM_METADATA[platform];
+  if (!meta) return 'MiniMax-M3';
+  return meta.textModel || meta.textModels?.[0]?.id || 'MiniMax-M3';
 }
 
 /**

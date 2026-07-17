@@ -272,7 +272,8 @@ export const textGenerationService = new TextGenerationService(
 
 export const textLabService = new TextLabService(
   platformRouter, apiConfigStoreAdapter,
-  defaultLogger.child({ service: 'TextLabService' })
+  defaultLogger.child({ service: 'TextLabService' }),
+  modelRegistry,
 );
 
 // ========================================

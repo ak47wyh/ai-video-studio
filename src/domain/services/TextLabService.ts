@@ -5,7 +5,7 @@ import type {
   TextStreamCallbacks,
   TextGenerationResult,
 } from '../ports/OutboundPorts';
-import type { IApiConfigStore } from '../ports/PlatformPorts';
+import type { IApiConfigStore, IModelRegistry, TextModelCategory } from '../ports/PlatformPorts';
 import type { ILoggerPort } from '../ports/CrossCuttingPorts';
 import type { PlatformRouter } from './PlatformRouter';
 
@@ -23,7 +23,7 @@ export type TextRefineScene =
 export type RefineStyle = 'concise' | 'standard' | 'detailed';
 
 /** 场景润色 System Prompt 配置 */
-const SCENE_PROMPTS: Record<TextRefineScene, { system: string; defaultModel: TextModel; maxTokens: number; temperature: number }> = {
+const SCENE_PROMPTS: Record<TextRefineScene, { system: string; modelCategory: TextModelCategory; maxTokens: number; temperature: number }> = {
   script: {
     system: `你是一个专业的视频剧本编剧，擅长将故事文本润色为画面感强的视频剧本。
 
@@ -35,7 +35,7 @@ const SCENE_PROMPTS: Record<TextRefineScene, { system: string; defaultModel: Tex
 - 适当增加环境描写和人物动作细节
 - 语言简洁有力，适合旁白朗读
 - 只输出润色后的文本，不要其他内容`,
-    defaultModel: 'MiniMax-M3',
+    modelCategory: 'chat',
     maxTokens: 4096,
     temperature: 0.6,
   },
@@ -49,7 +49,7 @@ const SCENE_PROMPTS: Record<TextRefineScene, { system: string; defaultModel: Tex
 - 每个镜头包含：景别(Close-up/Medium/Wide)、镜头运动(Pan/Tilt/Tracking)、光线氛围、画面内容
 - 格式：[Shot N] Type: | Motion: | Lighting: | Description:
 - 只输出分镜描述，不要其他内容`,
-    defaultModel: 'MiniMax-M3',
+    modelCategory: 'chat',
     maxTokens: 4096,
     temperature: 0.5,
   },
@@ -63,7 +63,7 @@ const SCENE_PROMPTS: Record<TextRefineScene, { system: string; defaultModel: Tex
 - 外貌部分使用英文输出（适合 AI 图像生成）
 - 性格和行为部分使用中文输出
 - 只输出角色刻画，不要其他内容`,
-    defaultModel: 'MiniMax-M2.5',
+    modelCategory: 'recommendation',
     maxTokens: 2048,
     temperature: 0.7,
   },
@@ -78,7 +78,7 @@ const SCENE_PROMPTS: Record<TextRefineScene, { system: string; defaultModel: Tex
 - 包含视觉元素：光线、色彩、构图、氛围
 - 长度控制在 50-200 个英文单词
 - 只输出润色后的提示词，不要其他内容`,
-    defaultModel: 'MiniMax-M2.5',
+    modelCategory: 'recommendation',
     maxTokens: 512,
     temperature: 0.7,
   },
@@ -93,7 +93,7 @@ const SCENE_PROMPTS: Record<TextRefineScene, { system: string; defaultModel: Tex
 - 格式示例："Cinematic, Epic, Orchestral, Dark, Tension, Strings and Brass"
 - 长度控制在 10-50 个英文单词
 - 只输出风格描述，不要其他内容`,
-    defaultModel: 'MiniMax-M2.5-highspeed',
+    modelCategory: 'recommendation',
     maxTokens: 128,
     temperature: 0.8,
   },
@@ -108,7 +108,7 @@ const SCENE_PROMPTS: Record<TextRefineScene, { system: string; defaultModel: Tex
 - 包含视觉元素：光线、色彩、构图、氛围
 - 长度控制在 50-200 个英文单词
 - 只输出润色后的提示词，不要其他内容`,
-    defaultModel: 'MiniMax-M2.7-highspeed',
+    modelCategory: 'recommendation',
     maxTokens: 512,
     temperature: 0.7,
   },
@@ -128,6 +128,7 @@ const STYLE_MODIFIERS: Record<RefineStyle, string> = {
 export class TextLabService {
   private router: PlatformRouter;
   private configStore: IApiConfigStore;
+  private modelRegistry: IModelRegistry;
   // @ts-expect-error Logger injected for future use
   private _logger: ILoggerPort;
 
@@ -135,10 +136,12 @@ export class TextLabService {
     router: PlatformRouter,
     configStore: IApiConfigStore,
     logger: ILoggerPort,
+    modelRegistry: IModelRegistry,
   ) {
     this.router = router;
     this.configStore = configStore;
     this._logger = logger;
+    this.modelRegistry = modelRegistry;
   }
 
   /** 获取当前配置对应的文本生成适配器 */
@@ -159,9 +162,10 @@ export class TextLabService {
     const config = SCENE_PROMPTS[scene];
     const systemContent = config.system + STYLE_MODIFIERS[style];
     const textPort = this.getTextPort();
+    const resolvedModel = model || this.modelRegistry.resolveTextModel(config.modelCategory);
 
     return textPort.chatCompletion({
-      model: model || config.defaultModel,
+      model: resolvedModel,
       messages: [
         { role: 'system', content: systemContent, cache_control: { type: 'ephemeral' } },
         { role: 'user', content: input },
@@ -185,9 +189,10 @@ export class TextLabService {
     const config = SCENE_PROMPTS[scene];
     const systemContent = config.system + STYLE_MODIFIERS[style];
     const textPort = this.getTextPort();
+    const resolvedModel = model || this.modelRegistry.resolveTextModel(config.modelCategory);
 
     return textPort.chatCompletionStream({
-      model: model || config.defaultModel,
+      model: resolvedModel,
       messages: [
         { role: 'system', content: systemContent, cache_control: { type: 'ephemeral' } },
         { role: 'user', content: input },
@@ -195,7 +200,7 @@ export class TextLabService {
       maxTokens: config.maxTokens,
       temperature: config.temperature,
       useAnthropicEndpoint: true,
-      thinking: (model || config.defaultModel) === 'MiniMax-M3' ? { type: 'adaptive' } : undefined,
+      thinking: this.supportsThinking(resolvedModel) ? { type: 'adaptive' } : undefined,
     }, callbacks);
   }
 
@@ -213,7 +218,7 @@ export class TextLabService {
       thinking?: boolean;
     },
   ): AbortController {
-    const model = options?.model || 'MiniMax-M3';
+    const model = options?.model || this.modelRegistry.getDefaultTextModel() as TextModel;
     const textPort = this.getTextPort();
 
     return textPort.chatCompletionStream({
@@ -223,7 +228,7 @@ export class TextLabService {
       temperature: options?.temperature ?? 0.7,
       topP: options?.topP,
       useAnthropicEndpoint: true,
-      thinking: options?.thinking && model === 'MiniMax-M3' ? { type: 'adaptive' } : undefined,
+      thinking: options?.thinking && this.supportsThinking(model) ? { type: 'adaptive' } : undefined,
     }, callbacks);
   }
 
@@ -240,11 +245,21 @@ export class TextLabService {
   ): Promise<TextGenerationResult> {
     const textPort = this.getTextPort();
     return textPort.chatCompletion({
-      model: options?.model || 'MiniMax-M3',
+      model: options?.model || this.modelRegistry.getDefaultTextModel() as TextModel,
       messages,
       maxTokens: options?.maxTokens ?? 4096,
       temperature: options?.temperature ?? 0.7,
       useAnthropicEndpoint: true,
     });
+  }
+
+  /**
+   * 判断模型是否支持 Thinking 能力。
+   * 通过 modelRegistry 查询当前平台的模型描述符。
+   */
+  private supportsThinking(model: TextModel): boolean {
+    const models = this.modelRegistry.getPlatformTextModels();
+    const descriptor = models.find(m => m.id === model);
+    return descriptor?.thinking === 'adaptive';
   }
 }

@@ -14,7 +14,8 @@
  */
 
 import type { IModelRegistry, TextModelCategory, IApiConfigStore } from '../../../domain/ports/PlatformPorts';
-import { PLATFORM_METADATA } from '../../../domain/services/platformCapabilities';
+import { PLATFORM_METADATA, getTextModels, getDefaultTextModel } from '../../../domain/services/platformCapabilities';
+import type { TextModelDescriptor } from '../../../domain/services/platformCapabilities';
 import type { ILoggerPort } from '../../../domain/ports/CrossCuttingPorts';
 import type { VolcArkProtocol } from './ApiConfigStore';
 
@@ -111,5 +112,33 @@ export class PlatformModelRegistry implements IModelRegistry {
       default:
         return PlatformModelRegistry.FALLBACK_STANDARD;
     }
+  }
+
+  /**
+   * 获取当前平台的文本模型列表。
+   * 用于 UI 层构建模型选择器选项。
+   */
+  getPlatformTextModels(): TextModelDescriptor[] {
+    const platformId = this.configStore.getActivePlatform();
+    return getTextModels(platformId);
+  }
+
+  /**
+   * 获取当前平台的默认文本模型 ID。
+   * 考虑火山方舟 Anthropic 协议特殊处理。
+   */
+  getDefaultTextModel(): string {
+    const platformId = this.configStore.getActivePlatform();
+
+    // 火山方舟 Anthropic 协议（Agent Plan）：使用 volcArkAnthropicModel
+    if (platformId === 'volcengine') {
+      const config = this.configStore.load();
+      const protocol: VolcArkProtocol = config.volcArkTextProtocol ?? 'openai';
+      if (protocol === 'anthropic') {
+        return config.volcArkAnthropicModel || 'doubao-seed-2.0-pro';
+      }
+    }
+
+    return getDefaultTextModel(platformId);
   }
 }

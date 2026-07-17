@@ -166,4 +166,9 @@ export interface IModelRegistry {
   resolveImageModel(): string;
   /** 解析当前平台的默认视频模型 */
   resolveVideoModel(): string;
+
+  /** 获取当前平台的文本模型列表（用于 UI 模型选择器） */
+  getPlatformTextModels(): import('../services/platformCapabilities').TextModelDescriptor[];
+  /** 获取当前平台的默认文本模型 ID */
+  getDefaultTextModel(): string;
 }
