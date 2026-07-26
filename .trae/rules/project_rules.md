@@ -142,6 +142,24 @@ private ctx(extra: LogContext = {}): LogContext {
 - 大资源优先落 OPFS,避免 data:URI 膨胀与外部 URL 过期
 - 单 chunk 告警阈值 1024KB
 
+## 代理配置
+
+- **仅火山引擎平台**所有接口(Ark OpenAI / Ark Anthropic / Speech HTTP / Speech WebSocket)必须走 Vite dev server proxy,不允许直连
+- 代理路径前缀:`/volcengine-ark` / `/volcengine-speech` / `/volcengine-speech-ws`
+- 火山引擎 Base URL 默认值统一为代理前缀(`/volcengine-*`),不再区分 DEV/PROD
+- 其他平台(MiniMax 原生 / Coze / Kling / Wan / Hunyuan / Zhipu / Vidu 等)保持直连,不使用代理
+- Vite proxy 配置位于 `vite.config.ts`,新增火山端点需同步更新代理规则
+- WebSocket 代理需显式 `ws: true`
+- 禁止使用 Cloudflare Worker / nginx / 其他自建反代方案(统一由 Vite proxy 承载)
+
+## Mock 适配器使用范围
+
+- Mock 适配器(`Mock*.ts`)**仅用于测试场景**(`*.test.ts` / `src/test/__tests__/`)
+- 生产/开发运行时**强制使用真实适配器**,API Key 缺失时由 Adapter 抛 `CapabilityNotSupportedError`
+- `dependencies.ts` 装配 Mock 时必须增加守卫:`if (import.meta.env.MODE === 'test' || import.meta.env.VITEST)`
+- 测试场景可显式构造 Mock 实例注入到 Service,不通过全局装配
+- 禁止以"无 API Key 时静默降级到 Mock"为由在生产/开发运行时启用 Mock
+
 ## 提交前检查
 
 ```bash

@@ -26,6 +26,7 @@ function makeMockConfig(): ApiConfig {
     volcArkOpenAiApiKey: '',
     volcArkAnthropicApiKey: '',
     volcArkBaseUrl: '',
+    volcArkAgentPlanBaseUrl: '',
     volcArkAnthropicBaseUrl: '',
     volcArkTextProtocol: 'openai',
     volcArkAnthropicModel: '',

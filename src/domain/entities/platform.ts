@@ -50,6 +50,12 @@ export interface ApiConfig {
   /** Anthropic 协议 API Key（Agent Plan 订阅，Text-anthropic 使用） */
   volcArkAnthropicApiKey: string;
   volcArkBaseUrl: string;
+  /**
+   * Agent Plan 专属 Base URL（图片/视频生成）
+   * 官方文档要求 Agent Plan 接口路径包含 /plan 段，不可与普通 baseUrl 混用。
+   * 文档参考：https://docs.volcengine.com/docs/82379/2375486
+   */
+  volcArkAgentPlanBaseUrl: string;
   /** Anthropic 协议 Base URL（Agent Plan 专属） */
   volcArkAnthropicBaseUrl: string;
   /**

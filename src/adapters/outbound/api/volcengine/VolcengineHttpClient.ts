@@ -10,10 +10,13 @@ import { parseVolcengineError, VolcengineApiError } from './VolcengineErrorUtils
  *  - openai:     Base URL = volcArkBaseUrl，            鉴权头 Authorization: Bearer <volcArkOpenAiApiKey>
  *  - anthropic:  Base URL = volcArkAnthropicBaseUrl,   鉴权头 x-api-key + anthropic-version
  *
- * 协议由调用方（Adapter）显式传入，不再从 config.volcArkTextProtocol 全局锁定。
- * 每种能力（video/image/text）由 Adapter 自行决定走哪个协议：
- *   - VolcengineVideoAdapter / VolcengineImageAdapter → 永远走 openai
- *   - VolcengineTextAdapter → 按 config.volcArkTextProtocol 选择
+ * Agent Plan Base URL（澄清项 2）：
+ *  - 图片/视频生成走 volcArkAgentPlanBaseUrl（/api/plan/v3），
+ *    官方文档明确要求 Agent Plan 接口路径包含 /plan 段，不可与普通 baseUrl 混用。
+ *
+ * 协议与 Base URL 选择由调用方（Adapter）显式传入：
+ *   - VolcengineVoiceAdapter / VolcengineTextAdapter → createOpenAI / createAnthropic（/api/v3）
+ *   - VolcengineImageAdapter / VolcengineVideoAdapter → createAgentPlan（/api/plan/v3）
  *
  * 双协议并存：OpenAI Key 与 Anthropic Key 独立配置，互不干扰。
  *
@@ -21,14 +24,16 @@ import { parseVolcengineError, VolcengineApiError } from './VolcengineErrorUtils
  */
 export class VolcengineHttpClient extends BaseHttpClient {
   private readonly config: ApiConfig;
+  /** 当前生效的 Base URL（去除尾部斜杠） */
+  private readonly activeBaseUrl: string;
   /** 是否为 Anthropic 协议（Agent Plan 接入） */
   readonly isAnthropic: boolean;
 
-  constructor(config: ApiConfig, protocol: VolcArkProtocol) {
+  constructor(config: ApiConfig, protocol: VolcArkProtocol, baseUrlOverride?: string) {
     const isAnthropic = protocol === 'anthropic';
-    const baseUrl = isAnthropic
-      ? config.volcArkAnthropicBaseUrl
-      : config.volcArkBaseUrl;
+    // baseUrlOverride 用于 Agent Plan 等独立路径场景，优先级最高
+    const baseUrl = baseUrlOverride
+      ?? (isAnthropic ? config.volcArkAnthropicBaseUrl : config.volcArkBaseUrl);
 
     // 双协议并存：按协议取对应的 Key 字段
     const apiKey = isAnthropic
@@ -47,15 +52,17 @@ export class VolcengineHttpClient extends BaseHttpClient {
 
     this.config = config;
     this.isAnthropic = isAnthropic;
+    this.activeBaseUrl = baseUrl.replace(/\/+$/, '');
 
     console.info('[VolcengineHttpClient] 初始化', {
       protocol,
+      baseUrlSource: baseUrlOverride ? 'agent-plan-override' : (isAnthropic ? 'anthropic' : 'openai-default'),
       baseUrl,
       hasApiKey: !!apiKey.trim(),
     });
   }
 
-  /** 工厂方法：创建 OpenAI 协议 HttpClient（Video/Image Adapter 强制使用） */
+  /** 工厂方法：创建 OpenAI 协议 HttpClient（Voice/Text Adapter 使用，走 /api/v3） */
   static createOpenAI(config: ApiConfig): VolcengineHttpClient {
     return new VolcengineHttpClient(config, 'openai');
   }
@@ -63,6 +70,13 @@ export class VolcengineHttpClient extends BaseHttpClient {
   /** 工厂方法：创建 Anthropic 协议 HttpClient */
   static createAnthropic(config: ApiConfig): VolcengineHttpClient {
     return new VolcengineHttpClient(config, 'anthropic');
+  }
+
+  /** 工厂方法：创建 Agent Plan HttpClient（Image/Video Adapter 使用）
+   *  Base URL 与普通方舟相同（统一走 /volcengine-ark 代理），
+   *  Vite proxy 通过请求路径智能分流到 /api/plan/v3。 */
+  static createAgentPlan(config: ApiConfig): VolcengineHttpClient {
+    return new VolcengineHttpClient(config, 'openai', config.volcArkBaseUrl);
   }
 
   /**
@@ -81,13 +95,11 @@ export class VolcengineHttpClient extends BaseHttpClient {
   }
 
   /**
-   * 获取当前协议下的 Base URL（已去除尾部斜杠）。
+   * 获取当前生效的 Base URL（已去除尾部斜杠）。
+   * 优先级：activeBaseUrl（构造时确定）> 对应协议字段。
    */
   getBaseUrl(): string {
-    const url = this.isAnthropic
-      ? this.config.volcArkAnthropicBaseUrl
-      : this.config.volcArkBaseUrl;
-    return url.replace(/\/+$/, '');
+    return this.activeBaseUrl;
   }
 
   /**

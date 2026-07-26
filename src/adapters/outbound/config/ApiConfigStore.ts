@@ -39,24 +39,26 @@ const DEFAULT_CONFIG: ApiConfig = {
   minimaxBaseUrl: 'https://api.minimaxi.com/v1',
   minimaxAnthropicBaseUrl: 'https://api.minimaxi.com/anthropic',
 
-  // 火山方舟默认值 —— 双协议并存：OpenAI 与 Anthropic 两套 Key 独立配置
+  // 火山方舟默认值 -- 双协议并存：OpenAI 与 Anthropic 两套 Key 独立配置
   volcArkOpenAiApiKey: '',
   volcArkAnthropicApiKey: '',
-  // 开发环境走 Vite 代理（解决 CORS），生产环境直连
-  // P0 修复：移除多余的 /plan/ 段。OpenAI 与 Anthropic 协议均走 /api/v3 前缀，
-  // 通过 anthropic-version 头区分协议，而非路径段。原 /api/plan/v3 会导致 /audio/speech 404。
-  volcArkBaseUrl: import.meta.env.DEV
-    ? '/volcengine-ark'
-    : 'https://ark.cn-beijing.volces.com/api/v3',
-  volcArkAnthropicBaseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
+  // 火山引擎所有 Ark 接口统一走 /volcengine-ark 代理前缀（不再区分 DEV/PROD）。
+  // Vite proxy 通过请求路径智能 rewrite 分流：
+  //   - /images/* /contents/* -> /api/plan/v3（Agent Plan，图片/视频生成）
+  //   - /audio/* /chat/*      -> /api/v3（普通方舟，语音合成/文本对话）
+  // 官方文档要求 Agent Plan 接口路径包含 /plan 段，不可与普通方舟混用。
+  volcArkBaseUrl: '/volcengine-ark',
+  volcArkAgentPlanBaseUrl: '/volcengine-ark',
+  volcArkAnthropicBaseUrl: '/volcengine-ark',
   // Text 默认走 OpenAI 协议（用户可在配置中心切换为 Anthropic）
   volcArkTextProtocol: 'openai' as VolcArkProtocol,
   volcArkAnthropicModel: 'doubao-seed-2.0-pro',
   // Anthropic CORS 拦截时自动降级到 OpenAI 协议（默认开启，可由设置页关闭）
   volcArkAutoFallback: true,
-  // 火山方舟图片生成模型 ID(Seedream 5.0 Pro 为最新旗舰,2025-06 发布)
-  // 用户可在设置页切换为 5.0 Lite / 4.5 / 4.0 / 3.0 t2i / Seededit 3.0 i2i
-  volcArkImageModel: 'doubao-seedream-5-0-pro-260628',
+  // 火山方舟图片生成模型 ID
+  // Agent Plan 套餐仅支持 doubao-seedream-5.0-lite（官方文档 82379/2366394）
+  // 普通方舟后付费可使用 5.0 Pro / 4.5 / 4.0 / 3.0 t2i / Seededit 3.0 i2i
+  volcArkImageModel: 'doubao-seedream-5.0-lite',
 
   // 火山引擎语音技术默认值（独立于方舟 Ark，需单独开通语音技术服务）
   volcVoiceAppId: '',
@@ -101,6 +103,8 @@ const DEFAULT_CONFIG: ApiConfig = {
 
 // 旧版 DEV 代理路径 → 完整外部 URL 的迁移映射。
 // 直连架构下不再使用代理路径,需把 localStorage 中残留的旧值替换为默认完整 URL。
+// Agent Plan Base URL 补充迁移：老用户 localStorage 可能无此字段，
+// 统一在 '/volcengine-ark' 代理路径迁移时补充默认值。
 const PROXY_PATH_MIGRATIONS: Record<string, Partial<ApiConfig>> = {
   '/anthropic': { minimaxAnthropicBaseUrl: DEFAULT_CONFIG.minimaxAnthropicBaseUrl },
   '/kling': { klingBaseUrl: DEFAULT_CONFIG.klingBaseUrl },
@@ -108,10 +112,14 @@ const PROXY_PATH_MIGRATIONS: Record<string, Partial<ApiConfig>> = {
   '/hunyuan': { hunyuanBaseUrl: DEFAULT_CONFIG.hunyuanBaseUrl },
   '/zhipu': { zhipuBaseUrl: DEFAULT_CONFIG.zhipuBaseUrl },
   '/vidu': { viduBaseUrl: DEFAULT_CONFIG.viduBaseUrl },
-  '/volcengine-ark': { volcArkBaseUrl: DEFAULT_CONFIG.volcArkBaseUrl },
-  // P0 修复：迁移历史遗留的错误 Base URL（含多余 /plan/ 段，会导致 /audio/speech 404）
-  'https://ark.cn-beijing.volces.com/api/plan/v3': { volcArkBaseUrl: 'https://ark.cn-beijing.volces.com/api/v3' },
-  'https://ark.cn-beijing.volces.com/api/plan': { volcArkAnthropicBaseUrl: 'https://ark.cn-beijing.volces.com/api/v3' },
+  '/volcengine-ark': {
+    volcArkBaseUrl: DEFAULT_CONFIG.volcArkBaseUrl,
+    volcArkAgentPlanBaseUrl: DEFAULT_CONFIG.volcArkAgentPlanBaseUrl,
+  },
+  // 补充老用户 localStorage 中缺失的 Agent Plan Base URL 字段
+  'agent-plan-base-missing': {
+    volcArkAgentPlanBaseUrl: DEFAULT_CONFIG.volcArkAgentPlanBaseUrl,
+  },
 };
 
 export const ApiConfigStore = {
@@ -199,14 +207,9 @@ export const ApiConfigStore = {
       delete legacy.volcArkProtocol;
     }
 
-    // 迁移旧的 Base URL 到新的 /api/plan/v3 格式
-    if (config.volcArkBaseUrl === 'https://ark.cn-beijing.volces.com/api/v3') {
-      config.volcArkBaseUrl = 'https://ark.cn-beijing.volces.com/api/plan/v3';
-    }
-
-    // 开发环境：迁移直连 URL 到代理路径（解决 CORS）
-    if (import.meta.env.DEV && config.volcArkBaseUrl === 'https://ark.cn-beijing.volces.com/api/plan/v3') {
-      config.volcArkBaseUrl = '/volcengine-ark';
+    // 补充老用户缺失的 Agent Plan Base URL 字段
+    if (!config.volcArkAgentPlanBaseUrl) {
+      config.volcArkAgentPlanBaseUrl = DEFAULT_CONFIG.volcArkAgentPlanBaseUrl;
     }
 
     return config;

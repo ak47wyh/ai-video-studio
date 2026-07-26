@@ -147,18 +147,20 @@ export class ImageGenerationService {
    * 设计决策：Agent 的 generate_image 工具需要自由 prompt 生成能力，
    * 不能强制要求 characterId/backgroundId，因此补此通用方法。
    */
-  async generateImage(context: {
-    prompt: string;
-    aspectRatio?: ImageAspectRatio;
+  async generateImage(context: ImageGenerationContext & {
     character?: { referenceImageUrl?: string } | null;
     background?: { referenceImageUrl?: string } | null;
   }): Promise<{ imageDataUri: string; imageUrls: string[]; metadata?: { successCount?: number; failedCount?: number } }> {
+    // 透传 ImageLab 传入的全部字段（model/n/seed/style 等），仅补充 subjectReferenceUrl
+    const { character, background, ...rest } = context;
     const ctx: ImageGenerationContext = {
-      prompt: context.prompt,
+      ...rest,
       aspectRatio: context.aspectRatio ?? '16:9',
-      subjectReferenceUrl: context.character?.referenceImageUrl?.startsWith('http')
-        ? context.character.referenceImageUrl
-        : undefined,
+      subjectReferenceUrl: character?.referenceImageUrl?.startsWith('http')
+        ? character.referenceImageUrl
+        : background?.referenceImageUrl?.startsWith('http')
+          ? background.referenceImageUrl
+          : undefined,
     };
 
     const imagePort = this.getImagePort();

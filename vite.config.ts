@@ -7,13 +7,41 @@ export default defineConfig({
   base: '/ai-video-studio/',
   // dev server 启动后自动打开浏览器到 base 路径
   server: {
+    port: 5173,
+    // 端口被占用时直接报错退出，不静默切换端口，
+    // 避免旧 dev server 进程残留导致新配置不生效的混淆场景。
+    strictPort: true,
     open: '/ai-video-studio/',
-    // 火山引擎视频/图片生成代理（CORS 不支持直连）
+    // 火山引擎所有接口走 Vite dev server proxy（详见 docs/VolcengineProxyDesign.md）
+    // 其他平台保持直连,不在此配置代理
     proxy: {
+      // 火山方舟所有接口统一走 /volcengine-ark 代理前缀。
+      // 通过请求路径智能 rewrite 分流：
+      //   - /images/* /contents/* -> /api/plan/v3（Agent Plan，图片/视频生成）
+      //   - 其他路径              -> /api/v3（普通方舟，语音合成/文本对话）
       '/volcengine-ark': {
         target: 'https://ark.cn-beijing.volces.com',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/volcengine-ark/, '/api/plan/v3'),
+        secure: true,
+        rewrite: (path) => {
+          const apiPath = path.replace(/^\/volcengine-ark/, '');
+          if (apiPath.startsWith('/images/') || apiPath.startsWith('/contents/')) {
+            return '/api/plan/v3' + apiPath;
+          }
+          return '/api/v3' + apiPath;
+        },
+      },
+      // 语音技术 HTTP 端点（同步 TTS V1/V3、声音克隆）
+      '/volcengine-speech': {
+        target: 'https://openspeech.bytedance.com',
+        changeOrigin: true,
+        secure: true,
+      },
+      // 语音技术 WebSocket 端点（流式 TTS V1/V3、声音转换）—— 需显式 ws: true
+      '/volcengine-speech-ws': {
+        target: 'wss://openspeech.bytedance.com',
+        changeOrigin: true,
+        ws: true,
         secure: true,
       },
     },
@@ -24,8 +52,6 @@ export default defineConfig({
     // 让图片/视频/音频 Blob 可以直接落到磁盘，无需 fetch 外部 URL
     filesStoragePlugin(),
   ],
-  // 所有第三方 API 请求直连完整外部 URL，不再使用 Vite dev server 反向代理。
-  // 若某平台不支持 CORS，用户可在应用内配置中心手动填入自建反代地址。
   build: {
     // Phase 3 性能优化 —— 手动 vendor 拆分，避免单 chunk 过大阻塞首屏
     // 拆分原则：
