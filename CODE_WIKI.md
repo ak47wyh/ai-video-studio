@@ -43,7 +43,6 @@
 | 语音合成 | 语音克隆、语音设计、流式合成、异步合成 |
 | 音乐生成 | AI 作曲、歌词创作、翻唱 |
 | 文本润色 | AI 文本增强、改写、对话 |
-| 3D 生成 | 火山引擎 Seed3D / 影眸 / 数美三个子提供商 |
 | 后期处理 | FFmpeg WASM 实现视频拼接、字幕烧录、音频混合 |
 | 视频剪辑 | 时间线编排工作台，多轨剪辑、转场、字幕 |
 | 一键成片 | Pipeline 全流程编排，从故事到成片自动完成 |
@@ -92,7 +91,7 @@
 | 平台 | 鉴权方式 | 能力 |
 |------|----------|------|
 | MiniMax（海螺） | Bearer API Key + group_id | 视频 / 图片 / 文本 / 语音（全能力）/ 音乐 |
-| 火山引擎（即梦） | Bearer API Key | 视频 / 图片 / 文本 / 语音 / 3D / 上下文缓存 / Responses API |
+| 火山引擎（即梦） | Bearer API Key | 视频 / 图片 / 文本 / 语音（Agent Plan 套餐） |
 | Coze | Bearer PAT Token | Bot 管理 / 对话 |
 | 可灵 Kling | JWT (HS256) | 视频 / 图片 |
 | 万相 Wan | Bearer API Key + X-DashScope-Async | 视频 / 图片 / 文本 / 语音 |
@@ -121,7 +120,7 @@
 │  PlatformRouter（核心枢纽）/ platformCapabilities                  │
 ├──────────────────────────────────────────────────────────────────┤
 │                     Domain Ports (15 接口文件)                     │
-│  OutboundPorts / VolcenginePorts / PostProcessPorts                │
+│  OutboundPorts / PostProcessPorts                                  │
 │  EnhancementPorts / WatermarkRemovalPorts / FileStoragePorts       │
 │  CrossCuttingPorts / LoggingPorts / UiPorts / PlatformPorts        │
 │  DomainServicePorts / PersistencePorts / TimelineRenderPorts        │
@@ -195,7 +194,7 @@ src/
 │   │   │   ├── MockStoryBreakdown.ts                # 降级实现
 │   │   │   ├── FFmpegAdapter.ts                    # FFmpeg WASM
 │   │   │   └── WhisperAdapter.ts                   # 占位实现
-│   │   ├── volcengine/             #     火山引擎（9 个文件）
+│   │   ├── volcengine/             #     火山引擎（8 个文件）
 │   │   ├── hunyuan/                #     腾讯混元（6 个文件）
 │   │   ├── kling/                  #     快手可灵（5 个文件）
 │   │   ├── vidu/                   #     生数 Vidu（5 个文件）
@@ -263,7 +262,6 @@ src/
 │   ├── errors/UnsupportedCapabilityError.ts
 │   ├── ports/                      #   15 个端口接口文件
 │   │   ├── OutboundPorts.ts        #     核心出站端口
-│   │   ├── VolcenginePorts.ts      #     火山/Coze 专属端口
 │   │   ├── PostProcessPorts.ts     #     FFmpeg/Whisper + Timeline 实体
 │   │   ├── EnhancementPorts.ts     #     清晰度提升端口
 │   │   ├── WatermarkRemovalPorts.ts#     去水印端口
@@ -383,23 +381,7 @@ scripts/                            # 跨平台启动脚本
 | `GeneratedFileType` | `'image' \| 'audio' \| 'video' \| 'other'` | — |
 | `GeneratedFile` | OPFS 文件元数据 | `id`, `spaceId`, `fileType`, `mimeType`, `fileName`, `fileSize`, `storagePath`（OPFS 相对路径）, `originalUrl?`, `sourcePlatform?`, `sourceEntityId?`, `sourceEntityType?`, `tags[]`, `lastAccessedAt`（LRU）, `createdAt`, `originalSize?`, `compressedAt?`, `compressionRatio?` |
 
-### 5.6 3D 生成实体
-
-| 实体 | 说明 |
-|-----------|------|
-| `ThreeDPlatformId` | `'volcengine-seed3d' \| 'volcengine-yingmou' \| 'volcengine-shumei'` |
-| `ThreeDOutputFormat` | `'glb' \| 'gltf' \| 'fbx' \| 'obj'` |
-| `ThreeDSubmitParams` | `prompt?`, `imageUrls?`, `modelEndpointId?`, `coarseToFine?`（Seed3D）, `pbrOutput?`（Seed3D） |
-| `ThreeDTaskStatus` | `taskId`, `status: 'queued'\|'running'\|'succeeded'\|'failed'\|'cancelled'`, `modelUrl?`, `previewImageUrl?`, `format?`, `error?` |
-
-### 5.7 火山引擎独有实体
-
-| 实体 | 说明 |
-|-----------|------|
-| `CacheCreateParams` / `CacheResult` / `CacheChatParams` | 上下文缓存（TTL 最大 7 天） |
-| `ResponseCreateParams` / `ResponseResult` / `ResponseStreamChunk` | OpenAI 兼容 Responses API，支持 `previousResponseId`、`caching`、`store`、`thinking` 字段 |
-
-### 5.8 Coze Bot/对话实体
+### 5.6 Coze Bot/对话实体
 
 | 实体 | 说明 |
 |-----------|------|
@@ -442,19 +424,7 @@ scripts/                            # 跨平台启动脚本
 
 **`VoiceCapabilities`（接口隔离原则）**：`supportsClone`, `supportsDesign`, `supportsDelete`, `supportsStream`。不支持的能力由适配器抛 `CapabilityNotSupportedError`。
 
-### 6.2 VolcenginePorts.ts（火山/Coze 专属端口）
-
-文件：[VolcenginePorts.ts](file:///d:/projects/ai-video-studio/src/domain/ports/VolcenginePorts.ts)
-
-| 接口 | 方法 | 说明 |
-|------|------|------|
-| `IThreeDGenerationPort` | `submitTask`, `queryTask`, `queryTaskList?`, `cancelTask?` | 3D 模型生成（Seed3D/影眸/数美） |
-| `IContextCachePort` | `createCache`, `chatWithCache`, `chatWithCacheStream` | 上下文缓存（降 Token 成本） |
-| `IBotPort` | `createBot`, `publishBot`, `listBots`, `getBotDetail` | Coze Bot 管理 |
-| `IDialogPort` | `createConversation`, `chat`, `chatStream`, `listMessages` | Coze Bot 对话 |
-| `IModelResponsePort` | `createResponse`, `createResponseStream`, `getResponse`, `getResponseContext`, `deleteResponse` | OpenAI 兼容 Responses API |
-
-### 6.3 PostProcessPorts.ts（FFmpeg/Whisper + Timeline 实体）
+### 6.2 PostProcessPorts.ts（FFmpeg/Whisper + Timeline 实体）
 
 文件：[PostProcessPorts.ts](file:///d:/projects/ai-video-studio/src/domain/ports/PostProcessPorts.ts)
 
@@ -466,7 +436,7 @@ scripts/                            # 跨平台启动脚本
 **Timeline 实体定义于此**：`TimelineClipType`（video/audio/subtitle/transition）、`TimelineClipSource`（kind+refId+inPointSec+outPointSec）、`TimelineClip`、`TimelineTrack`、`TimelineTransition`、`Timeline`。
 **转场类型**：`TransitionType = 'fade' \| 'fadeblack' \| 'fadewhite' \| 'wipeleft' \| 'wiperight' \| 'slideup' \| 'slidedown' \| 'circlecrop' \| 'rectcrop' \| 'distance'`
 
-### 6.4 EnhancementPorts.ts（清晰度提升端口）
+### 6.3 EnhancementPorts.ts（清晰度提升端口）
 
 文件：[EnhancementPorts.ts](file:///d:/projects/ai-video-studio/src/domain/ports/EnhancementPorts.ts)
 
@@ -478,7 +448,7 @@ scripts/                            # 跨平台启动脚本
 
 **`EnhanceMode`**：`'sharpen' \| 'denoise' \| 'upscale' \| 'all'`
 
-### 6.5 WatermarkRemovalPorts.ts（去水印端口）
+### 6.4 WatermarkRemovalPorts.ts（去水印端口）
 
 文件：[WatermarkRemovalPorts.ts](file:///d:/projects/ai-video-studio/src/domain/ports/WatermarkRemovalPorts.ts)
 
@@ -492,7 +462,7 @@ scripts/                            # 跨平台启动脚本
 **`InpaintAlgorithm`**：`'fast_fill' \| 'edge_interpolation' \| 'texture_synthesis' \| 'telea' \| 'navier_stokes' \| 'content_aware'`
 **`VideoInpaintMode`**：`'fast'`（FFmpeg delogo 滤镜）| `'quality'`（逐帧 Canvas inpaint）
 
-### 6.6 FileStoragePorts.ts（文件存储端口）
+### 6.5 FileStoragePorts.ts（文件存储端口）
 
 文件：[FileStoragePorts.ts](file:///d:/projects/ai-video-studio/src/domain/ports/FileStoragePorts.ts)
 
@@ -503,7 +473,7 @@ scripts/                            # 跨平台启动脚本
 
 **`getStorageType()` 返回**：`'opfs' | 'indexeddb' | 'local'`
 
-### 6.7 CrossCuttingPorts.ts（横切关注点端口）
+### 6.6 CrossCuttingPorts.ts（横切关注点端口）
 
 文件：[CrossCuttingPorts.ts](file:///d:/projects/ai-video-studio/src/domain/ports/CrossCuttingPorts.ts)
 
@@ -520,7 +490,7 @@ scripts/                            # 跨平台启动脚本
 
 **`DomainEvent` 联合类型**：包含 `video.task.submitted`、`video.task.completed`、`video.task.failed`、`voice.cloned`、`platform.changed`、`space.snapshot.created`、`space.deleted`、`asset.saved` 等事件。
 
-### 6.8 LoggingPorts.ts（日志端口）
+### 6.7 LoggingPorts.ts（日志端口）
 
 文件：[LoggingPorts.ts](file:///d:/projects/ai-video-studio/src/domain/ports/LoggingPorts.ts)
 
@@ -529,7 +499,7 @@ scripts/                            # 跨平台启动脚本
 | `ILogSinkPort` | `write(entry)`, `subscribe(listener)`, `snapshot(limit?)`, `clear`, `size` | 日志汇端口（默认 RingBuffer） |
 | `ILogViewerConfigPort` | `get`, `set(patch)`, `subscribe` | 日志面板配置端口 |
 
-### 6.9 UiPorts.ts（UI 状态端口）
+### 6.8 UiPorts.ts（UI 状态端口）
 
 文件：[UiPorts.ts](file:///d:/projects/ai-video-studio/src/domain/ports/UiPorts.ts)
 
@@ -539,7 +509,7 @@ scripts/                            # 跨平台启动脚本
 | `ITranslationPort` | `t(key, vars?)`, `getLocale`, `setLocale`, `onChange`, `isReady` | 国际化端口 |
 | `INetworkStatusPort` | `getStatus`, `isOnline`, `onChange` | 网络状态端口（online/offline/unstable） |
 
-### 6.10 PlatformPorts.ts（平台能力端口）
+### 6.9 PlatformPorts.ts（平台能力端口）
 
 文件：[PlatformPorts.ts](file:///d:/projects/ai-video-studio/src/domain/ports/PlatformPorts.ts)
 
@@ -548,10 +518,10 @@ scripts/                            # 跨平台启动脚本
 | `IPlatformCapabilitiesPort` | `getMeta(platform)`, `hasCapability(platform, capability)`, `listAll`, `getCapabilitySummary` | 平台能力查询 |
 | `IApiConfigStore` | `load`, `save`, `getActivePlatform`, `setActivePlatform`, `getApiKeyMasked`, `getToken`, `isPlatformConfigured`, `onPlatformChange`, `onConfigChange` | API 配置读写端口 |
 
-**`PlatformCapability`**：`'video' \| 'videoFl2v' \| 'videoS2v' \| 'image' \| 'text' \| 'voice' \| 'music' \| 'threeD' \| 'cache' \| 'bot' \| 'dialog' \| 'modelResponse'`
+**`PlatformCapability`**：`'video' \| 'videoFl2v' \| 'videoS2v' \| 'image' \| 'text' \| 'voice' \| 'music' \| 'bot' \| 'dialog'`
 **`PlatformId`**：`'minimax' \| 'volcengine' \| 'coze' \| 'kling' \| 'wan' \| 'hunyuan' \| 'zhipu' \| 'vidu'`
 
-### 6.11 其他端口文件
+### 6.10 其他端口文件
 
 | 文件 | 端口 | 说明 |
 |------|------|------|
@@ -582,11 +552,8 @@ scripts/                            # 跨平台启动脚本
 | `resolveText(config)` | 路由到文本生成适配器 |
 | `resolveVoice(config)` | 路由到语音合成适配器 |
 | `resolveMusic(config)` | 路由到音乐生成适配器（仅 MiniMax） |
-| `resolve3D(config)` | 固定 `Volcengine3DAdapter` |
-| `resolveCache(config)` | 固定 `VolcengineCacheAdapter` |
 | `resolveBot(config)` | 固定 `CozeBotAdapter` |
 | `resolveDialog(config)` | 固定 `CozeDialogAdapter` |
-| `resolveResponse(config)` | 固定 `VolcengineResponseAdapter` |
 | `hasCapability(capability)` | 能力查询 |
 | `reset()` | 清空所有适配器实例缓存 |
 
@@ -864,17 +831,14 @@ MiniMax 系统音色列表（约 80 个），按语言分组（zh/yue/en/ja/ko�
 
 ### 8.2 火山引擎 Volcengine 适配器（api/volcengine/）
 
-**共性设计**：共享 `VolcengineHttpClient`（构造注入 ApiConfig）。鉴权 `Authorization: Bearer {volcArkApiKey}`，baseURL=`volcArkBaseUrl`，timeout 120s。错误处理 `VolcengineApiError`（含 `httpStatus`/`errorCode`/`rawMessage`/`isRetryable`，仅 429 可重试）+ `withRetry`（指数退避，最多 3 次）。支持 SSE 流式（fetch + ReadableStream）。
+**共性设计**：共享 `VolcengineHttpClient`（构造注入 ApiConfig）。鉴权 `Authorization: Bearer {volcArkOpenAiApiKey}`，baseURL 统一为 `/volcengine-ark`（由 Vite proxy 智能 rewrite 分流到 `/api/plan/v3` 或 `/api/v3`），timeout 120s。图片/视频适配器使用 `createAgentPlan` 工厂方法。错误处理 `VolcengineApiError`（含 `httpStatus`/`errorCode`/`rawMessage`/`isRetryable`，仅 429 可重试）+ `withRetry`（指数退避，最多 3 次）。支持 SSE 流式（fetch + ReadableStream）。
 
 | 适配器 | 实现端口 | API 端点 | 说明 |
 |--------|----------|----------|------|
 | `VolcengineVideoAdapter` | `IVideoGeneratorPort` | `POST /contents/generations/tasks`, `GET /contents/generations/tasks/{id}` | 模型 doubao-seedance-2-pro，content 数组含 text/image_url |
-| `VolcengineImageAdapter` | `IImageGeneratorPort` | `POST /images/generations` | 模型 doubao-seedream-4-5-251128，支持 url/b64_json |
+| `VolcengineImageAdapter` | `IImageGeneratorPort` | `POST /images/generations` | Agent Plan 套餐，模型 doubao-seedream-5.0-lite，支持 url/b64_json |
 | `VolcengineTextAdapter` | `ITextGenerationPort` | `POST /chat/completions` | OpenAI 兼容，模型 doubao-pro-32k |
 | `VolcengineVoiceAdapter` | `IVoicePort`（能力全闭，仅 TTS） | `POST /audio/speech`, `POST /audio/async/create`, `GET /audio/async/retrieve` | 模型 doubao-tts-base/pro/pro-max |
-| `Volcengine3DAdapter` | `IThreeDGenerationPort` | `POST /contents/generations/tasks`, `GET /.../{id}`, `GET /...`（列表）, `DELETE /.../{id}` | 单类三子提供商（Seed3D/影眸/数美） |
-| `VolcengineCacheAdapter` | `IContextCachePort` | `POST /context/caches`, `POST /chat/completions`（带 context_id） | TTL 默认 7 天 |
-| `VolcengineResponseAdapter` | `IModelResponsePort` | `POST /responses`, `GET /responses/{id}`, `GET /responses/{id}/context`, `DELETE /responses/{id}` | OpenAI Responses API 兼容 |
 
 ### 8.3 Hunyuan 适配器（api/hunyuan/）
 
@@ -941,7 +905,7 @@ MiniMax 系统音色列表（约 80 个），按语言分组（zh/yue/en/ja/ko�
 | 平台 | 鉴权方式 | 配置字段 |
 |------|----------|----------|
 | MiniMax | Bearer API Key + group_id query | `minimaxApiKey` / `minimaxGroupId` |
-| Volcengine | Bearer API Key | `volcArkApiKey` |
+| Volcengine | Bearer API Key | `volcArkOpenAiApiKey` / `volcArkAnthropicApiKey` |
 | Hunyuan | TC3-HMAC-SHA256 签名（最复杂） | `hunyuanSecretId` / `hunyuanSecretKey` |
 | Kling | JWT (HS256) 派生自 AccessKey+SecretKey | `klingAccessKey` / `klingSecretKey` |
 | Vidu | Token API Key（注意非 Bearer） | `viduApiKey` |
@@ -962,9 +926,9 @@ MiniMax 系统音色列表（约 80 个），按语言分组（zh/yue/en/ja/ko�
 - 密文格式：`enc:v1:<base64(iv)>:<base64(ciphertext)>`
 - 安全限制（设计上承认）：纯前端加密无法抵御具备完整同源执行能力的攻击者，但能防开发者工具直接查看明文 + XSS 读取明文 + 本地存储文件被直接查阅
 
-**`ApiConfig` 字段**：覆盖 8 个平台（minimaxApiKey/GroupId/BaseUrl/AnthropicBaseUrl、volcArkApiKey、cozePatToken/SpaceId、klingAccessKey/SecretKey、wanApiKey、hunyuanSecretId/SecretKey、zhipuApiKey、viduApiKey）+ `activePlatform` + `theme`。
+**`ApiConfig` 字段**：覆盖 8 个平台（minimaxApiKey/GroupId/BaseUrl/AnthropicBaseUrl、volcArkOpenAiApiKey/AnthropicApiKey、cozePatToken/SpaceId、klingAccessKey/SecretKey、wanApiKey、hunyuanSecretId/SecretKey、zhipuApiKey、viduApiKey）+ `activePlatform` + `theme`。
 
-**关键方法**：`init()`（启动时解密 localStorage 密文到 `_cache`，**必须在渲染前调用**）、`load()`、`save()`（异步加密持久化 + 脱敏日志）、`isPlatformConfigured()`、`getActivePlatform()`、`_migrateProxyPaths()`（旧版 DEV 代理路径迁移）。
+**关键方法**：`init()`（启动时解密 localStorage 密文到 `_cache`，**必须在渲染前调用**）、`load()`、`save()`（异步加密持久化 + 脱敏日志）、`isPlatformConfigured()`、`getActivePlatform()`、`_migrateProxyPaths()`（代理路径迁移）、`_migrateLegacyVolcArkConfig()`（旧版火山方舟字段迁移）。
 
 #### ApiConfigStoreAdapter
 
@@ -997,7 +961,7 @@ MiniMax 系统音色列表（约 80 个），按语言分组（zh/yue/en/ja/ko�
 | `NoopMetricsAdapter` | `IMetricsPort` | 占位实现，Counter/Histogram 均 no-op |
 | `DefaultResilienceAdapter` | `IResiliencePort` | `retry`（指数退避/线性退避）+ `withCircuitBreaker`（Open/Half-Open 两态） |
 | `BrowserNetworkStatusAdapter` | `INetworkStatusPort` | 监听 online/offline + `navigator.connection.effectiveType`（slow-2g/2g → unstable） |
-| `PlatformCapabilitiesAdapter` | `IPlatformCapabilitiesPort` | 封装 `PLATFORM_METADATA`，特殊能力规则：threeD/cache→volcengine，bot/dialog→coze，modelResponse→volcengine |
+| `PlatformCapabilitiesAdapter` | `IPlatformCapabilitiesPort` | 封装 `PLATFORM_METADATA`，特殊能力规则：bot/dialog→coze |
 
 ### 8.12 仓储适配器（repositories/）
 

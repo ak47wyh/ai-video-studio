@@ -33,7 +33,7 @@ function makeMockConfig(): ApiConfig {
     volcArkTextProtocol: 'openai',
     volcArkAnthropicModel: '',
     volcArkAutoFallback: true,
-    volcArkImageModel: 'doubao-seedream-5-0-pro-260628',
+    volcArkImageModel: 'doubao-seedream-5.0-lite',
     volcVoiceAppId: '',
     volcVoiceAccessToken: '',
     volcVoiceCluster: 'volcano_icl',

@@ -45,15 +45,15 @@ export interface ApiConfig {
   minimaxAnthropicBaseUrl: string;
 
   // --- 火山方舟（Ark）--- 双协议并存：OpenAI 与 Anthropic 可同时配置
-  /** OpenAI 协议 API Key（标准后付费，Video/Image/Text-openai 使用） */
+  /** OpenAI 协议 API Key（Agent Plan 套餐,Video/Image/Text-openai 使用） */
   volcArkOpenAiApiKey: string;
-  /** Anthropic 协议 API Key（Agent Plan 订阅，Text-anthropic 使用） */
+  /** Anthropic 协议 API Key（Agent Plan 套餐,Text-anthropic 使用） */
   volcArkAnthropicApiKey: string;
   volcArkBaseUrl: string;
   /**
-   * Agent Plan 专属 Base URL（图片/视频生成）
-   * 官方文档要求 Agent Plan 接口路径包含 /plan 段，不可与普通 baseUrl 混用。
-   * 文档参考：https://docs.volcengine.com/docs/82379/2375486
+   * Agent Plan 专属 Base URL（图片/视频生成）。
+   * 本项目统一走 /volcengine-ark 代理,由 Vite proxy 智能 rewrite 分流到 /api/plan/v3。
+   * 文档参考：https://www.volcengine.com/docs/82379/2366394
    */
   volcArkAgentPlanBaseUrl: string;
   /** Anthropic 协议 Base URL（Agent Plan 专属） */
@@ -68,7 +68,7 @@ export interface ApiConfig {
   volcArkAnthropicModel: string;
   /** Anthropic 协议 CORS 拦截时是否自动降级到 OpenAI 协议（默认 true） */
   volcArkAutoFallback: boolean;
-  /** 图片生成模型 ID(默认 doubao-seedream-4-5-251128,用户可在注册表选项中切换) */
+  /** 图片生成模型 ID(本项目仅接入 Agent Plan,默认 doubao-seedream-5.0-lite) */
   volcArkImageModel: string;
 
   // --- 火山引擎语音技术 ---

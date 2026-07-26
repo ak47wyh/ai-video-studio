@@ -56,8 +56,7 @@ const DEFAULT_CONFIG: ApiConfig = {
   // Anthropic CORS 拦截时自动降级到 OpenAI 协议（默认开启，可由设置页关闭）
   volcArkAutoFallback: true,
   // 火山方舟图片生成模型 ID
-  // Agent Plan 套餐仅支持 doubao-seedream-5.0-lite（官方文档 82379/2366394）
-  // 普通方舟后付费可使用 5.0 Pro / 4.5 / 4.0 / 3.0 t2i / Seededit 3.0 i2i
+  // 本项目仅接入 Agent Plan 套餐,仅支持 doubao-seedream-5.0-lite(官方文档 82379/2366394)
   volcArkImageModel: 'doubao-seedream-5.0-lite',
 
   // 火山引擎语音技术默认值（独立于方舟 Ark，需单独开通语音技术服务）

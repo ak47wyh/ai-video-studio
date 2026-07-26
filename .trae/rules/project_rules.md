@@ -145,12 +145,78 @@ private ctx(extra: LogContext = {}): LogContext {
 ## 代理配置
 
 - **仅火山引擎平台**所有接口(Ark OpenAI / Ark Anthropic / Speech HTTP / Speech WebSocket)必须走 Vite dev server proxy,不允许直连
-- 代理路径前缀:`/volcengine-ark` / `/volcengine-speech` / `/volcengine-speech-ws`
-- 火山引擎 Base URL 默认值统一为代理前缀(`/volcengine-*`),不再区分 DEV/PROD
+- 代理路径前缀**仅限三个**:`/volcengine-ark` / `/volcengine-speech` / `/volcengine-speech-ws`,禁止新增其他火山前缀(如 `/volcengine-ark-plan`)
+- 火山引擎 Base URL 默认值统一为代理前缀(`/volcengine-*`),**禁止区分 DEV/PROD**(禁止 `import.meta.env.DEV ? ... : 'https://...'` 写法)
+- `/volcengine-ark` 代理必须使用**智能 rewrite 按请求路径分流**:
+  - `/images/*`、`/contents/*` -> `/api/plan/v3`(Agent Plan,图片/视频生成)
+  - 其他路径(`/audio/*`、`/chat/*`) -> `/api/v3`(普通方舟,语音合成/文本对话)
+- Vite dev server 必须 `strictPort: true`,端口冲突直接报错,禁止静默切换端口
+- 遇到配置异常优先用 `npm run dev:clean`(`rm -rf node_modules/.vite && vite`)清除缓存重启
 - 其他平台(MiniMax 原生 / Coze / Kling / Wan / Hunyuan / Zhipu / Vidu 等)保持直连,不使用代理
 - Vite proxy 配置位于 `vite.config.ts`,新增火山端点需同步更新代理规则
 - WebSocket 代理需显式 `ws: true`
 - 禁止使用 Cloudflare Worker / nginx / 其他自建反代方案(统一由 Vite proxy 承载)
+
+## 火山引擎 Agent Plan 套餐接入规则
+
+> 本项目仅接入 Agent Plan 套餐,不使用普通方舟后付费。官方文档:https://www.volcengine.com/docs/82379/2366394
+
+### 套餐与路径前缀
+
+火山方舟存在两套接入体系,API Key 类型与路径前缀**必须配对,交叉使用即 404**:
+
+| 接入体系 | 路径前缀 | 本项目 |
+|---------|---------|--------|
+| 普通方舟(后付费) | `/api/v3` | ❌ 不使用 |
+| **Agent Plan(套餐订阅)** | **`/api/plan/v3`** | ✅ 唯一使用 |
+
+### Agent Plan 支持的模型(图片生成)
+
+官方文档 82379/2366394 明确 Agent Plan **仅支持 `doubao-seedream-5.0-lite`** 一个图片模型。不在列表中的模型(如 `doubao-seedream-5-0-pro-260628`)会返回 404 "model does not support agent plan feature"。
+
+- `src/domain/services/platformCapabilities.ts` 图片模型列表**仅保留 `doubao-seedream-5.0-lite`**,标记 `recommended: true`,删除所有非 Agent Plan 模型(5.0 Pro / 4.5 / 4.0 / 3.0 t2i / Seededit 3.0)
+- `src/adapters/outbound/config/ApiConfigStore.ts` 默认 `volcArkImageModel: 'doubao-seedream-5.0-lite'`
+- **铁律**:仅改默认值不够,必须确认 `useImageModels` 的 `fallbackModelId`(优先选 `recommended: true`)能选到 5.0 Lite
+
+### Base URL 统一
+
+`ApiConfigStore.ts` 中三个 Base URL 字段统一为 `/volcengine-ark`:
+
+```ts
+volcArkBaseUrl: '/volcengine-ark',
+volcArkAgentPlanBaseUrl: '/volcengine-ark',
+volcArkAnthropicBaseUrl: '/volcengine-ark',
+```
+
+### HttpClient 工厂方法
+
+- 图片适配器(`VolcengineImageAdapter`)和视频适配器(`VolcengineVideoAdapter`)必须用 `VolcengineHttpClient.createAgentPlan(config)` 工厂方法
+- Base URL 与普通方舟相同(统一走 `/volcengine-ark` 代理),由 Vite proxy 智能 rewrite 分流
+
+### Service 层模型 ID 透传(关键)
+
+**铁律:Service 层必须透传 UI 层传入的 `context.model`,禁止丢弃重建。**
+
+`ImageGenerationService.generateImage` 必须用解构透传全部字段:
+
+```ts
+const { character, background, ...rest } = context;
+const ctx: ImageGenerationContext = { ...rest, ... };
+```
+
+**禁止**只取部分字段(曾导致 `context.model` 被丢弃,Adapter 回退到 `config.volcArkImageModel`,触发 404)。
+
+### 模型解析顺序
+
+Adapter `resolveModel` 解析顺序:`context.model` -> `config.volcArkImageModel` -> 注册表默认值,三层都应指向 `doubao-seedream-5.0-lite`。
+
+### 404 排查要点
+
+1. **404 Not Found(路径错误)**:确认 `vite.config.ts` 只有 `/volcengine-ark` 代理;确认 dev server 已重启;curl 测试期望 401(非 404)
+2. **404 "model does not support agent plan feature"**:确认注册表无残留非 Agent Plan 模型;确认 `recommended: true` 在 5.0 Lite 上;确认 Service 层透传了 `context.model`;浏览器 DevTools 拦截请求确认 body 中 `model` 为 `doubao-seedream-5.0-lite`
+3. **端口冲突导致旧配置生效**:`lsof -i :5173` 查看占用进程;`strictPort: true` 已强制报错
+
+详细接入规则与修复记录见 `docs/VolcengineAgentPlanIntegrationRules.md` 和 `docs/ImageGeneration_404_Fix_Operation_Log.md`。
 
 ## Mock 适配器使用范围
 
@@ -171,3 +237,26 @@ npm run build       # tsc -b && vite build
 ```
 
 四项全绿方可合并。
+
+### 火山引擎相关改动额外检查
+
+修改 `vite.config.ts` / `ApiConfigStore.ts` / `platformCapabilities.ts` / `ImageGenerationService.ts` / `Volcengine*Adapter.ts` 后,必须额外验证:
+
+```bash
+# 重启 dev server(vite.config.ts 修改不热加载)
+npm run dev:clean
+
+# curl 运行时验证(期望 401 转发成功,非 404)
+curl -s -w "\nHTTP: %{http_code}\n" -X POST http://localhost:5173/volcengine-ark/images/generations \
+  -H "Content-Type: application/json" -H "Authorization: Bearer test_key" \
+  -d '{"model":"doubao-seedream-5.0-lite","prompt":"test"}'
+```
+
+检查清单:
+
+- [ ] `vite.config.ts` 只有 `/volcengine-ark` 代理,智能 rewrite 配置正确
+- [ ] `ApiConfigStore.ts` Base URL 统一为 `/volcengine-ark`,无 DEV/PROD 分支
+- [ ] `platformCapabilities.ts` 图片模型仅 `doubao-seedream-5.0-lite`,`recommended: true`
+- [ ] `ImageGenerationService.generateImage` 透传 `context.model`(禁止丢弃重建)
+- [ ] `VolcengineImageAdapter` / `VolcengineVideoAdapter` 使用 `createAgentPlan` 工厂方法
+- [ ] curl 测试返回 401(转发成功),非 404

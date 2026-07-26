@@ -630,7 +630,7 @@ export const Settings: React.FC = () => {
               background: 'var(--bg-elevated, var(--bg-overlay))',
             }}>
               <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.5rem' }}>
-                {t('settings.volcOpenAiSectionTitle', { defaultValue: 'OpenAI 协议（标准后付费）' })}
+                {t('settings.volcOpenAiSectionTitle', { defaultValue: 'OpenAI 协议（Agent Plan 套餐）' })}
               </div>
               <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
                 {t('settings.volcOpenAiSectionHint', { defaultValue: '用于：视频生成 / 图片生成 / 语音 Ark TTS / 文本生成（OpenAI 兼容）' })}
@@ -655,8 +655,8 @@ export const Settings: React.FC = () => {
                 label={t('settings.volcArkImageModelLabel', { defaultValue: '图片生成模型 ID' })}
                 value={config.volcArkImageModel}
                 onChange={v => handleChange('volcArkImageModel', v)}
-                placeholder="doubao-seedream-4-5-251128"
-                hint={t('settings.volcArkImageModelHint', { defaultValue: '可选:doubao-seedream-4-5-251128(推荐旗舰) / doubao-seedream-3-0-t2i(文生图) / doubao-seededit-3-0-i2i(图生图)。留空则使用推荐模型。' })}
+                placeholder="doubao-seedream-5.0-lite"
+                hint={t('settings.volcArkImageModelHint', { defaultValue: 'Agent Plan 套餐仅支持 doubao-seedream-5.0-lite。留空则使用默认模型。' })}
               />
               <button
                 type="button"
@@ -813,8 +813,8 @@ export const Settings: React.FC = () => {
                 onChange={v => handleChange('volcArkTextProtocol', v as VolcArkProtocol)}
                 type="select"
                 options={[
-                  { value: 'openai', label: t('settings.volcArkProtocolOpenai', { defaultValue: '标准后付费（OpenAI 协议）' }) },
-                  { value: 'anthropic', label: t('settings.volcArkProtocolAnthropic', { defaultValue: 'Agent Plan 订阅（Anthropic 协议）' }) },
+                  { value: 'openai', label: t('settings.volcArkProtocolOpenai', { defaultValue: 'Agent Plan（OpenAI 协议）' }) },
+                  { value: 'anthropic', label: t('settings.volcArkProtocolAnthropic', { defaultValue: 'Agent Plan（Anthropic 协议）' }) },
                 ]}
               />
             </div>

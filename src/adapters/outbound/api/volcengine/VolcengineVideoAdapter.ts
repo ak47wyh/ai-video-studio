@@ -37,8 +37,7 @@ export class VolcengineVideoAdapter implements IVideoGeneratorPort {
   constructor(config: ApiConfig, logger: ILoggerPort) {
     this.config = config;
     this.logger = logger;
-    // 视频生成走 Agent Plan 专属 Base URL（/api/plan/v3），
-    // 官方文档明确要求 Agent Plan 接口路径包含 /plan 段。
+    // 视频生成走 Agent Plan 套餐,统一 /volcengine-ark 代理,由 Vite proxy 智能 rewrite 到 /api/plan/v3。
     this.http = VolcengineHttpClient.createAgentPlan(config);
   }
 
