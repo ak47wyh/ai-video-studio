@@ -1,5 +1,6 @@
 import type { IImageGeneratorPort, ImageGenerationContext, ImageGenerationResult } from '../../../../domain/ports/OutboundPorts';
 import type { ApiConfig } from '../../config/ApiConfigStore';
+import { UnsupportedCapabilityError } from '../../../../domain/errors/UnsupportedCapabilityError';
 import { HunyuanHttpClient } from './HunyuanHttpClient';
 import { withRetry } from './HunyuanErrorUtils';
 
@@ -29,11 +30,9 @@ export class HunyuanImageAdapter implements IImageGeneratorPort {
   }
 
   async generateImage(context: ImageGenerationContext): Promise<ImageGenerationResult> {
-    // ── Mock 模式 ──
+    // ── API Key 缺失：抛能力不支持错误，禁止返回占位图 ──
     if (!this.config.hunyuanSecretId || !this.config.hunyuanSecretKey) {
-      console.warn('[HunyuanImageAdapter] No SecretId/SecretKey — returning placeholder image.');
-      const mockBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==';
-      return { imageDataUri: `data:image/png;base64,${mockBase64}` };
+      throw new UnsupportedCapabilityError('hunyuan', 'image');
     }
 
     const model = (context.model as string) || 'hunyuan-image';

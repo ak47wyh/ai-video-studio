@@ -14,10 +14,11 @@
  *   3. CORS-blocked URL 会抛错（且不会经过 fetch 之前的路径）
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { AssetLibraryService } from '../../domain/services/AssetLibraryService';
 import type { ISavedImageRepository, ISavedVoiceRepository, ISavedPromptRepository, ISavedVideoRepository } from '../../domain/ports/AssetLibraryPorts';
 import type { IFileStoragePort, IGeneratedFileRepository } from '../../domain/ports/FileStoragePorts';
+import type { IHttpFetchPort } from '../../domain/ports/CrossCuttingPorts';
 import type { SavedImage, GeneratedFile } from '../../domain/entities/models';
 
 class MockFileStorage implements IFileStoragePort {
@@ -81,6 +82,7 @@ describe('AssetLibraryService.saveImageFromUrl —— data URI 处理（绕过 C
       imgRepo, mockVoiceRepo, mockPromptRepo, mockVideoRepo,
       storage,
       new MockFileRepo(),
+      { fetchBlob: vi.fn(), fetchText: vi.fn(), fetchJson: vi.fn() },
     );
   });
 
@@ -166,28 +168,30 @@ describe('AssetLibraryService.saveImageFromUrl —— data URI 处理（绕过 C
   });
 });
 
-describe('AssetLibraryService.saveImageFromUrl —— 外部 URL 失败时包装根因', () => {
+describe('AssetLibraryService.saveImageFromUrl -- 外部 URL 失败时包装根因', () => {
   let service: AssetLibraryService;
   let storage: MockFileStorage;
+  let httpFetch: IHttpFetchPort;
 
   beforeEach(() => {
     storage = new MockFileStorage();
+    httpFetch = {
+      fetchBlob: vi.fn(),
+      fetchText: vi.fn(),
+      fetchJson: vi.fn(),
+    };
     service = new AssetLibraryService(
       new MockImageRepo(), mockVoiceRepo, mockPromptRepo, mockVideoRepo,
       storage,
       new MockFileRepo(),
+      httpFetch,
     );
   });
 
   it('外部 URL fetch 失败时抛带 CORS 提示的错误（含 cause）', async () => {
-    // 模拟 fetch 在 Node/jsdom 中被拦截
-    const originalFetch = globalThis.fetch;
-    globalThis.fetch = async () => {
-      throw new TypeError('Failed to fetch');
-    };
+    (httpFetch.fetchBlob as ReturnType<typeof vi.fn>).mockRejectedValue(new TypeError('Failed to fetch'));
 
-    try {
-      await expect(service.saveImageFromUrl({
+    await expect(service.saveImageFromUrl({
         spaceId: 's',
         name: 't',
         imageUrl: 'https://hailuo-image-algeng-data.oss-cn-wulanchabu.aliyuncs.com/x.png',
@@ -196,17 +200,12 @@ describe('AssetLibraryService.saveImageFromUrl —— 外部 URL 失败时包装
         aspectRatio: '1:1',
         sourceType: 'lab',
       })).rejects.toThrow(/CORS/);
-    } finally {
-      globalThis.fetch = originalFetch;
-    }
   });
 
   it('外部 URL HTTP 错误时抛带状态码的错误', async () => {
-    const originalFetch = globalThis.fetch;
-    globalThis.fetch = async () => new Response('forbidden', { status: 403 });
+    (httpFetch.fetchBlob as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('HTTP 403'));
 
-    try {
-      await expect(service.saveImageFromUrl({
+    await expect(service.saveImageFromUrl({
         spaceId: 's',
         name: 't',
         imageUrl: 'https://example.com/x.png',
@@ -215,9 +214,6 @@ describe('AssetLibraryService.saveImageFromUrl —— 外部 URL 失败时包装
         aspectRatio: '1:1',
         sourceType: 'lab',
       })).rejects.toThrow(/HTTP 403/);
-    } finally {
-      globalThis.fetch = originalFetch;
-    }
   });
 });
 
@@ -228,6 +224,7 @@ describe('AssetLibraryService.saveImageFromBlob（基础流程回归）', () => 
     const service = new AssetLibraryService(
       imgRepo, mockVoiceRepo, mockPromptRepo, mockVideoRepo,
       storage, new MockFileRepo(),
+      { fetchBlob: vi.fn(), fetchText: vi.fn(), fetchJson: vi.fn() },
     );
 
     const blob = new Blob(['hello'], { type: 'image/png' });

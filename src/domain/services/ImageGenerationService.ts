@@ -3,7 +3,8 @@ import type { ICharacterRepository, IBackgroundRepository } from '../ports/Outbo
 import type { IFileStoragePort } from '../ports/FileStoragePorts';
 import type { IApiConfigStore } from '../ports/PlatformPorts';
 import type { ILoggerPort, LogContext, ICostMeter, IHttpFetchPort } from '../ports/CrossCuttingPorts';
-import { PlatformRouter } from './PlatformRouter';
+import type { PlatformRouter } from './PlatformRouter';
+import { getDefaultImageModel } from './platformCapabilities';
 
 /**
  * 领域服务：图片生成
@@ -27,8 +28,8 @@ export class ImageGenerationService {
   private logger: ILoggerPort;
   private getFileStorage: () => IFileStoragePort;
   private costMeter?: ICostMeter;
-  /** P1-2：可选注入的 HTTP 抓取 Port */
-  private httpFetch?: IHttpFetchPort;
+  /** HTTP 抓取 Port */
+  private httpFetch: IHttpFetchPort;
 
   constructor(
     characterRepo: ICharacterRepository,
@@ -37,8 +38,8 @@ export class ImageGenerationService {
     configStore: IApiConfigStore,
     fileStorage: IFileStoragePort | (() => IFileStoragePort),
     logger: ILoggerPort,
+    httpFetch: IHttpFetchPort,
     costMeter?: ICostMeter,
-    httpFetch?: IHttpFetchPort,
   ) {
     this.characterRepo = characterRepo;
     this.backgroundRepo = backgroundRepo;
@@ -85,8 +86,10 @@ export class ImageGenerationService {
       throw new Error('Character has no appearance or personality prompt to generate image from');
     }
 
+    const config = this.configStore.load();
     const context: ImageGenerationContext = {
       prompt: parts.join(', '),
+      model: getDefaultImageModel(config.activePlatform),
       aspectRatio: aspectRatio as ImageAspectRatio,
       subjectReferenceUrl: character.referenceImageUrl?.startsWith('http')
         ? character.referenceImageUrl
@@ -95,7 +98,7 @@ export class ImageGenerationService {
 
     const imagePort = this.getImagePort();
     const result = await imagePort.generateImage(context);
-    this.recordImageCost('image-default');
+    this.recordImageCost(context.model || 'unknown');
 
     const reference = await this.persistImage(
       `images/char_${characterId}.png`,
@@ -116,14 +119,16 @@ export class ImageGenerationService {
       throw new Error('Background has no environment prompt to generate image from');
     }
 
+    const config = this.configStore.load();
     const context: ImageGenerationContext = {
       prompt: background.environmentPrompt,
+      model: getDefaultImageModel(config.activePlatform),
       aspectRatio: aspectRatio as ImageAspectRatio,
     };
 
     const imagePort = this.getImagePort();
     const result = await imagePort.generateImage(context);
-    this.recordImageCost('image-default');
+    this.recordImageCost(context.model || 'unknown');
 
     const reference = await this.persistImage(
       `images/bg_${backgroundId}.png`,
@@ -165,7 +170,7 @@ export class ImageGenerationService {
 
     const imagePort = this.getImagePort();
     const result = await imagePort.generateImage(ctx);
-    this.recordImageCost('image-default');
+    this.recordImageCost(context.model || 'unknown');
 
     return {
       imageDataUri: result.imageDataUri ?? '',
@@ -196,10 +201,7 @@ export class ImageGenerationService {
     if (!source) return { url: '' };
 
     try {
-      // P1-2：优先走 IHttpFetchPort（自动 NetworkError/TimeoutError 归一化）
-      const blob = this.httpFetch
-        ? await this.httpFetch.fetchBlob(source)
-        : await (await fetch(source)).blob();
+      const blob = await this.httpFetch.fetchBlob(source);
 
       if (!blob || blob.size === 0) return { url: source };
 

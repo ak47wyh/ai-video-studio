@@ -2,7 +2,11 @@ import type { FFmpeg } from '@ffmpeg/ffmpeg';
 import type { IFFmpegPort, MergeContext, VideoClip, SubtitleStyle, BgmMixConfig, TransitionType, OutputFormat, CropOptions } from '../../../domain/ports/PostProcessPorts';
 
 const CORE_VERSION = '0.12.6';
-const CORE_BASE = `https://unpkg.com/@ffmpeg/core@${CORE_VERSION}/dist/umd`;
+// FFmpeg 核心 CDN 基址列表：主 CDN 加载失败时自动切换到备用 CDN
+const CORE_CDN_BASES = [
+  `https://unpkg.com/@ffmpeg/core@${CORE_VERSION}/dist/umd`,
+  `https://cdnjs.cloudflare.com/ajax/libs/ffmpeg-core/${CORE_VERSION}/umd`,
+];
 
 /**
  * FFmpeg WASM 适配器
@@ -57,11 +61,21 @@ export class FFmpegAdapter implements IFFmpegPort {
     this.fetchFileFn = util.fetchFile;
 
     const ffmpeg = new FFmpegCtor();
-    await ffmpeg.load({
-      coreURL: await util.toBlobURL(`${CORE_BASE}/ffmpeg-core.js`, 'text/javascript'),
-      wasmURL: await util.toBlobURL(`${CORE_BASE}/ffmpeg-core.wasm`, 'application/wasm'),
-    });
-    this.ffmpeg = ffmpeg;
+    // 遍历 CDN 列表，首个成功即用；全部失败时抛出最后一个错误
+    let lastError: unknown = null;
+    for (const base of CORE_CDN_BASES) {
+      try {
+        await ffmpeg.load({
+          coreURL: await util.toBlobURL(`${base}/ffmpeg-core.js`, 'text/javascript'),
+          wasmURL: await util.toBlobURL(`${base}/ffmpeg-core.wasm`, 'application/wasm'),
+        });
+        this.ffmpeg = ffmpeg;
+        return;
+      } catch (e) {
+        lastError = e;
+      }
+    }
+    throw lastError ?? new Error('FFmpeg core load failed: all CDNs unavailable');
   }
 
   /**

@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FileText } from 'lucide-react';
 import { useEnhancement, buildPdfOptions } from '../../hooks/useEnhancement';
 import { useToast } from '../../contexts/ToastContext';
@@ -15,6 +16,7 @@ import type { EnhanceMode, PdfOutputForm, PdfPageRange } from '../../../domain/p
 const MAX_DIMENSION = 560;
 
 export const PdfEnhancePanel: React.FC = () => {
+  const { t } = useTranslation();
   const { showToast } = useToast();
   const {
     progress, isProcessing, error, resultUrl,
@@ -34,7 +36,7 @@ export const PdfEnhancePanel: React.FC = () => {
 
   const handleFileSelect = useCallback(async (f: File) => {
     if (f.type !== 'application/pdf') {
-      showToast('error', '请选择 PDF 文件');
+      showToast('error', t('enhanceLab.selectPdf', '请选择 PDF 文件'));
       return;
     }
     setFile(f);
@@ -61,9 +63,9 @@ export const PdfEnhancePanel: React.FC = () => {
       await page.render({ canvasContext: ctx, viewport }).promise;
       setFirstPageUrl(canvas.toDataURL('image/png'));
     } catch (_e) {
-      showToast('error', 'PDF 预览失败');
+      showToast('error', t('enhanceLab.pdfPreviewFailed', 'PDF 预览失败'));
     }
-  }, [reset, showToast]);
+  }, [reset, showToast, t]);
 
   const handleProcess = () => {
     if (!file) return;
@@ -84,8 +86,8 @@ export const PdfEnhancePanel: React.FC = () => {
       {!file ? (
         <EnhanceUploadZone
           icon={<FileText size={40} style={{ color: 'var(--text-muted)', opacity: 0.5 }} />}
-          hint="拖拽 PDF 到此处或点击上传"
-          hint2="支持标准 PDF · 最大 50 页 · 最大 50MB"
+          hint={t('enhanceLab.pdfUploadHint', '拖拽 PDF 到此处或点击上传')}
+          hint2={t('enhanceLab.pdfUploadHint2', '支持标准 PDF · 最大 50 页 · 最大 50MB')}
           accept="application/pdf"
           onFile={handleFileSelect}
         />
@@ -101,51 +103,51 @@ export const PdfEnhancePanel: React.FC = () => {
             ) : firstPageUrl ? (
               <img
                 src={firstPageUrl}
-                alt="PDF 预览"
+                alt={t('enhanceLab.pdfPreview', 'PDF 预览')}
                 style={{ width: displaySize.w, height: displaySize.h, objectFit: 'contain', borderRadius: 'var(--radius-md)' }}
               />
             ) : null}
             {!resultUrl && (
               <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.3rem' }}>
-                提示：预览为第一页，增强处理将应用到所选页范围
+                {t('enhanceLab.pdfPageHint', '提示：预览为第一页，增强处理将应用到所选页范围')}
               </p>
             )}
           </div>
 
           <div className="enhance-params-panel">
             <div className="form-group">
-              <label className="form-label">输出 DPI</label>
+              <label className="form-label">{t('enhanceLab.outputDpi', '输出 DPI')}</label>
               <select className="form-select" value={dpi} onChange={(e) => setDpi(Number(e.target.value) as 96 | 150 | 300)} disabled={isProcessing}>
-                <option value={96}>96（快速）</option>
-                <option value={150}>150（推荐）</option>
-                <option value={300}>300（高清）</option>
+                <option value={96}>{t('enhanceLab.dpi96', '96（快速）')}</option>
+                <option value={150}>{t('enhanceLab.dpi150', '150（推荐）')}</option>
+                <option value={300}>{t('enhanceLab.dpi300', '300（高清）')}</option>
               </select>
             </div>
 
             <div className="form-group">
-              <label className="form-label">增强模式</label>
+              <label className="form-label">{t('enhanceLab.enhanceMode', '增强模式')}</label>
               <select className="form-select" value={mode} onChange={(e) => setMode(e.target.value as EnhanceMode)} disabled={isProcessing}>
-                <option value="sharpen">文字锐化</option>
-                <option value="denoise">去噪</option>
-                <option value="all">综合（推荐）</option>
+                <option value="sharpen">{t('enhanceLab.modeTextSharpen', '文字锐化')}</option>
+                <option value="denoise">{t('enhanceLab.modeDenoise', '去噪')}</option>
+                <option value="all">{t('enhanceLab.modeAllPdf', '综合（推荐）')}</option>
               </select>
             </div>
 
             {(mode === 'sharpen' || mode === 'all') && (
               <EnhanceParamSlider
-                label="锐化强度"
+                label={t('enhanceLab.sharpenStrength', '锐化强度')}
                 value={sharpen}
                 disabled={isProcessing}
-                tooltip="USM 锐化：提升文字边缘清晰度"
+                tooltip={t('enhanceLab.pdfSharpenTooltip', 'USM 锐化：提升文字边缘清晰度')}
                 onChange={setSharpen}
               />
             )}
 
             <div className="form-group">
-              <label className="form-label">处理范围</label>
+              <label className="form-label">{t('enhanceLab.pageRange', '处理范围')}</label>
               <select className="form-select" value={pageRangeMode} onChange={(e) => setPageRangeMode(e.target.value as 'all' | 'custom')} disabled={isProcessing}>
-                <option value="all">全部页</option>
-                <option value="custom">指定页范围</option>
+                <option value="all">{t('enhanceLab.allPages', '全部页')}</option>
+                <option value="custom">{t('enhanceLab.customRange', '指定页范围')}</option>
               </select>
             </div>
 
@@ -158,7 +160,7 @@ export const PdfEnhancePanel: React.FC = () => {
                   value={pageFrom}
                   onChange={(e) => setPageFrom(Number(e.target.value))}
                   disabled={isProcessing}
-                  placeholder="起始页"
+                  placeholder={t('enhanceLab.pageFrom', '起始页')}
                   style={{ flex: 1 }}
                 />
                 <input
@@ -168,17 +170,17 @@ export const PdfEnhancePanel: React.FC = () => {
                   value={pageTo}
                   onChange={(e) => setPageTo(Number(e.target.value))}
                   disabled={isProcessing}
-                  placeholder="结束页"
+                  placeholder={t('enhanceLab.pageTo', '结束页')}
                   style={{ flex: 1 }}
                 />
               </div>
             )}
 
             <div className="form-group">
-              <label className="form-label">输出形式</label>
+              <label className="form-label">{t('enhanceLab.outputForm', '输出形式')}</label>
               <select className="form-select" value={outputForm} onChange={(e) => setOutputForm(e.target.value as PdfOutputForm)} disabled={isProcessing}>
-                <option value="rasterized">图像型 PDF（扫描件推荐）</option>
-                <option value="preserve_text">保留文字层（数字 PDF）</option>
+                <option value="rasterized">{t('enhanceLab.formRasterized', '图像型 PDF（扫描件推荐）')}</option>
+                <option value="preserve_text">{t('enhanceLab.formPreserveText', '保留文字层（数字 PDF）')}</option>
               </select>
             </div>
 
@@ -209,7 +211,7 @@ export const PdfEnhancePanel: React.FC = () => {
               style={{ marginTop: '0.5rem', fontSize: '0.75rem' }}
               onClick={() => { setFile(null); setFirstPageUrl(null); reset(); }}
             >
-              更换 PDF
+              {t('enhanceLab.changePdf', '更换 PDF')}
             </button>
           </div>
         </div>

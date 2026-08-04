@@ -38,6 +38,7 @@ export async function withRetry<T>(
       if (attempt < maxRetries && isRetryable(error, attempt)) {
         const delay = baseDelayMs * Math.pow(2, attempt);
         if (logTag) {
+          // TODO: P2 注入 ILoggerPort（需扩展 WithRetryOptions 并由各调用方透传）
           console.warn(`${logTag} 第 ${attempt + 1} 次重试（${delay}ms 后）`, {
             errorName: error instanceof Error ? error.name : typeof error,
             message: error instanceof Error ? error.message : String(error),

@@ -25,27 +25,28 @@ import type { SpaceAssetCounts } from '../../domain/ports/SpaceQueryPort';
 
 type TabKey = 'images' | 'characters' | 'backgrounds' | 'stories';
 
-export const SpaceDetailPage: React.FC = () => {
-  const { t } = useTranslation();
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const { showToast } = useToast();
-  const { confirm } = useConfirm();
-
-  // --- 空间信息（Phase 2 DIP：通过 spaceQueryPort 订阅，替代 useLiveQuery + db 直查） ---
-  const [space, setSpace] = useState<StorySpace | undefined>(undefined);
+/**
+ * 通用空间查询 Hook -- 封装 spaceQueryPort 订阅 + cancelled 守卫模式。
+ * 自动在数据变更时重新查询，组件卸载时取消订阅。
+ *
+ * @param queryFn 查询函数（返回 Promise）
+ * @param deps 依赖数组，控制何时重新订阅
+ * @returns 查询结果（初始为 undefined）
+ */
+function useSpaceQuery<T>(
+  queryFn: () => Promise<T>,
+  deps: React.DependencyList,
+): T | undefined {
+  const [data, setData] = useState<T | undefined>(undefined);
   useEffect(() => {
-    // id 缺失时不动 state；该路由本不会渲染，避免触发同步 setState 级联
-    if (!id) return;
     let cancelled = false;
     const run = () => {
-      spaceQueryPort.getSpace(id)
-        .then((sp) => {
-          if (!cancelled) setSpace(sp);
+      queryFn()
+        .then((result) => {
+          if (!cancelled) setData(result);
         })
         .catch((e) => {
-          // 静默错误，避免 UI 闪烁
-          console.warn('[SpaceDetailPage] getSpace failed', e);
+          console.warn('[useSpaceQuery] query failed', e);
         });
     };
     run();
@@ -54,7 +55,24 @@ export const SpaceDetailPage: React.FC = () => {
       cancelled = true;
       unsubscribe();
     };
-  }, [id]);
+    // queryFn 由调用方通过 deps 控制重新订阅时机，此处禁用避免重复触发
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+  return data;
+}
+
+export const SpaceDetailPage: React.FC = () => {
+  const { t } = useTranslation();
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { showToast } = useToast();
+  const { confirm } = useConfirm();
+
+  // --- 空间信息（通过 useSpaceQuery 订阅，替代手动 useEffect + subscribe 模式） ---
+  const space = useSpaceQuery<StorySpace | undefined>(
+    () => (id ? spaceQueryPort.getSpace(id) : Promise.resolve(undefined)),
+    [id],
+  );
 
   // --- 编辑态 ---
   const [isEditing, setIsEditing] = useState(false);
@@ -65,26 +83,10 @@ export const SpaceDetailPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabKey>('images');
 
   // --- 各资产数量（用于 Tab 栏计数） ---
-  const [counts, setCounts] = useState<SpaceAssetCounts>({ images: 0, characters: 0, backgrounds: 0, stories: 0 });
-  useEffect(() => {
-    if (!id) return;
-    let cancelled = false;
-    const run = () => {
-      spaceQueryPort.countBySpace(id)
-        .then((c) => {
-          if (!cancelled) setCounts(c);
-        })
-        .catch((e) => {
-          console.warn('[SpaceDetailPage] countBySpace failed', e);
-        });
-    };
-    run();
-    const unsubscribe = spaceQueryPort.subscribe(run);
-    return () => {
-      cancelled = true;
-      unsubscribe();
-    };
-  }, [id]);
+  const counts = useSpaceQuery<SpaceAssetCounts>(
+    () => (id ? spaceQueryPort.countBySpace(id) : Promise.resolve({ images: 0, characters: 0, backgrounds: 0, stories: 0 })),
+    [id],
+  ) ?? { images: 0, characters: 0, backgrounds: 0, stories: 0 };
 
   // --- 空间不存在 ---
   if (!space) {
@@ -323,26 +325,11 @@ const ImagesTab: React.FC<ImagesTabProps> = ({ spaceId }) => {
   const { t } = useTranslation();
   const { showToast } = useToast();
 
-  // Phase 2 DIP：通过 spaceQueryPort 订阅图片资产
-  const [allImages, setAllImages] = useState<SavedImage[]>([]);
-  useEffect(() => {
-    let cancelled = false;
-    const run = () => {
-      spaceQueryPort.listImagesBySpace(spaceId)
-        .then((imgs) => {
-          if (!cancelled) setAllImages(imgs);
-        })
-        .catch((e) => {
-          console.warn('[ImagesTab] listImagesBySpace failed', e);
-        });
-    };
-    run();
-    const unsubscribe = spaceQueryPort.subscribe(run);
-    return () => {
-      cancelled = true;
-      unsubscribe();
-    };
-  }, [spaceId]);
+  // 通过 useSpaceQuery 订阅图片资产
+  const allImages = useSpaceQuery<SavedImage[]>(
+    () => spaceQueryPort.listImagesBySpace(spaceId),
+    [spaceId],
+  ) ?? [];
 
   const [keyword, setKeyword] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -548,25 +535,10 @@ const CharactersTab: React.FC<CharactersTabProps> = ({ spaceId }) => {
   const { confirm } = useConfirm();
   const navigate = useNavigate();
 
-  const [characters, setCharacters] = useState<Character[]>([]);
-  useEffect(() => {
-    let cancelled = false;
-    const run = () => {
-      spaceQueryPort.listCharactersBySpace(spaceId)
-        .then((list) => {
-          if (!cancelled) setCharacters(list);
-        })
-        .catch((e) => {
-          console.warn('[CharactersTab] listCharactersBySpace failed', e);
-        });
-    };
-    run();
-    const unsubscribe = spaceQueryPort.subscribe(run);
-    return () => {
-      cancelled = true;
-      unsubscribe();
-    };
-  }, [spaceId]);
+  const characters = useSpaceQuery<Character[]>(
+    () => spaceQueryPort.listCharactersBySpace(spaceId),
+    [spaceId],
+  ) ?? [];
 
   const handleDelete = async (id: string) => {
     const ok = await confirm({
@@ -638,25 +610,10 @@ const BackgroundsTab: React.FC<BackgroundsTabProps> = ({ spaceId }) => {
   const { confirm } = useConfirm();
   const navigate = useNavigate();
 
-  const [backgrounds, setBackgrounds] = useState<Background[]>([]);
-  useEffect(() => {
-    let cancelled = false;
-    const run = () => {
-      spaceQueryPort.listBackgroundsBySpace(spaceId)
-        .then((list) => {
-          if (!cancelled) setBackgrounds(list);
-        })
-        .catch((e) => {
-          console.warn('[BackgroundsTab] listBackgroundsBySpace failed', e);
-        });
-    };
-    run();
-    const unsubscribe = spaceQueryPort.subscribe(run);
-    return () => {
-      cancelled = true;
-      unsubscribe();
-    };
-  }, [spaceId]);
+  const backgrounds = useSpaceQuery<Background[]>(
+    () => spaceQueryPort.listBackgroundsBySpace(spaceId),
+    [spaceId],
+  ) ?? [];
 
   const handleDelete = async (id: string) => {
     const ok = await confirm({
@@ -728,25 +685,10 @@ const StoriesTab: React.FC<StoriesTabProps> = ({ spaceId }) => {
   const { confirm } = useConfirm();
   const navigate = useNavigate();
 
-  const [stories, setStories] = useState<Story[]>([]);
-  useEffect(() => {
-    let cancelled = false;
-    const run = () => {
-      spaceQueryPort.listStoriesBySpace(spaceId)
-        .then((list) => {
-          if (!cancelled) setStories(list);
-        })
-        .catch((e) => {
-          console.warn('[StoriesTab] listStoriesBySpace failed', e);
-        });
-    };
-    run();
-    const unsubscribe = spaceQueryPort.subscribe(run);
-    return () => {
-      cancelled = true;
-      unsubscribe();
-    };
-  }, [spaceId]);
+  const stories = useSpaceQuery<Story[]>(
+    () => spaceQueryPort.listStoriesBySpace(spaceId),
+    [spaceId],
+  ) ?? [];
 
   const handleDelete = async (id: string) => {
     const ok = await confirm({

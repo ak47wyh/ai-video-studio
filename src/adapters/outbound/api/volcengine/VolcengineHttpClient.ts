@@ -1,5 +1,6 @@
 import type { ApiConfig } from '../../config/ApiConfigStore';
 import type { VolcArkProtocol } from '../../../../domain/entities/platform';
+import type { ILoggerPort } from '../../../../domain/ports/CrossCuttingPorts';
 import { BaseHttpClient } from '../_base/BaseHttpClient';
 import { parseVolcengineError, VolcengineApiError } from './VolcengineErrorUtils';
 
@@ -28,8 +29,9 @@ export class VolcengineHttpClient extends BaseHttpClient {
   private readonly activeBaseUrl: string;
   /** 是否为 Anthropic 协议（Agent Plan 接入） */
   readonly isAnthropic: boolean;
+  private readonly logger?: ILoggerPort;
 
-  constructor(config: ApiConfig, protocol: VolcArkProtocol, baseUrlOverride?: string) {
+  constructor(config: ApiConfig, protocol: VolcArkProtocol, baseUrlOverride?: string, logger?: ILoggerPort) {
     const isAnthropic = protocol === 'anthropic';
     // baseUrlOverride 用于 Agent Plan 等独立路径场景，优先级最高
     const baseUrl = baseUrlOverride
@@ -53,8 +55,10 @@ export class VolcengineHttpClient extends BaseHttpClient {
     this.config = config;
     this.isAnthropic = isAnthropic;
     this.activeBaseUrl = baseUrl.replace(/\/+$/, '');
+    this.logger = logger;
 
-    console.info('[VolcengineHttpClient] 初始化', {
+    this.logger?.info('VolcengineHttpClient 初始化', {
+      service: 'VolcengineHttpClient',
       protocol,
       baseUrlSource: baseUrlOverride ? 'agent-plan-override' : (isAnthropic ? 'anthropic' : 'openai-default'),
       baseUrl,
@@ -63,20 +67,20 @@ export class VolcengineHttpClient extends BaseHttpClient {
   }
 
   /** 工厂方法：创建 OpenAI 协议 HttpClient（Voice/Text Adapter 使用，走 /api/v3） */
-  static createOpenAI(config: ApiConfig): VolcengineHttpClient {
-    return new VolcengineHttpClient(config, 'openai');
+  static createOpenAI(config: ApiConfig, logger?: ILoggerPort): VolcengineHttpClient {
+    return new VolcengineHttpClient(config, 'openai', undefined, logger);
   }
 
   /** 工厂方法：创建 Anthropic 协议 HttpClient */
-  static createAnthropic(config: ApiConfig): VolcengineHttpClient {
-    return new VolcengineHttpClient(config, 'anthropic');
+  static createAnthropic(config: ApiConfig, logger?: ILoggerPort): VolcengineHttpClient {
+    return new VolcengineHttpClient(config, 'anthropic', undefined, logger);
   }
 
   /** 工厂方法：创建 Agent Plan HttpClient（Image/Video Adapter 使用）
    *  Base URL 与普通方舟相同（统一走 /volcengine-ark 代理），
    *  Vite proxy 通过请求路径智能分流到 /api/plan/v3。 */
-  static createAgentPlan(config: ApiConfig): VolcengineHttpClient {
-    return new VolcengineHttpClient(config, 'openai', config.volcArkBaseUrl);
+  static createAgentPlan(config: ApiConfig, logger?: ILoggerPort): VolcengineHttpClient {
+    return new VolcengineHttpClient(config, 'openai', config.volcArkBaseUrl, logger);
   }
 
   /**

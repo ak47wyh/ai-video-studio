@@ -78,6 +78,7 @@ export const TextLab: React.FC = () => {
 
   // 平台切换时同步模型选择
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 平台切换时需要同步默认模型
     setChatModel(defaultModel);
     setRefineModel(defaultModel);
   }, [defaultModel]);
@@ -86,6 +87,7 @@ export const TextLab: React.FC = () => {
   const [refineStreamingContent, setRefineStreamingContent] = useState('');
   const [refineStreamingThinking, setRefineStreamingThinking] = useState('');
   const refineAbortRef = useRef<AbortController | null>(null);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [copied, setCopied] = useState(false);
 
   // ==================== Models Tab State ====================
@@ -99,6 +101,15 @@ export const TextLab: React.FC = () => {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // 组件卸载时清理复制状态定时器
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) {
+        clearTimeout(copyTimerRef.current);
+      }
+    };
+  }, []);
 
   // ==================== Chat Handlers ====================
   const handleSend = useCallback(() => {
@@ -237,7 +248,11 @@ export const TextLab: React.FC = () => {
     if (!text) return;
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      // 清理上一个定时器，避免快速多次复制时定时器堆叠
+      if (copyTimerRef.current) {
+        clearTimeout(copyTimerRef.current);
+      }
+      copyTimerRef.current = setTimeout(() => setCopied(false), 2000);
     });
   }, [refineResult, refineStreamingContent]);
 
@@ -365,8 +380,8 @@ export const TextLab: React.FC = () => {
                     </div>
                     <div className={`chat-bubble ${msg.role === 'user' ? 'chat-bubble-user' : 'chat-bubble-assistant'}`}>
                       {msg.isStreaming && !msg.content ? (
-                        <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                          <Sparkles size={12} className="spin" /> {t('textLab.thinking', '思考中...')}
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }} role="status" aria-live="polite">
+                          <Sparkles size={12} className="spin" aria-hidden="true" /> {t('textLab.thinking', '思考中...')}
                         </span>
                       ) : (
                         <>
@@ -382,8 +397,8 @@ export const TextLab: React.FC = () => {
                       )}
                       {msg.role === 'assistant' && idx > 0 && !msg.isStreaming && (
                         <div className="chat-action-btn">
-                          <button onClick={() => handleCollectPrompt(msg.content)} title={t('assetLibrary.collectBtn', '收藏')}>
-                            <BookmarkPlus size={12} />
+                          <button onClick={() => handleCollectPrompt(msg.content)} title={t('assetLibrary.collectBtn', '收藏')} aria-label={t('assetLibrary.collectBtn', '收藏')}>
+                            <BookmarkPlus size={12} aria-hidden="true" />
                           </button>
                         </div>
                       )}
@@ -412,8 +427,9 @@ export const TextLab: React.FC = () => {
                   style={{ background: isGenerating ? 'var(--color-danger)' : 'var(--color-success)', border: 'none', color: 'var(--text-inverse)', padding: '0 1rem' }}
                   disabled={!input.trim() && !isGenerating}
                   onClick={isGenerating ? handleStopGenerating : handleSend}
+                  aria-label={isGenerating ? t('textLab.stopGenerating', '停止生成') : t('textLab.send', '发送')}
                 >
-                  {isGenerating ? <RefreshCw size={16} /> : <Send size={16} />}
+                  {isGenerating ? <RefreshCw size={16} aria-hidden="true" /> : <Send size={16} aria-hidden="true" />}
                 </button>
               </div>
             </div>
@@ -472,7 +488,7 @@ export const TextLab: React.FC = () => {
               disabled={!refineInput.trim() || isRefining}
               onClick={handleRefine}
             >
-              {isRefining ? <RefreshCw className="spin" size={14} /> : <Sparkles size={14} />}
+              {isRefining ? <RefreshCw className="spin" size={14} aria-hidden="true" /> : <Sparkles size={14} aria-hidden="true" />}
               {isRefining ? t('textLab.refining', '润色中...') : t('textLab.refineBtn', '一键润色')}
             </button>
           </div>
@@ -483,7 +499,7 @@ export const TextLab: React.FC = () => {
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.5rem' }}>
                 <CheckCircle2 size={14} style={{ color: 'var(--lab-color-enhance)' }} />
                 <span style={{ color: 'var(--lab-color-enhance)', fontWeight: 600, fontSize: '0.85rem' }}>{t('textLab.refineResult', '润色结果')}</span>
-                {isRefining && <RefreshCw size={12} className="spin" style={{ color: 'var(--lab-color-enhance)' }} />}
+                {isRefining && <RefreshCw size={12} className="spin" style={{ color: 'var(--lab-color-enhance)' }} aria-hidden="true" />}
               </div>
               <div style={{ fontSize: '0.85rem', lineHeight: 1.7, whiteSpace: 'pre-wrap', wordBreak: 'break-word', flex: 1, overflowY: 'auto' }}>
                 {displayRefineContent}

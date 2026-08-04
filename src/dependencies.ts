@@ -215,12 +215,12 @@ export const confirmPort: import('./domain/ports/CrossCuttingPorts').IConfirmPor
 // ========================================
 // 基础设施实例
 // ========================================
-export const videoAdapter = new MiniMaxVideoAdapter();
-export const imageAdapter = new MiniMaxImageAdapter();
-export const voiceAdapter = new MiniMaxVoiceAdapter();
-export const musicAdapter = new MiniMaxMusicAdapter();
-export const textAdapter = new MiniMaxTextAdapter();
-export const modelAdapter = new MiniMaxModelAdapter();
+export const videoAdapter = new MiniMaxVideoAdapter(apiConfigStoreAdapter.load(), defaultLogger);
+export const imageAdapter = new MiniMaxImageAdapter(apiConfigStoreAdapter.load(), defaultLogger);
+export const voiceAdapter = new MiniMaxVoiceAdapter(apiConfigStoreAdapter.load(), defaultLogger);
+export const musicAdapter = new MiniMaxMusicAdapter(apiConfigStoreAdapter.load(), defaultLogger);
+export const textAdapter = new MiniMaxTextAdapter(apiConfigStoreAdapter.load(), defaultLogger);
+export const modelAdapter = new MiniMaxModelAdapter(apiConfigStoreAdapter.load());
 export const ffmpegAdapter = new FFmpegAdapter();
 export const whisperAdapter = new WhisperAdapter();
 
@@ -229,8 +229,8 @@ export const whisperAdapter = new WhisperAdapter();
 // ========================================
 export const mockTextSplitter = new MockTextSplitterAdapter();
 export const mockStoryBreakdown = new MockStoryBreakdownAdapter();
-export const smartTextSplitter = new MiniMaxTextSplitterAdapter(textAdapter, mockTextSplitter);
-export const smartStoryBreakdown = new MiniMaxStoryBreakdownAdapter(textAdapter, mockStoryBreakdown);
+export const smartTextSplitter = new MiniMaxTextSplitterAdapter(textAdapter, mockTextSplitter, defaultLogger);
+export const smartStoryBreakdown = new MiniMaxStoryBreakdownAdapter(textAdapter, mockStoryBreakdown, defaultLogger);
 
 // ========================================
 // M3.4 成本计量（EVOLUTION_DESIGN.md §7.4）
@@ -259,8 +259,8 @@ export const modelRegistry = new PlatformModelRegistry(
 
 export const imageGenerationService = new ImageGenerationService(
   characterRepo, backgroundRepo, platformRouter, apiConfigStoreAdapter, getFileStorage, defaultLogger.child({ service: 'ImageGenerationService' }),
+  httpFetch, // HTTP 抓取 Port
   costMeter, // P1-21：成本计量
-  httpFetch, // P1-2：HTTP 抓取 Port
 );
 
 export const textGenerationService = new TextGenerationService(
@@ -282,8 +282,8 @@ export const textLabService = new TextLabService(
 export const videoGenerationService = new VideoGenerationService(
   videoTaskRepo, segmentRepo, characterRepo, backgroundRepo, platformRouter, getFileStorage,
   apiConfigStoreAdapter, defaultLogger.child({ service: 'VideoGenerationService' }),
+  httpFetch, // HTTP 抓取 Port（用于视频缓存下载，归一化 NetworkError/TimeoutError）
   costMeter, // P1-21：成本计量
-  httpFetch, // P1-2：HTTP 抓取 Port（用于视频缓存下载，归一化 NetworkError/TimeoutError）
 );
 
 export const videoLabService = new VideoLabService(
@@ -294,14 +294,14 @@ export const videoLabService = new VideoLabService(
 export const voiceService = new VoiceService(
   platformRouter, characterRepo, segmentRepo, getFileStorage,
   apiConfigStoreAdapter, defaultLogger.child({ service: 'VoiceService' }),
+  httpFetch, // HTTP 抓取 Port
   costMeter, // P1-21：成本计量
   savedVoiceRepo, // 克隆音色重命名
-  httpFetch, // P1-2：HTTP 抓取 Port
 );
 
 export const musicService = new MusicService(platformRouter, apiConfigStoreAdapter, segmentRepo, getFileStorage, defaultLogger.child({ service: 'MusicService' }),
+  httpFetch, // HTTP 抓取 Port
   costMeter, // P1-21：成本计量
-  httpFetch, // P1-2：HTTP 抓取 Port
 );
 
 export const musicLabService = new MusicLabService(

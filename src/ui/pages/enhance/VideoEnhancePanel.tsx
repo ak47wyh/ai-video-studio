@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Film } from 'lucide-react';
 import { useEnhancement, buildVideoOptions } from '../../hooks/useEnhancement';
 import { useToast } from '../../contexts/ToastContext';
@@ -18,6 +19,7 @@ import type { EnhanceMode, VideoScale, VideoOutputCodec } from '../../../domain/
 const MAX_DIMENSION = 600;
 
 export const VideoEnhancePanel: React.FC = () => {
+  const { t } = useTranslation();
   const { showToast } = useToast();
   const { confirm } = useConfirm();
   const { currentSpaceId } = useSpace();
@@ -39,7 +41,7 @@ export const VideoEnhancePanel: React.FC = () => {
 
   const handleFileSelect = useCallback((f: File) => {
     if (!f.type.startsWith('video/')) {
-      showToast('error', '请选择视频文件');
+      showToast('error', t('enhanceLab.selectVideo', '请选择视频文件'));
       return;
     }
     setFile(f);
@@ -55,14 +57,14 @@ export const VideoEnhancePanel: React.FC = () => {
       const dh = dw / ratio;
       setDisplaySize({ w: Math.round(dw), h: Math.round(dh) });
     };
-  }, [reset, showToast]);
+  }, [reset, showToast, t]);
 
   const handleProcess = async () => {
     if (!file) return;
     if (frameInterpolation) {
       const ok = await confirm({
-        title: '帧率提升确认',
-        message: '帧率提升（补帧到 60fps）性能开销极大，处理时间可能显著增加。是否继续？',
+        title: t('enhanceLab.frameInterpolationTitle', '帧率提升确认'),
+        message: t('enhanceLab.frameInterpolationMsg', '帧率提升（补帧到 60fps）性能开销极大，处理时间可能显著增加。是否继续？'),
         danger: true,
       });
       if (!ok) return;
@@ -88,17 +90,17 @@ export const VideoEnhancePanel: React.FC = () => {
       // 实际视频素材保存接口待 AssetLibraryService 扩展）
       await assetLibraryService.saveImageFromBlob({
         spaceId: currentSpaceId,
-        name: `增强_${file.name}`,
+        name: `${t('enhanceLab.enhancePrefix', '增强')}_${file.name}`,
         blob: resultBlob,
-        prompt: `视频清晰度提升-${mode}`,
+        prompt: `${t('enhanceLab.videoEnhanceDesc', '视频清晰度提升')}-${mode}`,
         model: 'enhance-local',
         aspectRatio: `${displaySize.w}:${displaySize.h}`,
-        tags: ['清晰度提升', `模式-${mode}`, `放大-${scale}x`],
+        tags: [t('enhanceLab.enhancePrefix', '清晰度提升'), `${t('enhanceLab.modeTag', '模式')}-${mode}`, `${t('enhanceLab.scaleTag', '放大')}-${scale}x`],
         sourceType: 'lab',
       });
-      showToast('success', '已保存到素材库');
+      showToast('success', t('enhanceLab.savedToLibrary', '已保存到素材库'));
     } catch (e) {
-      showToast('error', e instanceof Error ? e.message : '保存失败');
+      showToast('error', e instanceof Error ? e.message : t('enhanceLab.saveFailed', '保存失败'));
     }
   };
 
@@ -109,8 +111,8 @@ export const VideoEnhancePanel: React.FC = () => {
       {!file ? (
         <EnhanceUploadZone
           icon={<Film size={40} style={{ color: 'var(--text-muted)', opacity: 0.5 }} />}
-          hint="拖拽视频到此处或点击上传"
-          hint2="支持 MP4 / WebM / MOV · 最大 10 分钟 · 最大 200MB"
+          hint={t('enhanceLab.videoUploadHint', '拖拽视频到此处或点击上传')}
+          hint2={t('enhanceLab.videoUploadHint2', '支持 MP4 / WebM / MOV · 最大 10 分钟 · 最大 200MB')}
           accept="video/*"
           onFile={handleFileSelect}
         />
@@ -131,14 +133,14 @@ export const VideoEnhancePanel: React.FC = () => {
                       style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem' }}
                       onClick={() => setShowOriginal(false)}
                     >
-                      增强后
+                      {t('enhanceLab.enhanced', '增强后')}
                     </button>
                     <button
                       className={`btn ${showOriginal ? 'btn-primary' : 'btn-secondary'}`}
                       style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem' }}
                       onClick={() => setShowOriginal(true)}
                     >
-                      原视频
+                      {t('enhanceLab.originalVideo', '原视频')}
                     </button>
                   </div>
                 )}
@@ -148,51 +150,51 @@ export const VideoEnhancePanel: React.FC = () => {
 
           <div className="enhance-params-panel">
             <div className="form-group">
-              <label className="form-label">处理模式</label>
+              <label className="form-label">{t('enhanceLab.processMode', '处理模式')}</label>
               <select className="form-select" value={mode} onChange={(e) => setMode(e.target.value as EnhanceMode)} disabled={isProcessing}>
-                <option value="sharpen">锐化</option>
-                <option value="denoise">去噪</option>
-                <option value="upscale">放大</option>
-                <option value="all">综合增强（推荐）</option>
+                <option value="sharpen">{t('enhanceLab.modeSharpen', '锐化')}</option>
+                <option value="denoise">{t('enhanceLab.modeDenoise', '去噪')}</option>
+                <option value="upscale">{t('enhanceLab.modeUpscale', '放大')}</option>
+                <option value="all">{t('enhanceLab.modeAll', '综合增强（推荐）')}</option>
               </select>
             </div>
 
             {(mode === 'upscale' || mode === 'all') && (
               <div className="form-group">
-                <label className="form-label">放大倍数</label>
+                <label className="form-label">{t('enhanceLab.scaleFactor', '放大倍数')}</label>
                 <select className="form-select" value={scale} onChange={(e) => setScale(Number(e.target.value) as VideoScale)} disabled={isProcessing}>
-                  <option value={1}>1x（不放大）</option>
-                  <option value={1.5}>1.5x（推荐）</option>
-                  <option value={2}>2x</option>
+                  <option value={1}>{t('enhanceLab.scale1x', '1x（不放大）')}</option>
+                  <option value={1.5}>{t('enhanceLab.scale15x', '1.5x（推荐）')}</option>
+                  <option value={2}>{t('enhanceLab.scale2x', '2x')}</option>
                 </select>
               </div>
             )}
 
             {(mode === 'sharpen' || mode === 'all') && (
               <EnhanceParamSlider
-                label="锐化强度"
+                label={t('enhanceLab.sharpenStrength', '锐化强度')}
                 value={sharpen}
                 disabled={isProcessing}
-                tooltip="FFmpeg unsharp 滤镜：增强画面边缘"
+                tooltip={t('enhanceLab.videoSharpenTooltip', 'FFmpeg unsharp 滤镜：增强画面边缘')}
                 onChange={setSharpen}
               />
             )}
 
             {(mode === 'denoise' || mode === 'all') && (
               <EnhanceParamSlider
-                label="去噪强度"
+                label={t('enhanceLab.denoiseStrength', '去噪强度')}
                 value={denoise}
                 disabled={isProcessing}
-                tooltip="FFmpeg hqdn3d 滤镜：去除压缩噪点"
+                tooltip={t('enhanceLab.videoDenoiseTooltip', 'FFmpeg hqdn3d 滤镜：去除压缩噪点')}
                 onChange={setDenoise}
               />
             )}
 
             <div className="form-group">
-              <label className="form-label">输出编码</label>
+              <label className="form-label">{t('enhanceLab.outputCodec', '输出编码')}</label>
               <select className="form-select" value={outputCodec} onChange={(e) => setOutputCodec(e.target.value as VideoOutputCodec)} disabled={isProcessing}>
-                <option value="h264">H.264（兼容性好）</option>
-                <option value="vp9">VP9（压缩率高）</option>
+                <option value="h264">{t('enhanceLab.codecH264', 'H.264（兼容性好）')}</option>
+                <option value="vp9">{t('enhanceLab.codecVp9', 'VP9（压缩率高）')}</option>
               </select>
             </div>
 
@@ -205,7 +207,7 @@ export const VideoEnhancePanel: React.FC = () => {
                   disabled={isProcessing}
                   style={{ marginRight: '0.4rem' }}
                 />
-                帧率提升（补帧到 60fps，性能开销大）
+                {t('enhanceLab.frameInterpolation', '帧率提升（补帧到 60fps，性能开销大）')}
               </label>
             </div>
 
@@ -237,7 +239,7 @@ export const VideoEnhancePanel: React.FC = () => {
               style={{ marginTop: '0.5rem', fontSize: '0.75rem' }}
               onClick={() => { setFile(null); setOriginalUrl(null); setShowOriginal(false); reset(); }}
             >
-              更换视频
+              {t('enhanceLab.changeVideo', '更换视频')}
             </button>
           </div>
         </div>

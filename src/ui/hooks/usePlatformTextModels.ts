@@ -32,6 +32,7 @@ export function usePlatformTextModels(): UsePlatformTextModelsResult {
   }, [activePlatform]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 初始化需要从注册表加载模型列表
     refresh();
   }, [activePlatform, refresh]);
 

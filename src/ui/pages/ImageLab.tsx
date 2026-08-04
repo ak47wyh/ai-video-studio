@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Image as ImageIcon, Sparkles, RefreshCw, Type, ImagePlus } from 'lucide-react';
 import { imageGenerationService, assetLibraryService } from '../../dependencies';
@@ -33,18 +33,6 @@ import {
 
 /** 全量宽高比(当模型未声明 supportedAspectRatios 时回退使用) */
 const ALL_ASPECT_RATIOS: ImageAspectRatio[] = ['16:9', '9:16', '1:1', '4:3', '3:4', '3:2', '2:3', '21:9'];
-
-/** 宽高比显示标签 */
-const ASPECT_RATIO_LABELS: Record<ImageAspectRatio, string> = {
-  '16:9': '16:9 (横屏视频)',
-  '9:16': '9:16 (竖屏视频)',
-  '1:1': '1:1 (正方形)',
-  '4:3': '4:3 (标准)',
-  '3:4': '3:4',
-  '3:2': '3:2',
-  '2:3': '2:3',
-  '21:9': '21:9 (宽屏电影)',
-};
 
 type ImageLabTab = 't2i' | 'i2i';
 
@@ -82,6 +70,10 @@ export const ImageLab: React.FC = () => {
   // 风格提升为一级控件(独立于 advanced)
   const [style, setStyle] = useState<ImageStyleKey>('');
   const [isGenerating, setIsGenerating] = useState(false);
+  // 生成失败的内联错误信息（传给 AsyncState 展示，替代瞬时 Toast）
+  const [error, setError] = useState<string | null>(null);
+  // 记录上次生成参数，用于失败后点重试时重新发起
+  const lastGenParams = useRef<{ prompt: string; isI2I: boolean } | null>(null);
   const [gallery, setGallery] = useState<GalleryImage[]>([]);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [saveTargetImage, setSaveTargetImage] = useState<GalleryImage | null>(null);
@@ -107,6 +99,7 @@ export const ImageLab: React.FC = () => {
   // 当前选中模型不在过滤后列表中(如切换 Tab/平台),自动回退到推荐模型
   useEffect(() => {
     if (!currentModel && fallbackModelId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- 模型列表变化时需要同步回退默认模型
       setModel(fallbackModelId);
     }
   }, [currentModel, fallbackModelId]);
@@ -118,6 +111,18 @@ export const ImageLab: React.FC = () => {
     }
     return ALL_ASPECT_RATIOS;
   }, [currentModel]);
+
+  // 宽高比显示标签(走 i18n)
+  const aspectRatioLabels = useMemo<Record<ImageAspectRatio, string>>(() => ({
+    '16:9': t('imageLab.aspectRatio16_9', '16:9 (横屏视频)'),
+    '9:16': t('imageLab.aspectRatio9_16', '9:16 (竖屏视频)'),
+    '1:1': t('imageLab.aspectRatio1_1', '1:1 (正方形)'),
+    '4:3': t('imageLab.aspectRatio4_3', '4:3 (标准)'),
+    '3:4': t('imageLab.aspectRatio3_4', '3:4'),
+    '3:2': t('imageLab.aspectRatio3_2', '3:2'),
+    '2:3': t('imageLab.aspectRatio2_3', '2:3'),
+    '21:9': t('imageLab.aspectRatio21_9', '21:9 (宽屏电影)'),
+  }), [t]);
 
   // ==================== 模型联动(基于 ImageModelDescriptor 能力标志) ====================
   const handleModelChange = (newModelId: string) => {
@@ -181,12 +186,15 @@ export const ImageLab: React.FC = () => {
   // ==================== 生成 ====================
   const handleGenerate = async (prompt: string, isI2I: boolean) => {
     if (!prompt.trim()) return;
-    if (!validateTextLimit(prompt, TEXT_LIMITS.IMAGE_PROMPT_MAX, '画面描述', showToast)) return;
+    if (!validateTextLimit(prompt, TEXT_LIMITS.IMAGE_PROMPT_MAX, t('imageLab.promptLabelShort', '画面描述'), showToast)) return;
     if (isI2I && !referenceImage) {
-      showToast('error', '请先上传参考图片');
+      showToast('error', t('imageLab.uploadReferenceFirst', '请先上传参考图片'));
       return;
     }
     setIsGenerating(true);
+    // 生成开始时清除上次的内联错误
+    setError(null);
+    lastGenParams.current = { prompt, isI2I };
     try {
       const context = buildContext(prompt, isI2I);
       const res = await imageGenerationService.generateImage(context);
@@ -210,11 +218,14 @@ export const ImageLab: React.FC = () => {
 
       // 内容安全部分失败提示
       if (res.metadata?.failedCount && Number(res.metadata.failedCount) > 0) {
-        showToast('info', `${res.metadata.failedCount} 张图片因内容安全未返回`);
+        showToast('info', t('imageLab.contentSafetyFailed', '{{count}} 张图片因内容安全未返回', { count: res.metadata.failedCount }));
       }
     } catch (e) {
       console.error(e);
-      showToast('error', getErrorMessage(e, t('imageLab.generateFailed', '图片生成失败')));
+      const msg = getErrorMessage(e, t('imageLab.generateFailed', '图片生成失败'));
+      // 设置内联错误（AsyncState 展示），同时保留 Toast 即时反馈
+      setError(msg);
+      showToast('error', msg);
     } finally {
       setIsGenerating(false);
     }
@@ -223,14 +234,7 @@ export const ImageLab: React.FC = () => {
   // ==================== 下载 ====================
   const handleDownload = useCallback((image: GalleryImage) => {
     const filename = buildDownloadFilename(image.prompt);
-    const a = document.createElement('a');
-    a.href = image.url;
-    a.download = filename;
-    a.target = '_blank';
-    a.rel = 'noopener noreferrer';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    triggerNativeDownload(image.url, filename);
   }, []);
 
   // ==================== 保存到素材库 ====================
@@ -269,7 +273,7 @@ export const ImageLab: React.FC = () => {
             'assetLibrary.saveSuccessWithLocation',
             '素材已保存到当前故事空间的「图片素材库」，可在「角色与背景」页面查看。'
           );
-      showToast('success', `${locationHint}\n文件名：${saved.name}`);
+      showToast('success', t('assetLibrary.saveSuccessWithName', '{{hint}}\n文件名：{{name}}', { hint: locationHint, name: saved.name }));
       setShowSaveDialog(false);
       setSaveTargetImage(null);
       // 记录到本会话已保存面板
@@ -368,8 +372,8 @@ export const ImageLab: React.FC = () => {
   const handleUseAsReference = useCallback((image: GalleryImage) => {
     setReferenceImage(image.url);
     setActiveTab('i2i');
-    showToast('success', '已切换到图生图，参考图已填入');
-  }, [showToast]);
+    showToast('success', t('imageLab.switchedToI2I', '已切换到图生图，参考图已填入'));
+  }, [showToast, t]);
 
   // ==================== Tab 配置 ====================
   const tabs: { key: ImageLabTab; label: string; icon: React.ReactNode; color: string }[] = [
@@ -400,8 +404,9 @@ export const ImageLab: React.FC = () => {
       {activeTab === 't2i' && (
         <div className="glass-panel slide-up lab-tab-panel">
           <div>
-            <label className="form-label">{t('imageLab.prompt', '画面描述 (Prompt)')}</label>
+            <label className="form-label" htmlFor="image-t2i-prompt">{t('imageLab.prompt', '画面描述 (Prompt)')}</label>
             <TextAreaWithCounter
+              id="image-t2i-prompt"
               className="lab-textarea-compact"
               rows={4}
               placeholder={t('imageLab.promptPlaceholder', '描述您想要生成的画面细节，支持中英文...')}
@@ -419,15 +424,16 @@ export const ImageLab: React.FC = () => {
               disabled={!platformReady}
             />
             <div className="lab-model-config-item" style={{ minWidth: '140px' }}>
-              <label className="form-label">{t('imageLab.aspectRatio', '图片比例')}</label>
+              <label className="form-label" htmlFor="image-t2i-aspect">{t('imageLab.aspectRatio', '图片比例')}</label>
               <select
+                id="image-t2i-aspect"
                 className="form-select"
                 value={aspectRatio}
                 onChange={e => setAspectRatio(e.target.value as ImageAspectRatio)}
                 disabled={!platformReady}
               >
                 {availableAspectRatios.map(ratio => (
-                  <option key={ratio} value={ratio}>{ASPECT_RATIO_LABELS[ratio]}</option>
+                  <option key={ratio} value={ratio}>{aspectRatioLabels[ratio]}</option>
                 ))}
               </select>
             </div>
@@ -464,7 +470,7 @@ export const ImageLab: React.FC = () => {
             disabled={!t2iPrompt.trim() || isGenerating || !platformReady}
             onClick={() => handleGenerate(t2iPrompt, false)}
           >
-            {isGenerating ? <RefreshCw className="spin" size={20} /> : <Sparkles size={20} />}
+            {isGenerating ? <RefreshCw className="spin" size={20} aria-hidden="true" /> : <Sparkles size={20} aria-hidden="true" />}
             {isGenerating ? t('imageLab.generating', '正在生成...') : t('imageLab.generateBtn', '立即生成图片')}
           </button>
         </div>
@@ -479,12 +485,13 @@ export const ImageLab: React.FC = () => {
             onChange={setReferenceImage}
             borderColor="rgba(59,130,246,0.3)"
             bgColor="rgba(59,130,246,0.05)"
-            placeholder="上传参考图片，用于图生图"
+            placeholder={t('imageLab.referenceImagePlaceholder', '上传参考图片，用于图生图')}
           />
 
           <div>
-            <label className="form-label">{t('imageLab.prompt', '画面描述 (Prompt)')}</label>
+            <label className="form-label" htmlFor="image-i2i-prompt">{t('imageLab.prompt', '画面描述 (Prompt)')}</label>
             <TextAreaWithCounter
+              id="image-i2i-prompt"
               className="lab-textarea-compact"
               rows={4}
               placeholder={t('imageLab.promptPlaceholder', '描述您想要生成的画面细节，支持中英文...')}
@@ -502,15 +509,16 @@ export const ImageLab: React.FC = () => {
               disabled={!platformReady}
             />
             <div className="lab-model-config-item" style={{ minWidth: '140px' }}>
-              <label className="form-label">{t('imageLab.aspectRatio', '图片比例')}</label>
+              <label className="form-label" htmlFor="image-i2i-aspect">{t('imageLab.aspectRatio', '图片比例')}</label>
               <select
+                id="image-i2i-aspect"
                 className="form-select"
                 value={aspectRatio}
                 onChange={e => setAspectRatio(e.target.value as ImageAspectRatio)}
                 disabled={!platformReady}
               >
                 {availableAspectRatios.map(ratio => (
-                  <option key={ratio} value={ratio}>{ASPECT_RATIO_LABELS[ratio]}</option>
+                  <option key={ratio} value={ratio}>{aspectRatioLabels[ratio]}</option>
                 ))}
               </select>
             </div>
@@ -548,7 +556,7 @@ export const ImageLab: React.FC = () => {
             disabled={!i2iPrompt.trim() || !referenceImage || isGenerating || !platformReady}
             onClick={() => handleGenerate(i2iPrompt, true)}
           >
-            {isGenerating ? <RefreshCw className="spin" size={20} /> : <ImagePlus size={20} />}
+            {isGenerating ? <RefreshCw className="spin" size={20} aria-hidden="true" /> : <ImagePlus size={20} aria-hidden="true" />}
             {isGenerating ? t('imageLab.generating', '正在生成...') : t('imageLab.generateBtn', '立即生成图片')}
           </button>
         </div>
@@ -557,9 +565,15 @@ export const ImageLab: React.FC = () => {
       {/* ==================== 生成结果画廊 ==================== */}
       <AsyncState
         loading={isGenerating && gallery.length === 0}
-        loadingText="正在生成图片..."
+        loadingText={t('imageLab.generatingLoading', '正在生成图片...')}
+        error={gallery.length === 0 ? error : null}
+        onRetry={() => {
+          if (lastGenParams.current) {
+            void handleGenerate(lastGenParams.current.prompt, lastGenParams.current.isI2I);
+          }
+        }}
         empty={gallery.length === 0}
-        emptyText="尚未生成图片，填写 Prompt 后点击生成按钮"
+        emptyText={t('imageLab.emptyGallery', '尚未生成图片，填写 Prompt 后点击生成按钮')}
       >
         <div className="result-panel">
           <div className="result-panel-header">
@@ -567,7 +581,7 @@ export const ImageLab: React.FC = () => {
             <button
               className="btn btn-secondary btn-xs"
               onClick={() => setGallery([])}
-            >清空</button>
+            >{t('imageLab.clear', '清空')}</button>
           </div>
           <ImageGallery
             images={gallery}

@@ -20,7 +20,6 @@ import type { IPipelineTaskRepository } from '../ports/PersistencePorts';
 import type { IApiConfigStore } from '../ports/PlatformPorts';
 import type { ILoggerPort, IEventBus, IHttpFetchPort } from '../ports/CrossCuttingPorts';
 import type { PostProcessService } from './PostProcessService';
-import { createTrackedObjectUrl } from '../../utils/objectUrlRegistry';
 import type { SubtitleService } from './SubtitleService';
 import type { PlatformRouter } from './PlatformRouter';
 import type { PromptContextBuilder } from './PromptContextBuilder';
@@ -73,9 +72,9 @@ interface PipelineDeps {
   // ===== M3.1 持久化与恢复（EVOLUTION_DESIGN.md §7.1）=====
   /** Pipeline 任务仓储（持久化到 IndexedDB，解决刷新即丢） */
   pipelineTaskRepo?: IPipelineTaskRepository;
-  // ===== P1-2：可选 HTTP 抓取 Port =====
-  /** 用于视频/音频下载归一化，未注入时回退到全局 fetch */
-  httpFetch?: IHttpFetchPort;
+  // ===== HTTP 抓取 Port =====
+  /** 用于视频/音频下载归一化 */
+  httpFetch: IHttpFetchPort;
 }
 
 const POLL_INTERVAL_MS = 5000;
@@ -118,15 +117,11 @@ export class PipelineService {
   }
 
   /**
-   * P1-2：统一的外部 URL → Blob 抓取入口。
-   * 优先走注入的 IHttpFetchPort（自动 NetworkError/TimeoutError 归一化），
-   * 未注入时回退到全局 fetch 保持向后兼容。
+   * 统一的外部 URL -> Blob 抓取入口。
+   * 走注入的 IHttpFetchPort（自动 NetworkError/TimeoutError 归一化）。
    */
   private async fetchBlob(url: string): Promise<Blob> {
-    if (this.deps.httpFetch) return this.deps.httpFetch.fetchBlob(url);
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res.blob();
+    return this.deps.httpFetch.fetchBlob(url);
   }
 
   private getVideoPort(): IVideoGeneratorPort {
@@ -775,7 +770,7 @@ export class PipelineService {
       // Phase 1 改造（EVOLUTION_DESIGN.md §5.1.8）：使用真实成片 URL
       if (finalCut) {
         const finalUrl = finalCut.videoStoragePath
-          ?? (finalCut.videoBlob ? createTrackedObjectUrl(finalCut.videoBlob) : undefined)
+          ?? (finalCut.videoBlob ? URL.createObjectURL(finalCut.videoBlob) : undefined)
           ?? finalCut.thumbnailUrl;
         this.markComplete(task.id, finalUrl ?? `pipeline-${task.id}-complete`);
         // 把 finalCutId 关联到 PipelineTask（便于 ExportCenter 反查）
@@ -1024,7 +1019,7 @@ export class PipelineService {
       const firstFrameBlob = await this.deps.postProcess.extractFrame(finalVideoBlob, 0);
       // 缩略图 URL 会随 finalCut 返回给 UI 层,统一通过 ObjectUrlRegistry 追踪,
       // 由消费方在不再使用时释放(或页面卸载时兜底释放)。
-      thumbnailUrl = createTrackedObjectUrl(firstFrameBlob);
+      thumbnailUrl = URL.createObjectURL(firstFrameBlob);
     } catch (e) {
       this.logger.warn('thumbnail extract failed', {
         service: 'PipelineService',

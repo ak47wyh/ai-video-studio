@@ -34,8 +34,8 @@ export class VoiceService {
   private getFileStorage: () => IFileStoragePort;
   private costMeter?: ICostMeter;
   private savedVoiceRepo?: ISavedVoiceRepository;
-  /** P1-2：可选注入的 HTTP 抓取 Port（用于 blob:/http 音频统一读取） */
-  private httpFetch?: IHttpFetchPort;
+  /** HTTP 抓取 Port（用于 blob:/http 音频统一读取） */
+  private httpFetch: IHttpFetchPort;
 
   constructor(
     router: PlatformRouter,
@@ -44,9 +44,9 @@ export class VoiceService {
     fileStorage: IFileStoragePort | (() => IFileStoragePort),
     configStore: IApiConfigStore,
     logger: ILoggerPort,
+    httpFetch: IHttpFetchPort,
     costMeter?: ICostMeter,
     savedVoiceRepo?: ISavedVoiceRepository,
-    httpFetch?: IHttpFetchPort,
   ) {
     this.router = router;
     this.characterRepo = characterRepo;
@@ -471,10 +471,7 @@ export class VoiceService {
     const audioBlobUrl = await this.getVoicePort().fetchAudioAsBlobUrl(status.audioUrl);
     let blob: Blob;
     try {
-      // P1-2：优先走 IHttpFetchPort（blob: URL 也可通过 fetch API 读取）
-      blob = this.httpFetch
-        ? await this.httpFetch.fetchBlob(audioBlobUrl)
-        : await (await fetch(audioBlobUrl)).blob();
+      blob = await this.httpFetch.fetchBlob(audioBlobUrl);
     } finally {
       this.getFileStorage().revokeObjectUrl(audioBlobUrl);
     }
@@ -541,10 +538,7 @@ export class VoiceService {
     if (result.audioUrl) {
       const blobUrl = await this.getVoicePort().fetchAudioAsBlobUrl(result.audioUrl);
       try {
-        // P1-2：优先走 IHttpFetchPort
-        if (this.httpFetch) return await this.httpFetch.fetchBlob(blobUrl);
-        const res = await fetch(blobUrl);
-        return await res.blob();
+        return await this.httpFetch.fetchBlob(blobUrl);
       } finally {
         this.getFileStorage().revokeObjectUrl(blobUrl);
       }

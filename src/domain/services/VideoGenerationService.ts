@@ -57,8 +57,8 @@ export class VideoGenerationService {
   private logger: ILoggerPort;
   private getFileStorage: () => IFileStoragePort;
   private costMeter?: ICostMeter;
-  /** P1-2：可选注入的 HTTP 抓取 Port。未注入时降级到内置 fetch（保持向后兼容）。 */
-  private httpFetch?: IHttpFetchPort;
+  /** HTTP 抓取 Port */
+  private httpFetch: IHttpFetchPort;
 
   private activePollers = new Map<string, AbortController>();
 
@@ -71,8 +71,8 @@ export class VideoGenerationService {
     fileStorage: IFileStoragePort | (() => IFileStoragePort),
     configStore: IApiConfigStore,
     logger: ILoggerPort,
+    httpFetch: IHttpFetchPort,
     costMeter?: ICostMeter,
-    httpFetch?: IHttpFetchPort,
   ) {
     this.videoTaskRepo = videoTaskRepo;
     this.segmentRepo = segmentRepo;
@@ -361,15 +361,7 @@ export class VideoGenerationService {
 
     (async () => {
       try {
-        // P1-2：优先走注入的 IHttpFetchPort（错误自动归一化为 NetworkError/TimeoutError），
-        // 未注入时回退到全局 fetch 保持向后兼容。
-        const blob = this.httpFetch
-          ? await this.httpFetch.fetchBlob(task.videoUrl!)
-          : await (async () => {
-              const res = await fetch(task.videoUrl!);
-              if (!res.ok) throw new Error(`HTTP ${res.status}`);
-              return res.blob();
-            })();
+        const blob = await this.httpFetch.fetchBlob(task.videoUrl!);
         if (blob.size > 200 * 1024 * 1024) {
           this.logger.warn(`Video too large (${blob.size} bytes), skip caching`, { service: 'VideoGenerationService' });
           return;

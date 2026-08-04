@@ -2,7 +2,6 @@ import type { ITextGenerationPort, RefineResult } from '../ports/OutboundPorts';
 import type { IApiConfigStore, IModelRegistry } from '../ports/PlatformPorts';
 import type { ILoggerPort, ICostMeter } from '../ports/CrossCuttingPorts';
 import type { PlatformRouter } from './PlatformRouter';
-import { recordTextGenUsage } from '../../utils/cacheMonitor';
 
 export class TextGenerationService {
   private router: PlatformRouter;
@@ -26,6 +25,9 @@ export class TextGenerationService {
       resolveTextModel: () => 'MiniMax-M2.5-highspeed',
       resolveImageModel: () => 'image-01',
       resolveVideoModel: () => 'T2V-01-Director',
+      // 兜空实现:实际运行时由 PlatformModelRegistry 提供真实列表与默认值
+      getPlatformTextModels: () => [],
+      getDefaultTextModel: () => '',
     };
     // 注:resolveImageModel 的默认值 'image-01' 为 MiniMax 默认模型,
     // 实际运行时由 PlatformModelRegistry.resolveImageModel() 从注册表读取真实 ID。
@@ -59,6 +61,30 @@ export class TextGenerationService {
   private getTextPort(): ITextGenerationPort {
     const config = this.configStore.load();
     return this.router.resolve('text', config);
+  }
+
+  /**
+   * 记录文本生成的缓存使用情况。
+   * 原通过 cacheMonitor 持久化到 localStorage（P1-2 修复：Domain 层禁止依赖外层 utils），
+   * 现改为通过已注入的 ILoggerPort 记录，不再触碰 localStorage。
+   */
+  private recordTextGenUsage(
+    scene: string,
+    usage: {
+      promptTokens?: number;
+      completionTokens?: number;
+      cachedTokens?: number;
+      cacheCreationTokens?: number;
+    } | undefined,
+  ): void {
+    if (!usage) return;
+    this.logger.debug('text generation usage', this.ctx('recordTextGenUsage', {
+      scene,
+      promptTokens: usage.promptTokens ?? 0,
+      completionTokens: usage.completionTokens ?? 0,
+      cachedTokens: usage.cachedTokens ?? 0,
+      cacheCreationTokens: usage.cacheCreationTokens ?? 0,
+    }));
   }
 
   /** 统一日志 ctx（Phase 5：激活原本闲置的 _logger 占位） */
@@ -106,7 +132,7 @@ export class TextGenerationService {
       maxTokens: 512,
     });
 
-    recordTextGenUsage(`refine_${type}`, result.usage);
+    this.recordTextGenUsage(`refine_${type}`, result.usage);
     this.recordTextCost(model, result.usage);
 
     return {
@@ -146,7 +172,7 @@ export class TextGenerationService {
       maxTokens: 4096,
     });
 
-    recordTextGenUsage('refine_text', result.usage);
+    this.recordTextGenUsage('refine_text', result.usage);
     this.recordTextCost(model, result.usage);
 
     return {
@@ -186,7 +212,7 @@ export class TextGenerationService {
       maxTokens: 128,
     });
 
-    recordTextGenUsage('bgm_style', result.usage);
+    this.recordTextGenUsage('bgm_style', result.usage);
     this.recordTextCost(model, result.usage);
 
     return {
@@ -245,7 +271,7 @@ export class TextGenerationService {
       maxTokens: 512,
     });
 
-    recordTextGenUsage('video_prompt', result.usage);
+    this.recordTextGenUsage('video_prompt', result.usage);
     this.recordTextCost(model, result.usage);
 
     return {

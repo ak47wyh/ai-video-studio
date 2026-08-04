@@ -48,6 +48,8 @@ export function useStreamingAudioPlayer(): UseStreamingAudioPlayerResult {
   const sourceBufferRef = useRef<SourceBuffer | null>(null);
   const chunksRef = useRef<ArrayBuffer[]>([]);
   const streamHandleRef = useRef<T2AStreamHandle | null>(null);
+  // 用 ref 跟踪最新创建的 Object URL（含 MediaSource URL 与 Blob URL），卸载时兜底 revoke
+  const objectUrlRef = useRef<string | null>(null);
 
   const mseSupported = typeof window !== 'undefined' &&
     typeof window.MediaSource !== 'undefined' &&
@@ -81,7 +83,10 @@ export function useStreamingAudioPlayer(): UseStreamingAudioPlayerResult {
       try {
         const ms = new MediaSource();
         mediaSourceRef.current = ms;
+        // 创建新 URL 前先释放旧的，避免 MediaSource Object URL 泄漏
+        if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
         const objectUrl = URL.createObjectURL(ms);
+        objectUrlRef.current = objectUrl;
         audioRef.current.src = objectUrl;
         audioRef.current.load();
 
@@ -113,7 +118,10 @@ export function useStreamingAudioPlayer(): UseStreamingAudioPlayerResult {
         setState('complete');
         if (!mediaSourceRef.current && chunksRef.current.length > 0) {
           const blob = new Blob(chunksRef.current as BlobPart[], { type: mimeType });
+          // 创建新 URL 前先释放旧的（含 MediaSource URL 或上一轮 Blob URL）
+          if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
           const url = URL.createObjectURL(blob);
+          objectUrlRef.current = url;
           setAudioUrl(url);
           if (audioRef.current) {
             audioRef.current.src = url;
@@ -121,7 +129,10 @@ export function useStreamingAudioPlayer(): UseStreamingAudioPlayerResult {
           }
         } else {
           const blob = new Blob(chunksRef.current as BlobPart[], { type: mimeType });
+          // 创建新 URL 前先释放旧的（含 MediaSource URL 或上一轮 Blob URL）
+          if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
           const url = URL.createObjectURL(blob);
+          objectUrlRef.current = url;
           setAudioUrl(url);
         }
       },
@@ -137,10 +148,13 @@ export function useStreamingAudioPlayer(): UseStreamingAudioPlayerResult {
   useEffect(() => {
     return () => {
       stop();
-      if (audioUrl) URL.revokeObjectURL(audioUrl);
+      // 从 ref 读取最新 URL，避免闭包捕获初始 null 导致 Blob URL 泄漏
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current);
+        objectUrlRef.current = null;
+      }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [stop]);
 
   return { state, error, audioUrl, startStreaming, stop, audioRef };
 }

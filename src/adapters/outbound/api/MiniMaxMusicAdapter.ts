@@ -6,7 +6,8 @@ import type {
   LyricsGenerationResult,
   CoverPreprocessResult
 } from '../../../domain/ports/OutboundPorts';
-import { ApiConfigStore } from '../config/ApiConfigStore';
+import type { ILoggerPort, LogContext } from '../../../domain/ports/CrossCuttingPorts';
+import type { ApiConfig } from '../config/ApiConfigStore';
 import { getMiniMaxErrorMessage } from './MiniMaxErrorUtils';
 import axios from 'axios';
 
@@ -26,8 +27,21 @@ import axios from 'axios';
  */
 export class MiniMaxMusicAdapter implements IMusicPort {
 
+  private readonly config: ApiConfig;
+  private readonly logger?: ILoggerPort;
+
+  constructor(config: ApiConfig, logger?: ILoggerPort) {
+    this.config = config;
+    this.logger = logger;
+  }
+
+  /** 统一日志上下文工厂 */
+  private ctx(extra: LogContext = {}): LogContext {
+    return { service: 'MiniMaxMusicAdapter', ...extra };
+  }
+
   async generateMusic(context: MusicGenerationContext): Promise<MusicGenerationResult> {
-    const config = ApiConfigStore.load();
+    const config = this.config;
     if (!config.minimaxApiKey) {
       throw new Error('请先在设置中配置 MiniMax 的 API Key');
     }
@@ -87,7 +101,7 @@ export class MiniMaxMusicAdapter implements IMusicPort {
       }
     }
 
-    console.log(`[MiniMaxMusicAdapter] Generating music, model: ${model}, prompt: ${prompt.substring(0, 50)}`);
+    this.logger?.debug('Generating music', this.ctx({ model, promptLength: prompt.length }));
 
     const response = await axios.post(`${baseUrl}/music_generation`, payload, {
       headers: {
@@ -128,9 +142,9 @@ export class MiniMaxMusicAdapter implements IMusicPort {
   }
 
   async generateLyrics(context: LyricsGenerationContext): Promise<LyricsGenerationResult> {
-    const config = ApiConfigStore.load();
+    const config = this.config;
     if (!config.minimaxApiKey) {
-      console.warn('[MiniMaxMusicAdapter] No API Key configured — returning mock lyrics');
+      this.logger?.warn('No API Key configured - returning mock lyrics', this.ctx({}));
       return {
         songTitle: 'Mock Song',
         styleTags: 'Pop, Upbeat',
@@ -156,7 +170,7 @@ export class MiniMaxMusicAdapter implements IMusicPort {
       payload.title = context.title;
     }
 
-    console.log('[MiniMaxMusicAdapter] Generating lyrics, mode:', context.mode);
+    this.logger?.debug('Generating lyrics', this.ctx({ mode: context.mode }));
 
     const response = await axios.post(`${baseUrl}/lyrics_generation`, payload, {
       headers: {
@@ -180,7 +194,7 @@ export class MiniMaxMusicAdapter implements IMusicPort {
   }
 
   async preprocessCover(audioUrl: string): Promise<CoverPreprocessResult> {
-    const config = ApiConfigStore.load();
+    const config = this.config;
     if (!config.minimaxApiKey) {
       throw new Error('API Key not configured — cannot preprocess cover');
     }
@@ -192,7 +206,7 @@ export class MiniMaxMusicAdapter implements IMusicPort {
       audio_url: audioUrl,
     };
 
-    console.log('[MiniMaxMusicAdapter] Preprocessing cover audio');
+    this.logger?.debug('Preprocessing cover audio', this.ctx({}));
 
     const response = await axios.post(`${baseUrl}/music_cover_preprocess`, payload, {
       headers: {

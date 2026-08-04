@@ -40,8 +40,8 @@ export interface TimelineRenderDeps {
   savedVideoRepo: ISavedVideoRepository;
   savedVoiceRepo: ISavedVoiceRepository;
   logger: ILoggerPort;
-  /** P1-2：可选注入的 HTTP 抓取 Port（远程视频源下载归一化） */
-  httpFetch?: IHttpFetchPort;
+  /** HTTP 抓取 Port（远程视频源下载归一化） */
+  httpFetch: IHttpFetchPort;
 }
 
 const QUALITY_CRF: Record<RenderExportOptions['quality'], number> = {
@@ -288,11 +288,7 @@ export class TimelineRenderService implements ITimelineRenderPort {
       const blob = await this.getFileStorage().getBlob(storagePath);
       if (blob) return blob;
     }
-    // P1-2：优先走 IHttpFetchPort（自动 NetworkError/TimeoutError 归一化）
-    if (this.deps.httpFetch) return this.deps.httpFetch.fetchBlob(url);
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`fetch video failed: HTTP ${res.status}`);
-    return res.blob();
+    return this.deps.httpFetch.fetchBlob(url);
   }
 
   // ===== 音频混音 =====

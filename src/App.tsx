@@ -58,6 +58,9 @@ function preloadCriticalChunks(): void {
     import('./ui/pages/StoryWorkbench').catch(() => undefined);
     import('./ui/pages/ExportCenter').catch(() => undefined);
     import('./ui/pages/CharacterManagement').catch(() => undefined);
+    // 预加载 Lab 页面 chunk，用户从 Dashboard 进入 Lab 时可直接命中缓存
+    import('./ui/pages/ImageLab').catch(() => undefined);
+    import('./ui/pages/VideoLab').catch(() => undefined);
   });
 }
 

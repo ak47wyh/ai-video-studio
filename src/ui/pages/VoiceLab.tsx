@@ -696,7 +696,7 @@ export const VoiceLab: React.FC = () => {
             disabled={!ttsText.trim() || !ttsVoiceId.trim() || isGeneratingTTS || !platformReady}
             onClick={handleGenerateTTS}
           >
-            {isGeneratingTTS ? <RefreshCw className="spin" size={20} /> : <Volume2 size={20} />}
+            {isGeneratingTTS ? <RefreshCw className="spin" size={20} aria-hidden="true" /> : <Volume2 size={20} aria-hidden="true" />}
             {isGeneratingTTS ? '正在合成语音...' : '生成配音'}
           </button>
         </div>
@@ -709,7 +709,11 @@ export const VoiceLab: React.FC = () => {
             <label className="form-label">上传复刻音频 (清晰人声, 10秒~5分钟, ≤20MB)</label>
             <div
               className="lab-upload-zone"
+              role="button"
+              tabIndex={0}
+              aria-label={t('voiceLab.cloneUploadHint', '点击选择本地音频文件')}
               onClick={() => document.getElementById('cloneFileInput')?.click()}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); document.getElementById('cloneFileInput')?.click(); } }}
             >
               <Upload size={24} style={{ color: 'var(--text-muted)', marginBottom: '0.5rem' }} />
               <p style={{ margin: 0, color: 'var(--text-color)' }}>
@@ -723,7 +727,11 @@ export const VoiceLab: React.FC = () => {
             <label className="form-label">示例音频（可选，少于8秒，增强克隆效果）</label>
             <div
               className="lab-upload-zone lab-upload-zone-sm" style={{ borderColor: 'rgba(139,92,246,0.3)', background: 'rgba(139,92,246,0.05)' }}
+              role="button"
+              tabIndex={0}
+              aria-label={t('voiceLab.promptUploadHint', '点击上传示例音频')}
               onClick={() => document.getElementById('promptFileInput')?.click()}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); document.getElementById('promptFileInput')?.click(); } }}
             >
               <p style={{ margin: 0, color: 'var(--text-color)', fontSize: '0.85rem' }}>
                 {promptAudioFile ? promptAudioFile.name : '点击上传示例音频'}
@@ -794,7 +802,7 @@ export const VoiceLab: React.FC = () => {
             disabled={!cloneFile || !cloneName.trim() || isCloning || !platformReady}
             onClick={handleCloneVoice}
           >
-            {isCloning ? <RefreshCw className="spin" size={20} /> : <Save size={20} />}
+            {isCloning ? <RefreshCw className="spin" size={20} aria-hidden="true" /> : <Save size={20} aria-hidden="true" />}
             {isCloning ? '正在分析特征并克隆...' : '开始克隆音色'}
           </button>
 
@@ -874,7 +882,7 @@ export const VoiceLab: React.FC = () => {
             disabled={!designPrompt.trim() || !designPreviewText.trim() || isDesigning || !platformReady}
             onClick={handleDesignVoice}
           >
-            {isDesigning ? <RefreshCw className="spin" size={20} /> : <Palette size={20} />}
+            {isDesigning ? <RefreshCw className="spin" size={20} aria-hidden="true" /> : <Palette size={20} aria-hidden="true" />}
             {isDesigning ? '正在设计音色...' : '生成音色'}
           </button>
 
@@ -941,7 +949,7 @@ export const VoiceLab: React.FC = () => {
             disabled={!asyncText.trim() || isCreatingAsyncTask || !platformReady}
             onClick={handleCreateAsyncTask}
           >
-            {isCreatingAsyncTask ? <RefreshCw className="spin" size={20} /> : <FileText size={20} />}
+            {isCreatingAsyncTask ? <RefreshCw className="spin" size={20} aria-hidden="true" /> : <FileText size={20} aria-hidden="true" />}
             {isCreatingAsyncTask ? '正在提交任务...' : '提交异步合成任务'}
           </button>
 
@@ -957,8 +965,8 @@ export const VoiceLab: React.FC = () => {
                     任务 #{idx + 1}: "{task.text}..."
                   </span>
                   {task.status === 'processing' && (
-                    <span style={{ color: 'var(--color-warning)', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                      <RefreshCw size={14} className="spin" /> 处理中...
+                    <span style={{ color: 'var(--color-warning)', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }} role="status" aria-live="polite">
+                      <RefreshCw size={14} className="spin" aria-hidden="true" /> 处理中...
                     </span>
                   )}
                   {task.status === 'success' && (
@@ -1056,8 +1064,8 @@ export const VoiceLab: React.FC = () => {
                           autoFocus
                           onKeyDown={e => { if (e.key === 'Enter') handleConfirmRename(v.voiceId); if (e.key === 'Escape') handleCancelRename(); }}
                         />
-                        <button className="btn btn-secondary btn-xs" onClick={() => handleConfirmRename(v.voiceId)}><Check size={12} /></button>
-                        <button className="btn btn-secondary btn-xs" onClick={handleCancelRename}><X size={12} /></button>
+                        <button className="btn btn-secondary btn-xs" aria-label={t('voiceLab.confirmRename', '确认重命名')} onClick={() => handleConfirmRename(v.voiceId)}><Check size={12} aria-hidden="true" /></button>
+                        <button className="btn btn-secondary btn-xs" aria-label={t('voiceLab.cancelRename', '取消重命名')} onClick={handleCancelRename}><X size={12} aria-hidden="true" /></button>
                       </div>
                     ) : (
                       <p className="lab-voice-card-name">{v.voiceName || v.voiceId}</p>
@@ -1109,8 +1117,8 @@ export const VoiceLab: React.FC = () => {
                           autoFocus
                           onKeyDown={e => { if (e.key === 'Enter') handleConfirmRename(v.voiceId); if (e.key === 'Escape') handleCancelRename(); }}
                         />
-                        <button className="btn btn-secondary btn-xs" onClick={() => handleConfirmRename(v.voiceId)}><Check size={12} /></button>
-                        <button className="btn btn-secondary btn-xs" onClick={handleCancelRename}><X size={12} /></button>
+                        <button className="btn btn-secondary btn-xs" aria-label={t('voiceLab.confirmRename', '确认重命名')} onClick={() => handleConfirmRename(v.voiceId)}><Check size={12} aria-hidden="true" /></button>
+                        <button className="btn btn-secondary btn-xs" aria-label={t('voiceLab.cancelRename', '取消重命名')} onClick={handleCancelRename}><X size={12} aria-hidden="true" /></button>
                       </div>
                     ) : (
                       <p className="lab-voice-card-name">{v.voiceName || v.voiceId}</p>

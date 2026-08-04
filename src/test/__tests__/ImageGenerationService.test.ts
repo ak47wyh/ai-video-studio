@@ -15,7 +15,7 @@ import type { IFileStoragePort } from '../../domain/ports/FileStoragePorts';
 import type { IApiConfigStore } from '../../domain/ports/PlatformPorts';
 import type { ApiConfig } from '../../adapters/outbound/config/ApiConfigStore';
 import type { PlatformRouter } from '../../domain/services/PlatformRouter';
-import type { ILoggerPort } from '../../domain/ports/CrossCuttingPorts';
+import type { ILoggerPort, IHttpFetchPort } from '../../domain/ports/CrossCuttingPorts';
 import type { Character, Background } from '../../domain/entities/models';
 
 function makeMockConfig(): ApiConfig {
@@ -157,6 +157,7 @@ describe('ImageGenerationService', () => {
   let fileStorage: IFileStoragePort;
   let imagePort: IImageGeneratorPort;
   let logger: ILoggerPort & LoggerCalls;
+  let httpFetch: IHttpFetchPort;
   let service: ImageGenerationService;
 
   beforeEach(() => {
@@ -167,6 +168,11 @@ describe('ImageGenerationService', () => {
     configStore = makeMockConfigStore();
     fileStorage = makeMockFileStorage();
     logger = makeMockLogger();
+    httpFetch = {
+      fetchBlob: vi.fn().mockResolvedValue(new Blob(['x'], { type: 'image/png' })),
+      fetchText: vi.fn(),
+      fetchJson: vi.fn(),
+    };
     service = new ImageGenerationService(
       characterRepo,
       backgroundRepo,
@@ -174,6 +180,7 @@ describe('ImageGenerationService', () => {
       configStore,
       fileStorage,
       logger,
+      httpFetch,
     );
   });
 
@@ -243,19 +250,10 @@ describe('ImageGenerationService', () => {
     (characterRepo.findById as ReturnType<typeof vi.fn>).mockResolvedValue(character);
     (characterRepo.save as ReturnType<typeof vi.fn>).mockResolvedValue(character);
 
-    const originalFetch = global.fetch;
-    global.fetch = vi.fn().mockResolvedValue({
-      blob: () => Promise.resolve(new Blob(['x'], { type: 'image/png' })),
-    }) as unknown as typeof fetch;
-
-    try {
-      const url = await service.generateCharacterImage('c3');
-      expect(url).toBe('blob:test/123');
-      expect(fileStorage.storeBlob).toHaveBeenCalled();
-      expect(characterRepo.save).toHaveBeenCalled();
-    } finally {
-      global.fetch = originalFetch;
-    }
+    const url = await service.generateCharacterImage('c3');
+    expect(url).toBe('blob:test/123');
+    expect(fileStorage.storeBlob).toHaveBeenCalled();
+    expect(characterRepo.save).toHaveBeenCalled();
   });
 
   it('falls back to source URL when persistImage fails', async () => {
@@ -270,16 +268,11 @@ describe('ImageGenerationService', () => {
     (characterRepo.findById as ReturnType<typeof vi.fn>).mockResolvedValue(character);
     (characterRepo.save as ReturnType<typeof vi.fn>).mockResolvedValue(character);
 
-    const originalFetch = global.fetch;
-    global.fetch = vi.fn().mockRejectedValue(new Error('network')) as unknown as typeof fetch;
+    (httpFetch.fetchBlob as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('network'));
 
-    try {
-      const url = await service.generateCharacterImage('c4');
-      expect(url).toBe('data:image/png;base64,AAA');
-      expect(logger.calls.some((c) => c[0] === 'warn')).toBe(true);
-    } finally {
-      global.fetch = originalFetch;
-    }
+    const url = await service.generateCharacterImage('c4');
+    expect(url).toBe('data:image/png;base64,AAA');
+    expect(logger.calls.some((c) => c[0] === 'warn')).toBe(true);
   });
 
   it('getReferenceImageUrl returns OPFS object URL when storagePath exists', async () => {

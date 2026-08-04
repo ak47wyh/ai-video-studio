@@ -1,15 +1,21 @@
 import type { IModelManagementPort, ModelInfo, ModelListResult } from '../../../domain/ports/OutboundPorts';
-import { ApiConfigStore } from '../config/ApiConfigStore';
+import type { ApiConfig } from '../config/ApiConfigStore';
 import axios from 'axios';
 
 export class MiniMaxModelAdapter implements IModelManagementPort {
 
+  private readonly config: ApiConfig;
+
+  constructor(config: ApiConfig) {
+    this.config = config;
+  }
+
   /**
-   * List Models — GET /anthropic/v1/models
+   * List Models - GET /anthropic/v1/models
    * Note: Uses Authorization: Bearer header (X-Api-Key not allowed by CORS)
    */
   async listModels(limit?: number, afterId?: string): Promise<ModelListResult> {
-    const config = ApiConfigStore.load();
+    const config = this.config;
     if (!config.minimaxApiKey) {
       throw new Error('API Key not configured — cannot list models');
     }
@@ -49,7 +55,7 @@ export class MiniMaxModelAdapter implements IModelManagementPort {
    * Note: Uses Authorization: Bearer header (not X-Api-Key)
    */
   async retrieveModel(modelId: string): Promise<ModelInfo> {
-    const config = ApiConfigStore.load();
+    const config = this.config;
     if (!config.minimaxApiKey) {
       throw new Error('API Key not configured — cannot retrieve model');
     }

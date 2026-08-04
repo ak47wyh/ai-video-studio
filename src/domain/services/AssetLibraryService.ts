@@ -20,8 +20,8 @@ function generateId(): string {
  *   图片 → images/{id}
  *   语音 → audio/{id}
  *
- * P1-2：新增可选 httpFetch 依赖，用于把外部 URL 拉取归一化到 IHttpFetchPort，
- * 错误自动归一化为 NetworkError / TimeoutError，避免 Service 层直接调 fetch()。
+ * 注入 httpFetch 依赖，用于把外部 URL 拉取归一化到 IHttpFetchPort，
+ * 错误自动归一化为 NetworkError / TimeoutError。
  */
 export class AssetLibraryService {
   private imageRepo: ISavedImageRepository;
@@ -30,7 +30,7 @@ export class AssetLibraryService {
   private videoRepo: ISavedVideoRepository;
   private getFileStorage: () => IFileStoragePort;
   private getFileRepo: () => IGeneratedFileRepository;
-  private httpFetch?: IHttpFetchPort;
+  private httpFetch: IHttpFetchPort;
 
   constructor(
     imageRepo: ISavedImageRepository,
@@ -39,7 +39,7 @@ export class AssetLibraryService {
     videoRepo: ISavedVideoRepository,
     fileStorage: IFileStoragePort | (() => IFileStoragePort),
     fileRepo: IGeneratedFileRepository | (() => IGeneratedFileRepository),
-    httpFetch?: IHttpFetchPort,
+    httpFetch: IHttpFetchPort,
   ) {
     this.imageRepo = imageRepo;
     this.voiceRepo = voiceRepo;
@@ -52,15 +52,11 @@ export class AssetLibraryService {
   }
 
   /**
-   * P1-2：统一的外部 URL → Blob 抓取入口。
-   * 优先走 IHttpFetchPort（自动 NetworkError/TimeoutError 归一化），
-   * 未注入时回退到 fetch 保持向后兼容。
+   * 统一的外部 URL -> Blob 抓取入口。
+   * 走 IHttpFetchPort（自动 NetworkError/TimeoutError 归一化）。
    */
   private async fetchBlob(url: string): Promise<Blob> {
-    if (this.httpFetch) return this.httpFetch.fetchBlob(url);
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res.blob();
+    return this.httpFetch.fetchBlob(url);
   }
 
   // ===== Image Assets =====

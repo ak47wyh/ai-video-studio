@@ -53,7 +53,11 @@ export default defineConfig({
     filesStoragePlugin(),
   ],
   build: {
-    // Phase 3 性能优化 —— 手动 vendor 拆分，避免单 chunk 过大阻塞首屏
+    // 显式构建配置 -- 确保生产构建行为一致可预测
+    minify: true,
+    sourcemap: false,
+    target: 'es2020',
+    // Phase 3 性能优化 -- 手动 vendor 拆分，避免单 chunk 过大阻塞首屏
     // 拆分原则：
     //  - react / react-dom 单独 chunk，所有页面共用
     //  - 大型重量级库（dexie、ffmpeg、lucide-react、react-i18next、react-router-dom）独立

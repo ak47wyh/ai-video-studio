@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Upload, Loader2, Wand2, Download, Save, Trash2, X } from 'lucide-react';
 import { AsyncState } from '../AsyncState';
 
@@ -84,12 +85,13 @@ export const EnhanceProgressBar: React.FC<{ progress: number }> = ({ progress })
 export const EnhanceRetryHint: React.FC<{ retryCount: number; isFallbackRetry: boolean; isProcessing: boolean }> = ({
   retryCount, isFallbackRetry, isProcessing,
 }) => {
+  const { t } = useTranslation();
   if (retryCount === 0 || !isProcessing) return null;
   return (
     <div className="enhance-retry-hint">
       {isFallbackRetry
-        ? '主算法失败，正在尝试备选算法'
-        : `正在重试 · 第 ${retryCount + 1} 次尝试`}
+        ? t('enhanceLab.fallbackRetry', '主算法失败，正在尝试备选算法')
+        : t('enhanceLab.retrying', '正在重试 · 第 {{count}} 次尝试', { count: retryCount + 1 })}
     </div>
   );
 };
@@ -108,41 +110,44 @@ interface ActionButtonsProps {
 
 export const EnhanceActionButtons: React.FC<ActionButtonsProps> = ({
   isProcessing, hasResult, canProcess, onProcess, onCancel, onDownload, onSaveToLibrary, onReset,
-}) => (
-  <>
-    {!hasResult ? (
-      <>
-        <button
-          className="btn btn-primary btn-generate"
-          disabled={!canProcess || isProcessing}
-          onClick={onProcess}
-        >
-          {isProcessing ? <Loader2 size={18} className="spin" /> : <Wand2 size={18} />}
-          {isProcessing ? '处理中...' : '开始增强'}
-        </button>
-        {isProcessing && (
-          <button className="btn btn-secondary" style={{ marginTop: '0.5rem' }} onClick={onCancel}>
-            <X size={14} /> 取消
+}) => {
+  const { t } = useTranslation();
+  return (
+    <>
+      {!hasResult ? (
+        <>
+          <button
+            className="btn btn-primary btn-generate"
+            disabled={!canProcess || isProcessing}
+            onClick={onProcess}
+          >
+            {isProcessing ? <Loader2 size={18} className="spin" /> : <Wand2 size={18} />}
+            {isProcessing ? t('enhanceLab.processing', '处理中...') : t('enhanceLab.startEnhance', '开始增强')}
           </button>
-        )}
-      </>
-    ) : (
-      <>
-        <button className="btn btn-primary btn-generate" onClick={onDownload}>
-          <Download size={18} /> 下载
-        </button>
-        {onSaveToLibrary && (
-          <button className="btn btn-secondary" style={{ marginTop: '0.5rem' }} onClick={onSaveToLibrary}>
-            <Save size={16} /> 保存到素材库
+          {isProcessing && (
+            <button className="btn btn-secondary" style={{ marginTop: '0.5rem' }} onClick={onCancel}>
+              <X size={14} /> {t('common.cancel', '取消')}
+            </button>
+          )}
+        </>
+      ) : (
+        <>
+          <button className="btn btn-primary btn-generate" onClick={onDownload}>
+            <Download size={18} /> {t('enhanceLab.download', '下载')}
           </button>
-        )}
-        <button className="btn btn-secondary" style={{ marginTop: '0.5rem' }} onClick={onReset}>
-          <Trash2 size={16} /> 重新处理
-        </button>
-      </>
-    )}
-  </>
-);
+          {onSaveToLibrary && (
+            <button className="btn btn-secondary" style={{ marginTop: '0.5rem' }} onClick={onSaveToLibrary}>
+              <Save size={16} /> {t('enhanceLab.saveToLibrary', '保存到素材库')}
+            </button>
+          )}
+          <button className="btn btn-secondary" style={{ marginTop: '0.5rem' }} onClick={onReset}>
+            <Trash2 size={16} /> {t('enhanceLab.reprocess', '重新处理')}
+          </button>
+        </>
+      )}
+    </>
+  );
+};
 
 // ==================== 通用 AsyncState 包装 ====================
 export const EnhanceAsyncWrapper: React.FC<{
@@ -152,14 +157,17 @@ export const EnhanceAsyncWrapper: React.FC<{
   onRetry: () => void;
   hasResult: boolean;
   children: React.ReactNode;
-}> = ({ isProcessing, progress, error, onRetry, hasResult, children }) => (
-  <AsyncState
-    loading={isProcessing}
-    loadingText={`处理中... ${Math.round(progress * 100)}%`}
-    error={error}
-    onRetry={onRetry}
-    minHeight={80}
-  >
-    {hasResult ? null : children}
-  </AsyncState>
-);
+}> = ({ isProcessing, progress, error, onRetry, hasResult, children }) => {
+  const { t } = useTranslation();
+  return (
+    <AsyncState
+      loading={isProcessing}
+      loadingText={t('enhanceLab.processingPercent', '处理中... {{percent}}%', { percent: Math.round(progress * 100) })}
+      error={error}
+      onRetry={onRetry}
+      minHeight={80}
+    >
+      {hasResult ? null : children}
+    </AsyncState>
+  );
+};

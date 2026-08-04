@@ -84,40 +84,40 @@ export class PlatformRouter {
 
   /** 注册全部已知平台×能力的工厂函数（OCP：新增平台在此追加即可） */
   private registerDefaults(): void {
-    // video（7 平台）—— VolcengineVideoAdapter 注入 logger 用于接口出入参日志
+    // video（7 平台）-- VolcengineVideoAdapter 注入 logger 用于接口出入参日志
     this.register('video', 'volcengine', (c) => new VolcengineVideoAdapter(c, this.logger));
     this.register('video', 'kling', (c) => new KlingVideoAdapter(c));
     this.register('video', 'wan', (c) => new WanVideoAdapter(c));
     this.register('video', 'hunyuan', (c) => new HunyuanVideoAdapter(c));
     this.register('video', 'zhipu', (c) => new ZhipuVideoAdapter(c));
     this.register('video', 'vidu', (c) => new ViduVideoAdapter(c));
-    this.register('video', 'minimax', () => new MiniMaxVideoAdapter());
+    this.register('video', 'minimax', (c) => new MiniMaxVideoAdapter(c, this.logger));
 
-    // image（7 平台）
-    this.register('image', 'volcengine', (c) => new VolcengineImageAdapter(c));
-    this.register('image', 'kling', (c) => new KlingImageAdapter(c));
-    this.register('image', 'wan', (c) => new WanImageAdapter(c));
+    // image（7 平台）-- 注入 logger 用于接口出入参日志
+    this.register('image', 'volcengine', (c) => new VolcengineImageAdapter(c, this.logger));
+    this.register('image', 'kling', (c) => new KlingImageAdapter(c, this.logger));
+    this.register('image', 'wan', (c) => new WanImageAdapter(c, this.logger));
     this.register('image', 'hunyuan', (c) => new HunyuanImageAdapter(c));
-    this.register('image', 'zhipu', (c) => new ZhipuImageAdapter(c));
-    this.register('image', 'vidu', (c) => new ViduImageAdapter(c));
-    this.register('image', 'minimax', () => new MiniMaxImageAdapter());
+    this.register('image', 'zhipu', (c) => new ZhipuImageAdapter(c, this.logger));
+    this.register('image', 'vidu', (c) => new ViduImageAdapter(c, this.logger));
+    this.register('image', 'minimax', (c) => new MiniMaxImageAdapter(c, this.logger));
 
-    // text（5 平台）
-    this.register('text', 'volcengine', (c) => new VolcengineTextAdapter(c));
-    this.register('text', 'wan', (c) => new WanTextAdapter(c));
-    this.register('text', 'hunyuan', (c) => new HunyuanTextAdapter(c));
-    this.register('text', 'zhipu', (c) => new ZhipuTextAdapter(c));
-    this.register('text', 'minimax', () => new MiniMaxTextAdapter());
+    // text（5 平台）-- 注入 logger 用于接口出入参日志
+    this.register('text', 'volcengine', (c) => new VolcengineTextAdapter(c, this.logger));
+    this.register('text', 'wan', (c) => new WanTextAdapter(c, this.logger));
+    this.register('text', 'hunyuan', (c) => new HunyuanTextAdapter(c, this.logger));
+    this.register('text', 'zhipu', (c) => new ZhipuTextAdapter(c, this.logger));
+    this.register('text', 'minimax', (c) => new MiniMaxTextAdapter(c, this.logger));
 
-    // voice（5 平台；火山引擎语音独立于方舟协议）
-    this.register('voice', 'volcengine', (c) => new VolcengineVoiceAdapter(c));
+    // voice（5 平台；火山引擎语音独立于方舟协议）-- 注入 logger
+    this.register('voice', 'volcengine', (c) => new VolcengineVoiceAdapter(c, this.logger));
     this.register('voice', 'wan', (c) => new WanVoiceAdapter(c));
     this.register('voice', 'hunyuan', (c) => new HunyuanVoiceAdapter(c));
     this.register('voice', 'zhipu', (c) => new ZhipuVoiceAdapter(c));
-    this.register('voice', 'minimax', () => new MiniMaxVoiceAdapter());
+    this.register('voice', 'minimax', (c) => new MiniMaxVoiceAdapter(c, this.logger));
 
-    // music（仅 MiniMax；其他平台通过 ensureCap 拦截，符合 P2-6 修复）
-    this.register('music', 'minimax', () => new MiniMaxMusicAdapter());
+    // music（仅 MiniMax；其他平台通过 ensureCap 拦截，符合 P2-6 修复）-- 注入 logger
+    this.register('music', 'minimax', (c) => new MiniMaxMusicAdapter(c, this.logger));
   }
 
   /** 注册某 (capability, platform) 的工厂 */

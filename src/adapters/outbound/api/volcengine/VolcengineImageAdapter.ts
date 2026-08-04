@@ -1,4 +1,5 @@
 import type { IImageGeneratorPort, ImageGenerationContext, ImageGenerationResult, ImageAspectRatio } from '../../../../domain/ports/OutboundPorts';
+import type { ILoggerPort, LogContext } from '../../../../domain/ports/CrossCuttingPorts';
 import type { ApiConfig } from '../../config/ApiConfigStore';
 import { getDefaultImageModel } from '../../../../domain/services/platformCapabilities';
 import { VolcengineHttpClient } from './VolcengineHttpClient';
@@ -18,22 +19,28 @@ import { withRetry } from './VolcengineErrorUtils';
 export class VolcengineImageAdapter implements IImageGeneratorPort {
   private http: VolcengineHttpClient;
   private readonly config: ApiConfig;
+  private readonly logger?: ILoggerPort;
 
-  constructor(config: ApiConfig) {
-    this.http = VolcengineHttpClient.createAgentPlan(config);
+  constructor(config: ApiConfig, logger?: ILoggerPort) {
+    this.http = VolcengineHttpClient.createAgentPlan(config, logger);
     this.config = config;
+    this.logger = logger;
+  }
+
+  /** 统一日志上下文工厂 */
+  private ctx(extra: LogContext = {}): LogContext {
+    return { service: 'VolcengineImageAdapter', ...extra };
   }
 
   async generateImage(context: ImageGenerationContext): Promise<ImageGenerationResult> {
     const payload = this.buildPayload(context, this.config);
 
-    console.log('[VolcengineImageAdapter] generateImage 入参', {
-      model: payload.model,
-      prompt: context.prompt,
+    this.logger?.debug('generateImage 入参', this.ctx({
+      model: payload.model as string,
       promptLength: context.prompt.length,
       size: payload.size,
       n: context.n,
-    });
+    }));
 
     const result = await withRetry(() =>
       this.http.post<{
@@ -43,10 +50,10 @@ export class VolcengineImageAdapter implements IImageGeneratorPort {
       }>('/images/generations', payload),
     );
 
-    console.log('[VolcengineImageAdapter] generateImage 出参', {
+    this.logger?.debug('generateImage 出参', this.ctx({
       successCount: result.data.filter(item => item.url || item.b64_json).length,
       totalCount: result.data.length,
-    });
+    }));
 
     return {
       imageUrls: result.data.filter(item => item.url).map(item => item.url!),

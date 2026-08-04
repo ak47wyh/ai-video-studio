@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useEnhancement, buildImageOptions } from '../../hooks/useEnhancement';
 import { useToast } from '../../contexts/ToastContext';
 import { useSpace } from '../../contexts/SpaceContext';
@@ -17,6 +18,7 @@ import type { EnhanceMode, ImageScale, ImageOutputFormat } from '../../../domain
 const MAX_DIMENSION = 600;
 
 export const ImageEnhancePanel: React.FC = () => {
+  const { t } = useTranslation();
   const { showToast } = useToast();
   const { currentSpaceId } = useSpace();
   const {
@@ -35,7 +37,7 @@ export const ImageEnhancePanel: React.FC = () => {
 
   const handleFileSelect = useCallback((f: File) => {
     if (!f.type.startsWith('image/')) {
-      showToast('error', '请选择图片文件');
+      showToast('error', t('enhanceLab.selectImage', '请选择图片文件'));
       return;
     }
     setFile(f);
@@ -55,7 +57,7 @@ export const ImageEnhancePanel: React.FC = () => {
       setDisplaySize({ w: Math.round(dw), h: Math.round(dh) });
     };
     img.src = url;
-  }, [reset, showToast]);
+  }, [reset, showToast, t]);
 
   const handleProcess = () => {
     if (!file) return;
@@ -77,17 +79,17 @@ export const ImageEnhancePanel: React.FC = () => {
     try {
       await assetLibraryService.saveImageFromBlob({
         spaceId: currentSpaceId,
-        name: `增强_${file.name}`,
+        name: `${t('enhanceLab.enhancePrefix', '增强')}_${file.name}`,
         blob: resultBlob,
-        prompt: `清晰度提升-${mode}`,
+        prompt: `${t('enhanceLab.enhanceDesc', '清晰度提升')}-${mode}`,
         model: 'enhance-local',
         aspectRatio: `${displaySize.w}:${displaySize.h}`,
-        tags: ['清晰度提升', `模式-${mode}`, `放大-${scale}x`],
+        tags: [t('enhanceLab.enhancePrefix', '清晰度提升'), `${t('enhanceLab.modeTag', '模式')}-${mode}`, `${t('enhanceLab.scaleTag', '放大')}-${scale}x`],
         sourceType: 'lab',
       });
-      showToast('success', '已保存到素材库');
+      showToast('success', t('enhanceLab.savedToLibrary', '已保存到素材库'));
     } catch (e) {
-      showToast('error', e instanceof Error ? e.message : '保存失败');
+      showToast('error', e instanceof Error ? e.message : t('enhanceLab.saveFailed', '保存失败'));
     }
   };
 
@@ -95,8 +97,8 @@ export const ImageEnhancePanel: React.FC = () => {
     <div className="enhance-panel">
       {!file ? (
         <EnhanceUploadZone
-          hint="拖拽图片到此处或点击上传"
-          hint2="支持 JPG / PNG / WEBP / BMP · 最大 4096×4096 · 最大 20MB"
+          hint={t('enhanceLab.imageUploadHint', '拖拽图片到此处或点击上传')}
+          hint2={t('enhanceLab.imageUploadHint2', '支持 JPG / PNG / WEBP / BMP · 最大 4096×4096 · 最大 20MB')}
           accept="image/*"
           onFile={handleFileSelect}
         />
@@ -110,12 +112,12 @@ export const ImageEnhancePanel: React.FC = () => {
                 resultUrl={resultUrl}
                 displayWidth={displaySize.w}
                 displayHeight={displaySize.h}
-                resultLabel="增强后"
+                resultLabel={t('enhanceLab.enhanced', '增强后')}
               />
             ) : imageUrl ? (
               <img
                 src={imageUrl}
-                alt="原图"
+                alt={t('enhanceLab.original', '原图')}
                 style={{
                   width: displaySize.w,
                   height: displaySize.h,
@@ -129,52 +131,52 @@ export const ImageEnhancePanel: React.FC = () => {
           {/* 右侧：参数面板 */}
           <div className="enhance-params-panel">
             <div className="form-group">
-              <label className="form-label">处理模式</label>
+              <label className="form-label">{t('enhanceLab.processMode', '处理模式')}</label>
               <select className="form-select" value={mode} onChange={(e) => setMode(e.target.value as EnhanceMode)} disabled={isProcessing}>
-                <option value="sharpen">锐化</option>
-                <option value="denoise">去噪</option>
-                <option value="upscale">超分放大</option>
-                <option value="all">综合增强（推荐）</option>
+                <option value="sharpen">{t('enhanceLab.modeSharpen', '锐化')}</option>
+                <option value="denoise">{t('enhanceLab.modeDenoise', '去噪')}</option>
+                <option value="upscale">{t('enhanceLab.modeUpscale', '超分放大')}</option>
+                <option value="all">{t('enhanceLab.modeAll', '综合增强（推荐）')}</option>
               </select>
             </div>
 
             {(mode === 'upscale' || mode === 'all') && (
               <div className="form-group">
-                <label className="form-label">放大倍数</label>
+                <label className="form-label">{t('enhanceLab.scaleFactor', '放大倍数')}</label>
                 <select className="form-select" value={scale} onChange={(e) => setScale(Number(e.target.value) as ImageScale)} disabled={isProcessing}>
-                  <option value={1}>1x（不放大）</option>
-                  <option value={2}>2x（推荐）</option>
-                  <option value={3}>3x</option>
-                  <option value={4}>4x</option>
+                  <option value={1}>{t('enhanceLab.scale1x', '1x（不放大）')}</option>
+                  <option value={2}>{t('enhanceLab.scale2x', '2x（推荐）')}</option>
+                  <option value={3}>{t('enhanceLab.scale3x', '3x')}</option>
+                  <option value={4}>{t('enhanceLab.scale4x', '4x')}</option>
                 </select>
               </div>
             )}
 
             {(mode === 'sharpen' || mode === 'all') && (
               <EnhanceParamSlider
-                label="锐化强度"
+                label={t('enhanceLab.sharpenStrength', '锐化强度')}
                 value={sharpen}
                 disabled={isProcessing}
-                tooltip="USM 锐化：增强边缘对比度，适合发糊照片"
+                tooltip={t('enhanceLab.sharpenTooltip', 'USM 锐化：增强边缘对比度，适合发糊照片')}
                 onChange={setSharpen}
               />
             )}
 
             {(mode === 'denoise' || mode === 'all') && (
               <EnhanceParamSlider
-                label="去噪强度"
+                label={t('enhanceLab.denoiseStrength', '去噪强度')}
                 value={denoise}
                 disabled={isProcessing}
-                tooltip="双边滤波：保边平滑，去除压缩噪点"
+                tooltip={t('enhanceLab.denoiseTooltip', '双边滤波：保边平滑，去除压缩噪点')}
                 onChange={setDenoise}
               />
             )}
 
             <div className="form-group">
-              <label className="form-label">输出格式</label>
+              <label className="form-label">{t('enhanceLab.outputFormat', '输出格式')}</label>
               <select className="form-select" value={outputFormat} onChange={(e) => setOutputFormat(e.target.value as ImageOutputFormat)} disabled={isProcessing}>
-                <option value="png">PNG（无损）</option>
-                <option value="jpeg">JPG（压缩 85%）</option>
+                <option value="png">{t('enhanceLab.formatPng', 'PNG（无损）')}</option>
+                <option value="jpeg">{t('enhanceLab.formatJpeg', 'JPG（压缩 85%）')}</option>
               </select>
             </div>
 
@@ -206,7 +208,7 @@ export const ImageEnhancePanel: React.FC = () => {
               style={{ marginTop: '0.5rem', fontSize: '0.75rem' }}
               onClick={() => { setFile(null); setImageUrl(null); reset(); }}
             >
-              更换图片
+              {t('enhanceLab.changeImage', '更换图片')}
             </button>
           </div>
         </div>

@@ -1,4 +1,5 @@
 import type { ITextSplitterPort, SegmentDraft, ITextGenerationPort } from '../../../domain/ports/OutboundPorts';
+import type { ILoggerPort, LogContext } from '../../../domain/ports/CrossCuttingPorts';
 
 const SPLIT_SYSTEM_PROMPT = `你是一个专业的视频剧本编辑，擅长将故事文本按场景/情节拆分为独立段落。
 
@@ -18,10 +19,17 @@ const SPLIT_SYSTEM_PROMPT = `你是一个专业的视频剧本编辑，擅长将
 export class MiniMaxTextSplitterAdapter implements ITextSplitterPort {
   textPort: ITextGenerationPort;
   fallback: ITextSplitterPort;
+  private readonly logger?: ILoggerPort;
 
-  constructor(textPort: ITextGenerationPort, fallback: ITextSplitterPort) {
+  constructor(textPort: ITextGenerationPort, fallback: ITextSplitterPort, logger?: ILoggerPort) {
     this.textPort = textPort;
     this.fallback = fallback;
+    this.logger = logger;
+  }
+
+  /** 统一日志上下文工厂 */
+  private ctx(extra: LogContext = {}): LogContext {
+    return { service: 'MiniMaxTextSplitterAdapter', ...extra };
   }
 
   async splitStoryToSegments(text: string, knownCharacterNames: string[]): Promise<SegmentDraft[]> {
@@ -49,7 +57,8 @@ export class MiniMaxTextSplitterAdapter implements ITextSplitterPort {
           : knownCharacterNames.filter(name => String(seg.content || '').includes(name)),
       })).filter(seg => seg.content.length > 0);
     } catch (e) {
-      console.warn('[MiniMaxTextSplitterAdapter] AI split failed, falling back to mock:', e);
+      // warn 签名仅接受 (message, context)，错误信息收入 context 避免泄露完整对象
+      this.logger?.warn('AI split failed, falling back to mock', this.ctx({ error: e instanceof Error ? e.message : String(e) }));
       return this.fallback.splitStoryToSegments(text, knownCharacterNames);
     }
   }

@@ -1,9 +1,12 @@
 import type { IImageGeneratorPort, ImageGenerationContext, ImageGenerationResult } from '../../../domain/ports/OutboundPorts';
+import type { ILoggerPort, LogContext } from '../../../domain/ports/CrossCuttingPorts';
 import type { ImageStyleKey } from '../../../domain/data/imageStylePresets';
+import { UnsupportedCapabilityError } from '../../../domain/errors/UnsupportedCapabilityError';
 import { findImageModel, getDefaultImageModel } from '../../../domain/services/platformCapabilities';
-import { ApiConfigStore } from '../config/ApiConfigStore';
+import type { ApiConfig } from '../config/ApiConfigStore';
 import { getMiniMaxErrorMessage } from './MiniMaxErrorUtils';
-import axios from 'axios';
+import { withRetry } from './_base/withRetry';
+import axios, { type AxiosError } from 'axios';
 
 /**
  * Adapter for MiniMax Image Generation API.
@@ -25,14 +28,25 @@ import axios from 'axios';
  */
 export class MiniMaxImageAdapter implements IImageGeneratorPort {
 
-  async generateImage(context: ImageGenerationContext): Promise<ImageGenerationResult> {
-    const config = ApiConfigStore.load();
+  private readonly config: ApiConfig;
+  private readonly logger?: ILoggerPort;
 
-    // ── Mock mode ─────────────────────────────────────────────────────────
+  constructor(config: ApiConfig, logger?: ILoggerPort) {
+    this.config = config;
+    this.logger = logger;
+  }
+
+  /** 统一日志上下文工厂 */
+  private ctx(extra: LogContext = {}): LogContext {
+    return { service: 'MiniMaxImageAdapter', ...extra };
+  }
+
+  async generateImage(context: ImageGenerationContext): Promise<ImageGenerationResult> {
+    const config = this.config;
+
+    // ── API Key 缺失：抛能力不支持错误，禁止返回占位图 ──
     if (!config.minimaxApiKey) {
-      console.warn('[MiniMaxImageAdapter] No API key — returning placeholder image.');
-      const mockBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==';
-      return { imageDataUri: `data:image/png;base64,${mockBase64}` };
+      throw new UnsupportedCapabilityError('minimax', 'image');
     }
 
     // ── 解析模型 ID:context.model → 注册表默认值 ────────────────────────────
@@ -58,7 +72,7 @@ export class MiniMaxImageAdapter implements IImageGeneratorPort {
     // 因此仅在未设置 aspect_ratio 时才透传 width/height,避免冗余字段冲突
     if (context.aspectRatio) {
       if (!descriptor?.supportedAspectRatios.includes(context.aspectRatio)) {
-        console.warn(`[MiniMaxImageAdapter] aspect_ratio "${context.aspectRatio}" not supported by ${model}, falling back to 16:9`);
+        this.logger?.warn('aspect_ratio not supported, falling back to 16:9', this.ctx({ model, aspectRatio: context.aspectRatio }));
         payload.aspect_ratio = '16:9';
       } else {
         payload.aspect_ratio = context.aspectRatio;
@@ -107,22 +121,27 @@ export class MiniMaxImageAdapter implements IImageGeneratorPort {
       }
     }
 
-    console.log(`[MiniMaxImageAdapter] Generating image, model: ${model}, format: ${responseFormat}`);
-    console.log(`[MiniMaxImageAdapter] Payload:`, JSON.stringify(payload, null, 2));
+    this.logger?.debug('Generating image', this.ctx({ model, responseFormat }));
 
-    // ── Real API call ─────────────────────────────────────────────────────
+    // ── Real API call（withRetry 包装 + 错误归一化，P1-5 修复）───────────────
     const baseUrl = config.minimaxBaseUrl.replace(/\/+$/, '');
-    const response = await axios.post(
-      `${baseUrl}/image_generation`,
-      payload,
-      {
-        headers: {
-          Authorization: `Bearer ${config.minimaxApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        params: config.minimaxGroupId ? { group_id: config.minimaxGroupId } : undefined,
-      }
-    );
+    const response = await withRetry(
+      () => axios.post(
+        `${baseUrl}/image_generation`,
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${config.minimaxApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          params: config.minimaxGroupId ? { group_id: config.minimaxGroupId } : undefined,
+        }
+      ),
+      { isRetryable: isRetryableMiniMaxError, logTag: '[MiniMaxImageRetry]' },
+    ).catch((e: unknown) => {
+      // 归一化网络/HTTP 错误为统一错误信息
+      throw normalizeMiniMaxAxiosError(e, this.logger);
+    });
 
     const data = response.data;
 
@@ -131,8 +150,7 @@ export class MiniMaxImageAdapter implements IImageGeneratorPort {
     const statusMsg = data?.base_resp?.status_msg;
     const error = getMiniMaxErrorMessage(statusCode, statusMsg, 'MiniMax Image Generation error');
     if (error) {
-      console.error(`[MiniMaxImageAdapter] API error: status_code=${statusCode}, status_msg=${statusMsg}`);
-      console.error(`[MiniMaxImageAdapter] Request payload was:`, JSON.stringify(payload, null, 2));
+      this.logger?.error('Image API error', undefined, this.ctx({ statusCode, statusMsg }));
       throw new Error(error);
     }
 
@@ -154,7 +172,7 @@ export class MiniMaxImageAdapter implements IImageGeneratorPort {
     // base64 format
     const images: string[] = data?.data?.image_base64;
     if (!images || images.length === 0) {
-      console.error('[MiniMaxImageAdapter] Unexpected response:', JSON.stringify(data));
+      this.logger?.error('Image API returned no images', undefined, this.ctx({}));
       throw new Error('MiniMax Image API did not return any images.');
     }
 
@@ -175,7 +193,48 @@ export class MiniMaxImageAdapter implements IImageGeneratorPort {
 }
 
 /**
- * 统一抽象风格 → MiniMax 原生 style key 映射。
+ * 判断错误是否可重试（网络错误 / 429 / 5xx）。
+ * CORS 拦截为确定性失败，不重试。
+ */
+function isRetryableMiniMaxError(error: unknown): boolean {
+  if (error instanceof Error && error.message.includes('CORS')) return false;
+  // 网络错误（无 HTTP 响应）：AxiosError 的 code 字段标识网络层错误
+  if (error && typeof error === 'object' && 'code' in error) {
+    const code = (error as { code?: string }).code;
+    if (code === 'ECONNRESET' || code === 'ETIMEDOUT' || code === 'ENOTFOUND' || code === 'ECONNABORTED') {
+      return true;
+    }
+  }
+  // HTTP 429 / 5xx 可重试
+  if (error && typeof error === 'object' && 'response' in error) {
+    const status = (error as { response?: { status?: number } }).response?.status;
+    if (status === 429 || (status !== undefined && status >= 500)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * 将 AxiosError 归一化为带上下文的 Error。
+ * 非 axios 错误（如业务 Error）保持原样透传。
+ */
+function normalizeMiniMaxAxiosError(error: unknown, logger?: ILoggerPort): Error {
+  if (error && typeof error === 'object' && 'isAxiosError' in error) {
+    const axiosError = error as AxiosError;
+    const status = axiosError.response?.status;
+    const detail = axiosError.response?.data
+      ? JSON.stringify(axiosError.response.data)
+      : axiosError.message;
+    logger?.error('Image HTTP request failed', undefined, { service: 'MiniMaxImageAdapter', status });
+    return new Error(`MiniMax Image API request failed: ${status ?? 'network error'} - ${detail}`);
+  }
+  if (error instanceof Error) return error;
+  return new Error(`MiniMax Image API request failed: ${String(error)}`);
+}
+
+/**
+ * 统一抽象风格 -> MiniMax 原生 style key 映射。
  * MiniMax 仅 image-01-live 支持 style,且官方明确支持前 6 种;
  * 不支持的画风(国画/赛博朋克/像素艺术)降级为空字符串,等同默认,避免 API 报错。
  */

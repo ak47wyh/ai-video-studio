@@ -1,4 +1,5 @@
 import type { IStoryBreakdownPort, StoryBreakdownResult, ITextGenerationPort } from '../../../domain/ports/OutboundPorts';
+import type { ILoggerPort, LogContext } from '../../../domain/ports/CrossCuttingPorts';
 
 const BREAKDOWN_SYSTEM_PROMPT = `你是一个专业的视频剧本分析师，擅长从故事中提取角色、场景和分镜。
 
@@ -56,10 +57,17 @@ interface RawBreakdownResult {
 export class MiniMaxStoryBreakdownAdapter implements IStoryBreakdownPort {
   textPort: ITextGenerationPort;
   fallback: IStoryBreakdownPort;
+  private readonly logger?: ILoggerPort;
 
-  constructor(textPort: ITextGenerationPort, fallback: IStoryBreakdownPort) {
+  constructor(textPort: ITextGenerationPort, fallback: IStoryBreakdownPort, logger?: ILoggerPort) {
     this.textPort = textPort;
     this.fallback = fallback;
+    this.logger = logger;
+  }
+
+  /** 统一日志上下文工厂 */
+  private ctx(extra: LogContext = {}): LogContext {
+    return { service: 'MiniMaxStoryBreakdownAdapter', ...extra };
   }
 
   async breakdownStory(text: string): Promise<StoryBreakdownResult> {
@@ -114,7 +122,7 @@ export class MiniMaxStoryBreakdownAdapter implements IStoryBreakdownPort {
 
       return { characters, backgrounds, segments };
     } catch (e) {
-      console.warn('[MiniMaxStoryBreakdownAdapter] AI breakdown failed, falling back to mock:', e);
+      this.logger?.warn('AI breakdown failed, falling back to mock', this.ctx({ error: e instanceof Error ? e.message : String(e) }));
       return this.fallback.breakdownStory(text);
     }
   }

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Eraser, Image as ImageIcon, FileText, Film, Upload, Download, Trash2, Undo2, Redo2, Wand2, Loader2, X, Save, Link2, Plus, Grid3x3, AlertCircle, CheckCircle2, XCircle, Layers } from 'lucide-react';
 import { LabPageLayout } from '../components/LabPageLayout';
 import { AsyncState } from '../components/AsyncState';
@@ -15,26 +16,29 @@ import './WatermarkLab.css';
 type LabTab = 'image' | 'pdf' | 'video';
 
 const TABS = [
-  { key: 'image', label: '图片去水印', icon: <ImageIcon size={14} /> },
-  { key: 'pdf', label: 'PDF去水印', icon: <FileText size={14} /> },
-  { key: 'video', label: '视频去水印', icon: <Film size={14} /> },
+  { key: 'image' as LabTab, labelKey: 'watermarkLab.tabImage', icon: <ImageIcon size={14} /> },
+  { key: 'pdf' as LabTab, labelKey: 'watermarkLab.tabPdf', icon: <FileText size={14} /> },
+  { key: 'video' as LabTab, labelKey: 'watermarkLab.tabVideo', icon: <Film size={14} /> },
 ];
 
 const MAX_DIMENSION = 600;
 
 export const WatermarkLab: React.FC = () => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<LabTab>('image');
+
+  const tabs = TABS.map(tab => ({ ...tab, label: t(tab.labelKey) }));
 
   return (
     <LabPageLayout
       icon={<Eraser size={22} />}
       iconBg="color-mix(in srgb, var(--lab-color-watermark) 10%, transparent)"
       iconColor="var(--lab-color-watermark)"
-      title="去水印实验室"
-      subtitle="浏览器端本地处理 · 图片 / PDF / 视频去水印 · 隐私安全零上传"
-      tabs={TABS}
+      title={t('watermarkLab.title', '去水印实验室')}
+      subtitle={t('watermarkLab.subtitle', '浏览器端本地处理 · 图片 / PDF / 视频去水印 · 隐私安全零上传')}
+      tabs={tabs}
       activeTab={activeTab}
-      onTabChange={(t) => setActiveTab(t as LabTab)}
+      onTabChange={(tab) => setActiveTab(tab as LabTab)}
     >
       {activeTab === 'image' && <BatchImageWatermarkPanel />}
       {activeTab === 'pdf' && <PdfWatermarkPanel />}
@@ -45,6 +49,7 @@ export const WatermarkLab: React.FC = () => {
 
 // ==================== 批量图片去水印面板 ====================
 const BatchImageWatermarkPanel: React.FC = () => {
+  const { t } = useTranslation();
   const { showToast } = useToast();
   const { currentSpaceId } = useSpace();
   const batch = useBatchImageInpaint();
@@ -92,7 +97,7 @@ const BatchImageWatermarkPanel: React.FC = () => {
   };
 
   const handleDownloadOne = (taskId: string) => {
-    const task = batch.tasks.find(t => t.id === taskId);
+    const task = batch.tasks.find(task => task.id === taskId);
     if (!task?.resultBlob) return;
     const url = URL.createObjectURL(task.resultBlob);
     const a = document.createElement('a');
@@ -103,7 +108,7 @@ const BatchImageWatermarkPanel: React.FC = () => {
   };
 
   const handleDownloadAll = () => {
-    const successTasks = batch.tasks.filter(t => t.state === 'success' && t.resultBlob);
+    const successTasks = batch.tasks.filter(task => task.state === 'success' && task.resultBlob);
     successTasks.forEach((task, idx) => {
       setTimeout(() => {
         const url = URL.createObjectURL(task.resultBlob!);
@@ -114,23 +119,23 @@ const BatchImageWatermarkPanel: React.FC = () => {
         URL.revokeObjectURL(url);
       }, idx * 200);
     });
-    showToast('success', `开始下载 ${successTasks.length} 张图片`);
+    showToast('success', t('watermarkLab.batchDownloadStart', '开始下载 {{count}} 张图片', { count: successTasks.length }));
   };
 
   const handleSaveAllToLibrary = async () => {
     if (!currentSpaceId) return;
-    const successTasks = batch.tasks.filter(t => t.state === 'success' && t.resultBlob);
+    const successTasks = batch.tasks.filter(task => task.state === 'success' && task.resultBlob);
     let saved = 0;
     for (const task of successTasks) {
       try {
         await assetLibraryService.saveImageFromBlob({
           spaceId: currentSpaceId,
-          name: `去水印_${task.file.name}`,
+          name: `${t('watermarkLab.watermarkPrefix', '去水印')}_${task.file.name}`,
           blob: task.resultBlob!,
-          prompt: '批量去水印处理',
+          prompt: t('watermarkLab.batchProcessDesc', '批量去水印处理'),
           model: 'inpaint-local',
           aspectRatio: `${task.naturalSize.w}:${task.naturalSize.h}`,
-          tags: ['去水印', '批量'],
+          tags: [t('watermarkLab.watermarkPrefix', '去水印'), t('watermarkLab.batchTag', '批量')],
           sourceType: 'lab',
         });
         saved++;
@@ -138,11 +143,11 @@ const BatchImageWatermarkPanel: React.FC = () => {
         // 跳过失败的
       }
     }
-    showToast(saved > 0 ? 'success' : 'error', `已保存 ${saved} 张到素材库`);
+    showToast(saved > 0 ? 'success' : 'error', t('watermarkLab.savedCount', '已保存 {{count}} 张到素材库', { count: saved }));
   };
 
   // 单独编辑模态
-  const editingTask = editingTaskId ? batch.tasks.find(t => t.id === editingTaskId) : null;
+  const editingTask = editingTaskId ? batch.tasks.find(task => task.id === editingTaskId) : null;
 
   return (
     <div className="watermark-panel">
@@ -150,16 +155,20 @@ const BatchImageWatermarkPanel: React.FC = () => {
       {batch.tasks.length === 0 ? (
         <div
           className="watermark-upload-zone"
+          role="button"
+          tabIndex={0}
+          aria-label={t('watermarkLab.imageUploadHint', '拖拽图片到此处或点击上传（支持多选）')}
           onDrop={handleDrop}
           onDragOver={(e) => e.preventDefault()}
           onClick={() => fileInputRef.current?.click()}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInputRef.current?.click(); } }}
         >
           <Upload size={40} style={{ color: 'var(--text-muted)', opacity: 0.5 }} />
           <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-            拖拽图片到此处或点击上传（支持多选）
+            {t('watermarkLab.imageUploadHint', '拖拽图片到此处或点击上传（支持多选）')}
           </p>
           <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', opacity: 0.7 }}>
-            支持 JPG / PNG / WEBP / BMP · 可批量选择 · 最大 4096×4096 · 最大 20MB/张
+            {t('watermarkLab.imageUploadHint2', '支持 JPG / PNG / WEBP / BMP · 可批量选择 · 最大 4096×4096 · 最大 20MB/张')}
           </p>
           <input
             ref={fileInputRef}
@@ -179,10 +188,10 @@ const BatchImageWatermarkPanel: React.FC = () => {
               <div className="batch-unified-section">
                 <div className="batch-section-title">
                   <Layers size={14} />
-                  统一水印选区（基于首图 · 应用到全部）
-                  {batch.tasks.some(t => t.regions) && (
+                  {t('watermarkLab.unifiedRegionTitle', '统一水印选区（基于首图 · 应用到全部）')}
+                  {batch.tasks.some(task => task.regions) && (
                     <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginLeft: '0.5rem' }}>
-                      · {batch.tasks.filter(t => t.regions).length} 张已单独调整
+                      · {batch.tasks.filter(task => task.regions).length} {t('watermarkLab.individuallyAdjusted', '张已单独调整')}
                     </span>
                   )}
                 </div>
@@ -204,14 +213,14 @@ const BatchImageWatermarkPanel: React.FC = () => {
                     style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem' }}
                     onClick={() => setMode('rect')}
                   >
-                    矩形框选
+                    {t('watermarkLab.rectSelect', '矩形框选')}
                   </button>
                   <button
                     className={`btn ${mode === 'brush' ? 'btn-primary' : 'btn-secondary'}`}
                     style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem' }}
                     onClick={() => setMode('brush')}
                   >
-                    涂抹
+                    {t('watermarkLab.brushSelect', '涂抹')}
                   </button>
                   {mode === 'brush' && (
                     <input
@@ -223,18 +232,18 @@ const BatchImageWatermarkPanel: React.FC = () => {
                       style={{ width: 80 }}
                     />
                   )}
-                  <button className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem' }} onClick={handleUndo} disabled={history.length === 0}>
-                    <Undo2 size={14} />
+                  <button className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem' }} onClick={handleUndo} disabled={history.length === 0} aria-label={t('watermarkLab.undo', '撤销')}>
+                    <Undo2 size={14} aria-hidden="true" />
                   </button>
-                  <button className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem' }} onClick={handleRedo} disabled={redoStack.length === 0}>
-                    <Redo2 size={14} />
+                  <button className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem' }} onClick={handleRedo} disabled={redoStack.length === 0} aria-label={t('watermarkLab.redo', '重做')}>
+                    <Redo2 size={14} aria-hidden="true" />
                   </button>
                   <button
                     className="btn btn-secondary"
                     style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem', color: 'var(--color-danger)' }}
                     onClick={() => { batch.setUnifiedRegions([]); setHistory([]); setRedoStack([]); }}
                   >
-                    <Trash2 size={14} /> 清除选区
+                    <Trash2 size={14} /> {t('watermarkLab.clearSelection', '清除选区')}
                   </button>
                 </div>
               </div>
@@ -243,7 +252,7 @@ const BatchImageWatermarkPanel: React.FC = () => {
             {/* 任务列表网格 */}
             <div className="batch-section-title" style={{ marginTop: '1rem' }}>
               <Grid3x3 size={14} />
-              任务列表（{batch.tasks.length} 张 · 成功 {batch.completedCount} · 失败 {batch.failedCount}）
+              {t('watermarkLab.taskListSummary', '任务列表（{{total}} 张 · 成功 {{success}} · 失败 {{failed}}）', { total: batch.tasks.length, success: batch.completedCount, failed: batch.failedCount })}
             </div>
             <div className="batch-task-grid">
               {batch.tasks.map(task => (
@@ -255,8 +264,8 @@ const BatchImageWatermarkPanel: React.FC = () => {
                   <div className="batch-task-thumb">
                     <img src={task.thumbnailUrl} alt={task.file.name} />
                     {task.state === 'processing' && (
-                      <div className="batch-task-overlay">
-                        <Loader2 size={20} className="spin" />
+                      <div className="batch-task-overlay" role="status" aria-live="polite">
+                        <Loader2 size={20} className="spin" aria-hidden="true" />
                         <span>{Math.round(task.progress * 100)}%</span>
                       </div>
                     )}
@@ -271,7 +280,7 @@ const BatchImageWatermarkPanel: React.FC = () => {
                       </div>
                     )}
                     {task.regions && (
-                      <div className="batch-task-badge" title="已单独调整选区">单独</div>
+                      <div className="batch-task-badge" title={t('watermarkLab.individuallyAdjustedTitle', '已单独调整选区')}>{t('watermarkLab.individualBadge', '单独')}</div>
                     )}
                   </div>
                   <div className="batch-task-name" title={task.file.name}>{task.file.name}</div>
@@ -281,7 +290,7 @@ const BatchImageWatermarkPanel: React.FC = () => {
                       style={{ fontSize: '0.7rem', padding: '0.2rem 0.4rem' }}
                       onClick={(e) => { e.stopPropagation(); handleDownloadOne(task.id); }}
                     >
-                      <Download size={12} /> 下载
+                      <Download size={12} /> {t('watermarkLab.download', '下载')}
                     </button>
                   )}
                 </div>
@@ -289,10 +298,14 @@ const BatchImageWatermarkPanel: React.FC = () => {
               {/* 添加更多 */}
               <div
                 className="batch-add-card"
+                role="button"
+                tabIndex={0}
+                aria-label={t('watermarkLab.addImages', '添加图片')}
                 onClick={() => fileInputRef.current?.click()}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInputRef.current?.click(); } }}
               >
                 <Plus size={24} />
-                <span style={{ fontSize: '0.7rem' }}>添加图片</span>
+                <span style={{ fontSize: '0.7rem' }}>{t('watermarkLab.addImages', '添加图片')}</span>
               </div>
               <input
                 ref={fileInputRef}
@@ -308,47 +321,47 @@ const BatchImageWatermarkPanel: React.FC = () => {
           {/* 右侧：参数面板 */}
           <div className="watermark-params-panel">
             <div className="form-group">
-              <label className="form-label">去水印算法</label>
+              <label className="form-label">{t('watermarkLab.algorithm', '去水印算法')}</label>
               <select
                 className="form-select"
                 value={batch.algorithm}
                 onChange={(e) => batch.setAlgorithm(e.target.value as InpaintAlgorithm)}
                 disabled={batch.isProcessing}
               >
-                <option value="fast_fill">快速填充（纯色背景）</option>
-                <option value="edge_interpolation">边缘插值（推荐）</option>
-                <option value="texture_synthesis">纹理合成（复杂背景）</option>
-                <option value="telea">Telea 快速行进法</option>
-                <option value="navier_stokes">Navier-Stokes 流体扩散</option>
-                <option value="content_aware">内容感知填充（质量最高）</option>
+                <option value="fast_fill">{t('watermarkLab.algoFastFill', '快速填充（纯色背景）')}</option>
+                <option value="edge_interpolation">{t('watermarkLab.algoEdgeInterpolation', '边缘插值（推荐）')}</option>
+                <option value="texture_synthesis">{t('watermarkLab.algoTextureSynthesis', '纹理合成（复杂背景）')}</option>
+                <option value="telea">{t('watermarkLab.algoTelea', 'Telea 快速行进法')}</option>
+                <option value="navier_stokes">{t('watermarkLab.algoNavierStokes', 'Navier-Stokes 流体扩散')}</option>
+                <option value="content_aware">{t('watermarkLab.algoContentAware', '内容感知填充（质量最高）')}</option>
               </select>
             </div>
 
             <div className="form-group">
-              <label className="form-label">并发数</label>
+              <label className="form-label">{t('watermarkLab.concurrency', '并发数')}</label>
               <select
                 className="form-select"
                 value={batch.concurrency}
                 onChange={(e) => batch.setConcurrency(Number(e.target.value))}
                 disabled={batch.isProcessing}
               >
-                <option value={1}>1（串行，最稳定）</option>
-                <option value={3}>3（推荐）</option>
-                <option value={5}>5（最快，占内存大）</option>
+                <option value={1}>{t('watermarkLab.concurrency1', '1（串行，最稳定）')}</option>
+                <option value={3}>{t('watermarkLab.concurrency3', '3（推荐）')}</option>
+                <option value={5}>{t('watermarkLab.concurrency5', '5（最快，占内存大）')}</option>
               </select>
             </div>
 
             <div className="form-group">
-              <label className="form-label">统一选区</label>
+              <label className="form-label">{t('watermarkLab.unifiedRegions', '统一选区')}</label>
               <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                {batch.unifiedRegions.length} 个区域
+                {batch.unifiedRegions.length} {t('watermarkLab.regionsCount', '个区域')}
               </div>
             </div>
 
             {/* 进度统计 */}
             {batch.isProcessing && (
-              <div className="watermark-retry-hint" style={{ color: 'var(--text-secondary)' }}>
-                处理中... {batch.completedCount}/{batch.tasks.length}
+              <div className="watermark-retry-hint" style={{ color: 'var(--text-secondary)' }} role="status" aria-live="polite">
+                {t('watermarkLab.processingProgress', '处理中... {{completed}}/{{total}}', { completed: batch.completedCount, total: batch.tasks.length })}
               </div>
             )}
 
@@ -358,28 +371,28 @@ const BatchImageWatermarkPanel: React.FC = () => {
               onClick={batch.processAll}
             >
               {batch.isProcessing ? <Loader2 size={18} className="spin" /> : <Wand2 size={18} />}
-              {batch.isProcessing ? '处理中...' : `批量去水印（${batch.tasks.length}张）`}
+              {batch.isProcessing ? t('watermarkLab.processing', '处理中...') : t('watermarkLab.batchRemoveWatermark', '批量去水印（{{count}}张）', { count: batch.tasks.length })}
             </button>
 
             {batch.isProcessing && (
               <button className="btn btn-secondary" style={{ marginTop: '0.5rem' }} onClick={batch.cancel}>
-                <X size={14} /> 取消
+                <X size={14} /> {t('common.cancel', '取消')}
               </button>
             )}
 
             {batch.failedCount > 0 && !batch.isProcessing && (
               <button className="btn btn-secondary" style={{ marginTop: '0.5rem' }} onClick={batch.retryFailed}>
-                <Wand2 size={14} /> 重试失败（{batch.failedCount}张）
+                <Wand2 size={14} /> {t('watermarkLab.retryFailed', '重试失败（{{count}}张）', { count: batch.failedCount })}
               </button>
             )}
 
             {batch.completedCount > 0 && !batch.isProcessing && (
               <>
                 <button className="btn btn-primary btn-generate" style={{ marginTop: '0.5rem' }} onClick={handleDownloadAll}>
-                  <Download size={16} /> 全部下载
+                  <Download size={16} /> {t('watermarkLab.downloadAll', '全部下载')}
                 </button>
                 <button className="btn btn-secondary" style={{ marginTop: '0.5rem' }} onClick={handleSaveAllToLibrary}>
-                  <Save size={16} /> 全部保存到素材库
+                  <Save size={16} /> {t('watermarkLab.saveAllToLibrary', '全部保存到素材库')}
                 </button>
               </>
             )}
@@ -389,7 +402,7 @@ const BatchImageWatermarkPanel: React.FC = () => {
               style={{ marginTop: '0.5rem', fontSize: '0.75rem' }}
               onClick={batch.clearAll}
             >
-              清空全部
+              {t('watermarkLab.clearAll', '清空全部')}
             </button>
           </div>
         </div>
@@ -401,15 +414,15 @@ const BatchImageWatermarkPanel: React.FC = () => {
           className="batch-edit-modal"
           role="dialog"
           aria-modal="true"
-          aria-label={`单独编辑选区 - ${editingTask.file.name}`}
+          aria-label={`${t('watermarkLab.editIndividualRegion', '单独编辑选区')} - ${editingTask.file.name}`}
           onClick={() => setEditingTaskId(null)}
           onKeyDown={(e) => { if (e.key === 'Escape') setEditingTaskId(null); }}
         >
           <div className="batch-edit-modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="batch-edit-modal-header">
-              <span>单独编辑选区 - {editingTask.file.name}</span>
-              <button className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '0.2rem 0.4rem' }} onClick={() => setEditingTaskId(null)}>
-                <X size={14} />
+              <span>{t('watermarkLab.editIndividualRegion', '单独编辑选区')} - {editingTask.file.name}</span>
+              <button className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '0.2rem 0.4rem' }} onClick={() => setEditingTaskId(null)} aria-label={t('common.close', '关闭')}>
+                <X size={14} aria-hidden="true" />
               </button>
             </div>
             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
@@ -428,7 +441,7 @@ const BatchImageWatermarkPanel: React.FC = () => {
               </div>
               <div style={{ width: 200, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                  当前选区：{batch.getEffectiveRegions(editingTask.id).length} 个区域
+                  {t('watermarkLab.currentRegions', '当前选区：{{count}} 个区域', { count: batch.getEffectiveRegions(editingTask.id).length })}
                 </div>
                 {editingTask.regions && (
                   <button
@@ -436,7 +449,7 @@ const BatchImageWatermarkPanel: React.FC = () => {
                     style={{ fontSize: '0.75rem' }}
                     onClick={() => batch.clearTaskRegions(editingTask.id)}
                   >
-                    恢复为统一选区
+                    {t('watermarkLab.restoreUnified', '恢复为统一选区')}
                   </button>
                 )}
               </div>
@@ -450,6 +463,7 @@ const BatchImageWatermarkPanel: React.FC = () => {
 
 // ==================== PDF 去水印面板 ====================
 const PdfWatermarkPanel: React.FC = () => {
+  const { t } = useTranslation();
   const { showToast } = useToast();
   const {
     progress, isProcessing, error, resultUrl, resultBlob,
@@ -466,7 +480,7 @@ const PdfWatermarkPanel: React.FC = () => {
 
   const handleFileSelect = async (f: File) => {
     if (f.type !== 'application/pdf') {
-      showToast('error', '请选择 PDF 文件');
+      showToast('error', t('watermarkLab.selectPdf', '请选择 PDF 文件'));
       return;
     }
     setFile(f);
@@ -482,7 +496,7 @@ const PdfWatermarkPanel: React.FC = () => {
       setDisplaySize({ w: Math.round(dw), h: Math.round(dh) });
       setFirstPageUrl(dataUrl);
     } catch (_e) {
-      showToast('error', 'PDF 预览失败');
+      showToast('error', t('watermarkLab.pdfPreviewFailed', 'PDF 预览失败'));
     }
   };
 
@@ -506,14 +520,18 @@ const PdfWatermarkPanel: React.FC = () => {
       {!file ? (
         <div
           className="watermark-upload-zone"
+          role="button"
+          tabIndex={0}
+          aria-label={t('watermarkLab.pdfUploadHint', '拖拽 PDF 到此处或点击上传')}
           onDrop={(e) => { e.preventDefault(); if (e.dataTransfer.files[0]) handleFileSelect(e.dataTransfer.files[0]); }}
           onDragOver={(e) => e.preventDefault()}
           onClick={() => fileInputRef.current?.click()}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInputRef.current?.click(); } }}
         >
           <Upload size={40} style={{ color: 'var(--text-muted)', opacity: 0.5 }} />
-          <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>拖拽 PDF 到此处或点击上传</p>
+          <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>{t('watermarkLab.pdfUploadHint', '拖拽 PDF 到此处或点击上传')}</p>
           <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', opacity: 0.7 }}>
-            支持标准 PDF · 最大 50 页 · 最大 50MB
+            {t('watermarkLab.pdfUploadHint2', '支持标准 PDF · 最大 50 页 · 最大 50MB')}
           </p>
           <input
             ref={fileInputRef}
@@ -542,60 +560,60 @@ const PdfWatermarkPanel: React.FC = () => {
                   imageSrc={firstPageUrl}
                 />
                 <div className="watermark-toolbar">
-                  <button className={`btn ${mode === 'rect' ? 'btn-primary' : 'btn-secondary'}`} style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem' }} onClick={() => setMode('rect')}>矩形框选</button>
-                  <button className={`btn ${mode === 'brush' ? 'btn-primary' : 'btn-secondary'}`} style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem' }} onClick={() => setMode('brush')}>涂抹</button>
+                  <button className={`btn ${mode === 'rect' ? 'btn-primary' : 'btn-secondary'}`} style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem' }} onClick={() => setMode('rect')}>{t('watermarkLab.rectSelect', '矩形框选')}</button>
+                  <button className={`btn ${mode === 'brush' ? 'btn-primary' : 'btn-secondary'}`} style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem' }} onClick={() => setMode('brush')}>{t('watermarkLab.brushSelect', '涂抹')}</button>
                   <button className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem', color: '#ef4444' }} onClick={() => setRegions([])}>
-                    <Trash2 size={14} /> 清除
+                    <Trash2 size={14} /> {t('watermarkLab.clear', '清除')}
                   </button>
                 </div>
                 <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                  提示：框选的水印区域将应用到所有页（全页统一模式）
+                  {t('watermarkLab.pdfRegionHint', '提示：框选的水印区域将应用到所有页（全页统一模式）')}
                 </p>
               </div>
             ) : (
-              <AsyncState loading emptyText="加载预览..." minHeight={300} />
+              <AsyncState loading emptyText={t('watermarkLab.loadingPreview', '加载预览...')} minHeight={300} />
             )}
           </div>
 
           <div className="watermark-params-panel">
             <div className="form-group">
-              <label className="form-label">渲染分辨率 (DPI)</label>
+              <label className="form-label">{t('watermarkLab.renderDpi', '渲染分辨率 (DPI)')}</label>
               <select className="form-select" value={dpi} onChange={(e) => setDpi(Number(e.target.value))} disabled={isProcessing}>
-                <option value={96}>96 (快速)</option>
-                <option value={150}>150 (推荐)</option>
-                <option value={300}>300 (高清)</option>
+                <option value={96}>{t('watermarkLab.dpi96', '96 (快速)')}</option>
+                <option value={150}>{t('watermarkLab.dpi150', '150 (推荐)')}</option>
+                <option value={300}>{t('watermarkLab.dpi300', '300 (高清)')}</option>
               </select>
             </div>
             <div className="form-group">
-              <label className="form-label">已选区域</label>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{regions.length} 个区域</div>
+              <label className="form-label">{t('watermarkLab.selectedRegions', '已选区域')}</label>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{regions.length} {t('watermarkLab.regionsCount', '个区域')}</div>
             </div>
             {retryCount > 0 && isProcessing && (
               <div className="watermark-retry-hint">
-                {isFallbackRetry ? '主算法失败，正在尝试备选算法' : `正在重试 · 第 ${retryCount + 1} 次尝试`}
+                {isFallbackRetry ? t('watermarkLab.fallbackRetry', '主算法失败，正在尝试备选算法') : t('watermarkLab.retrying', '正在重试 · 第 {{count}} 次尝试', { count: retryCount + 1 })}
               </div>
             )}
-            <AsyncState loading={isProcessing} loadingText={`处理中... ${Math.round(progress * 100)}%`} error={error} onRetry={retry} minHeight={80}>
+            <AsyncState loading={isProcessing} loadingText={t('watermarkLab.processingPercent', '处理中... {{percent}}%', { percent: Math.round(progress * 100) })} error={error} onRetry={retry} minHeight={80}>
               {!resultUrl ? (
                 <>
                   <button className="btn btn-primary btn-generate" disabled={regions.length === 0 || isProcessing} onClick={handleProcess}>
                     {isProcessing ? <Loader2 size={18} className="spin" /> : <Wand2 size={18} />}
-                    {isProcessing ? '处理中...' : '开始去水印'}
+                    {isProcessing ? t('watermarkLab.processing', '处理中...') : t('watermarkLab.startRemoveWatermark', '开始去水印')}
                   </button>
-                  {isProcessing && <button className="btn btn-secondary" style={{ marginTop: '0.5rem' }} onClick={cancel}><X size={14} /> 取消</button>}
+                  {isProcessing && <button className="btn btn-secondary" style={{ marginTop: '0.5rem' }} onClick={cancel}><X size={14} /> {t('common.cancel', '取消')}</button>}
                 </>
               ) : (
                 <>
-                  <button className="btn btn-primary btn-generate" onClick={handleDownload}><Download size={18} /> 下载 PDF</button>
-                  <button className="btn btn-secondary" style={{ marginTop: '0.5rem' }} onClick={() => { reset(); setRegions([]); }}><Trash2 size={16} /> 重新处理</button>
+                  <button className="btn btn-primary btn-generate" onClick={handleDownload}><Download size={18} /> {t('watermarkLab.downloadPdf', '下载 PDF')}</button>
+                  <button className="btn btn-secondary" style={{ marginTop: '0.5rem' }} onClick={() => { reset(); setRegions([]); }}><Trash2 size={16} /> {t('watermarkLab.reprocess', '重新处理')}</button>
                 </>
               )}
             </AsyncState>
             {isProcessing && (
-              <div className="watermark-progress"><div className="watermark-progress-bar" style={{ width: `${progress * 100}%` }} /></div>
+              <div className="watermark-progress" role="progressbar" aria-valuenow={Math.round(progress * 100)} aria-valuemin={0} aria-valuemax={100}><div className="watermark-progress-bar" style={{ width: `${progress * 100}%` }} /></div>
             )}
             <button className="btn btn-secondary" style={{ marginTop: '0.5rem', fontSize: '0.75rem' }} onClick={() => { setFile(null); setFirstPageUrl(null); setRegions([]); reset(); }}>
-              更换 PDF
+              {t('watermarkLab.changePdf', '更换 PDF')}
             </button>
           </div>
         </div>
@@ -608,6 +626,7 @@ const PdfWatermarkPanel: React.FC = () => {
 type VideoInputMode = 'address' | 'upload';
 
 const VideoWatermarkPanel: React.FC = () => {
+  const { t } = useTranslation();
   const { showToast } = useToast();
   const { currentSpaceId } = useSpace();
   const {
@@ -629,7 +648,7 @@ const VideoWatermarkPanel: React.FC = () => {
 
   const loadVideoFile = useCallback((f: File) => {
     if (!f.type.startsWith('video/')) {
-      showToast('error', '请选择视频文件');
+      showToast('error', t('watermarkLab.selectVideo', '请选择视频文件'));
       return;
     }
     setFile(f);
@@ -657,12 +676,12 @@ const VideoWatermarkPanel: React.FC = () => {
       ctx.drawImage(video, 0, 0);
       setFirstFrameUrl(canvas.toDataURL('image/png'));
     };
-  }, [reset, showToast]);
+  }, [reset, showToast, t]);
 
   const handleAddressResolve = async () => {
     const trimmed = address.trim();
     if (!trimmed) {
-      showToast('error', '请输入视频地址');
+      showToast('error', t('watermarkLab.enterVideoAddress', '请输入视频地址'));
       return;
     }
 
@@ -672,32 +691,32 @@ const VideoWatermarkPanel: React.FC = () => {
     try {
       if (addrType === 'direct') {
         // 直链：fetch 下载为 File
-        showToast('info', '正在下载视频...');
+        showToast('info', t('watermarkLab.downloadingVideo', '正在下载视频...'));
         const videoFile = await fetchVideoAsFile(trimmed);
         loadVideoFile(videoFile);
-        showToast('success', '视频下载完成');
+        showToast('success', t('watermarkLab.videoDownloaded', '视频下载完成'));
       } else if (addrType === 'share') {
         // 平台分享链接：调用解析端口（当前为未实现）
         try {
           const resolved = await videoAddressResolver.resolve(trimmed);
           // 解析成功后下载直链
-          showToast('info', '解析成功，正在下载...');
+          showToast('info', t('watermarkLab.resolvedDownloading', '解析成功，正在下载...'));
           const videoFile = await fetchVideoAsFile(resolved.directUrl);
           loadVideoFile(videoFile);
-          showToast('success', '视频下载完成');
+          showToast('success', t('watermarkLab.videoDownloaded', '视频下载完成'));
         } catch (e) {
-          showToast('error', e instanceof Error ? e.message : '地址解析失败');
+          showToast('error', e instanceof Error ? e.message : t('watermarkLab.addressResolveFailed', '地址解析失败'));
         }
       } else {
         // 本地文件路径：浏览器无法直接读取
-        showToast('warning', '浏览器安全限制无法直接读取本地路径，请使用上传方式');
+        showToast('warning', t('watermarkLab.localPathNotSupported', '浏览器安全限制无法直接读取本地路径，请使用上传方式'));
         setInputMode('upload');
       }
     } catch (e) {
       if (e instanceof TypeError && e.message.includes('Failed to fetch')) {
-        showToast('error', '下载失败：跨域限制，请尝试下载后上传');
+        showToast('error', t('watermarkLab.downloadFailedCors', '下载失败：跨域限制，请尝试下载后上传'));
       } else {
-        showToast('error', e instanceof Error ? e.message : '地址处理失败');
+        showToast('error', e instanceof Error ? e.message : t('watermarkLab.addressProcessFailed', '地址处理失败'));
       }
     } finally {
       setAddressLoading(false);
@@ -729,18 +748,18 @@ const VideoWatermarkPanel: React.FC = () => {
     try {
       await assetLibraryService.saveVideoFromBlob({
         spaceId: currentSpaceId,
-        name: `去水印_${file.name.replace(/\.[^.]+$/, '')}`,
+        name: `${t('watermarkLab.watermarkPrefix', '去水印')}_${file.name.replace(/\.[^.]+$/, '')}`,
         blob: resultBlob,
         durationSec: 0,
         width: naturalSize.w || undefined,
         height: naturalSize.h || undefined,
         mimeType: 'video/mp4',
-        tags: ['去水印'],
+        tags: [t('watermarkLab.watermarkPrefix', '去水印')],
         sourceType: 'lab',
       });
-      showToast('success', '已保存到素材库');
+      showToast('success', t('watermarkLab.savedToLibrary', '已保存到素材库'));
     } catch (e) {
-      showToast('error', e instanceof Error ? e.message : '保存失败');
+      showToast('error', e instanceof Error ? e.message : t('watermarkLab.saveFailed', '保存失败'));
     }
   };
 
@@ -758,14 +777,14 @@ const VideoWatermarkPanel: React.FC = () => {
               style={{ fontSize: '0.8rem' }}
               onClick={() => setInputMode('address')}
             >
-              <Link2 size={14} /> 粘贴地址
+              <Link2 size={14} /> {t('watermarkLab.pasteAddress', '粘贴地址')}
             </button>
             <button
               className={`btn ${inputMode === 'upload' ? 'btn-primary' : 'btn-secondary'}`}
               style={{ fontSize: '0.8rem' }}
               onClick={() => setInputMode('upload')}
             >
-              <Upload size={14} /> 上传文件
+              <Upload size={14} /> {t('watermarkLab.uploadFile', '上传文件')}
             </button>
           </div>
 
@@ -777,7 +796,7 @@ const VideoWatermarkPanel: React.FC = () => {
                   type="text"
                   className="form-select"
                   style={{ flex: 1 }}
-                  placeholder="粘贴视频直链（如 https://example.com/video.mp4）或平台分享链接"
+                  placeholder={t('watermarkLab.addressPlaceholder', '粘贴视频直链（如 https://example.com/video.mp4）或平台分享链接')}
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleAddressResolve()}
@@ -789,13 +808,13 @@ const VideoWatermarkPanel: React.FC = () => {
                   onClick={handleAddressResolve}
                 >
                   {addressLoading ? <Loader2 size={16} className="spin" /> : <Link2 size={16} />}
-                  解析
+                  {t('watermarkLab.resolve', '解析')}
                 </button>
               </div>
               <div className="video-address-tips">
-                <p>· <strong>直链视频</strong>（如 .mp4/.webm/.mov）：直接下载处理</p>
-                <p>· <strong>平台分享链接</strong>（抖音/B站等）：需后端解析服务，当前未实现</p>
-                <p>· <strong>本地文件路径</strong>：浏览器安全限制无法直接读取，请使用上传方式</p>
+                <p>· <strong>{t('watermarkLab.directLinkLabel', '直链视频')}</strong>{t('watermarkLab.directLinkDesc', '（如 .mp4/.webm/.mov）：直接下载处理')}</p>
+                <p>· <strong>{t('watermarkLab.shareLinkLabel', '平台分享链接')}</strong>{t('watermarkLab.shareLinkDesc', '（抖音/B站等）：需后端解析服务，当前未实现')}</p>
+                <p>· <strong>{t('watermarkLab.localPathLabel', '本地文件路径')}</strong>{t('watermarkLab.localPathDesc', '：浏览器安全限制无法直接读取，请使用上传方式')}</p>
               </div>
             </div>
           )}
@@ -804,14 +823,18 @@ const VideoWatermarkPanel: React.FC = () => {
           {inputMode === 'upload' && (
             <div
               className="watermark-upload-zone"
+              role="button"
+              tabIndex={0}
+              aria-label={t('watermarkLab.videoUploadHint', '拖拽视频到此处或点击上传')}
               onDrop={(e) => { e.preventDefault(); if (e.dataTransfer.files[0]) handleFileSelect(e.dataTransfer.files[0]); }}
               onDragOver={(e) => e.preventDefault()}
               onClick={() => fileInputRef.current?.click()}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInputRef.current?.click(); } }}
             >
               <Upload size={40} style={{ color: 'var(--text-muted)', opacity: 0.5 }} />
-              <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>拖拽视频到此处或点击上传</p>
+              <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>{t('watermarkLab.videoUploadHint', '拖拽视频到此处或点击上传')}</p>
               <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', opacity: 0.7 }}>
-                支持 MP4 / WebM / MOV · 最大 10 分钟 · 最大 200MB
+                {t('watermarkLab.videoUploadHint2', '支持 MP4 / WebM / MOV · 最大 10 分钟 · 最大 200MB')}
               </p>
               <input
                 ref={fileInputRef}
@@ -842,30 +865,30 @@ const VideoWatermarkPanel: React.FC = () => {
                   imageSrc={firstFrameUrl}
                 />
                 <div className="watermark-toolbar">
-                  <button className={`btn ${mode === 'rect' ? 'btn-primary' : 'btn-secondary'}`} style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem' }} onClick={() => setMode('rect')}>矩形框选</button>
-                  <button className={`btn ${mode === 'brush' ? 'btn-primary' : 'btn-secondary'}`} style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem' }} onClick={() => setMode('brush')}>涂抹</button>
+                  <button className={`btn ${mode === 'rect' ? 'btn-primary' : 'btn-secondary'}`} style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem' }} onClick={() => setMode('rect')}>{t('watermarkLab.rectSelect', '矩形框选')}</button>
+                  <button className={`btn ${mode === 'brush' ? 'btn-primary' : 'btn-secondary'}`} style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem' }} onClick={() => setMode('brush')}>{t('watermarkLab.brushSelect', '涂抹')}</button>
                   <button className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem', color: '#ef4444' }} onClick={() => setRegions([])}>
-                    <Trash2 size={14} /> 清除
+                    <Trash2 size={14} /> {t('watermarkLab.clear', '清除')}
                   </button>
                 </div>
                 <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                  提示：框选水印位置，将应用到视频所有帧（静态水印模式）
+                  {t('watermarkLab.videoRegionHint', '提示：框选水印位置，将应用到视频所有帧（静态水印模式）')}
                 </p>
               </div>
             ) : (
-              <AsyncState loading emptyText="加载视频预览..." minHeight={300} />
+              <AsyncState loading emptyText={t('watermarkLab.loadingVideoPreview', '加载视频预览...')} minHeight={300} />
             )}
           </div>
 
           <div className="watermark-params-panel">
             <div className="form-group">
-              <label className="form-label">已选区域</label>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{regions.length} 个区域</div>
+              <label className="form-label">{t('watermarkLab.selectedRegions', '已选区域')}</label>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{regions.length} {t('watermarkLab.regionsCount', '个区域')}</div>
             </div>
 
             {/* 处理方式选择 */}
             <div className="form-group">
-              <label className="form-label">处理方式</label>
+              <label className="form-label">{t('watermarkLab.processMode', '处理方式')}</label>
               <div className="video-mode-select">
                 <label className={`video-mode-option ${mode === 'brush' ? 'disabled' : ''}`}>
                   <input
@@ -877,8 +900,8 @@ const VideoWatermarkPanel: React.FC = () => {
                     disabled={mode === 'brush'}
                   />
                   <div className="video-mode-content">
-                    <div className="video-mode-title">快速模式</div>
-                    <div className="video-mode-desc">delogo 滤镜单次处理 · 速度快 · 仅矩形</div>
+                    <div className="video-mode-title">{t('watermarkLab.fastMode', '快速模式')}</div>
+                    <div className="video-mode-desc">{t('watermarkLab.fastModeDesc', 'delogo 滤镜单次处理 · 速度快 · 仅矩形')}</div>
                   </div>
                 </label>
                 <label className="video-mode-option">
@@ -890,45 +913,45 @@ const VideoWatermarkPanel: React.FC = () => {
                     onChange={() => setVideoMode('quality')}
                   />
                   <div className="video-mode-content">
-                    <div className="video-mode-title">高质量模式</div>
-                    <div className="video-mode-desc">逐帧精修 · 支持涂抹 · 速度较慢</div>
+                    <div className="video-mode-title">{t('watermarkLab.qualityMode', '高质量模式')}</div>
+                    <div className="video-mode-desc">{t('watermarkLab.qualityModeDesc', '逐帧精修 · 支持涂抹 · 速度较慢')}</div>
                   </div>
                 </label>
               </div>
               {mode === 'brush' && (
                 <div className="watermark-retry-hint" style={{ fontSize: '0.7rem' }}>
-                  <AlertCircle size={12} style={{ display: 'inline' }} /> 涂抹模式仅支持高质量处理
+                  <AlertCircle size={12} style={{ display: 'inline' }} /> {t('watermarkLab.brushQualityOnly', '涂抹模式仅支持高质量处理')}
                 </div>
               )}
             </div>
 
             {retryCount > 0 && isProcessing && (
               <div className="watermark-retry-hint">
-                {isFallbackRetry ? '主算法失败，正在尝试备选算法' : `正在重试 · 第 ${retryCount + 1} 次尝试`}
+                {isFallbackRetry ? t('watermarkLab.fallbackRetry', '主算法失败，正在尝试备选算法') : t('watermarkLab.retrying', '正在重试 · 第 {{count}} 次尝试', { count: retryCount + 1 })}
               </div>
             )}
-            <AsyncState loading={isProcessing} loadingText={`处理中... ${Math.round(progress * 100)}%`} error={error} onRetry={retry} minHeight={80}>
+            <AsyncState loading={isProcessing} loadingText={t('watermarkLab.processingPercent', '处理中... {{percent}}%', { percent: Math.round(progress * 100) })} error={error} onRetry={retry} minHeight={80}>
               {!resultUrl ? (
                 <>
                   <button className="btn btn-primary btn-generate" disabled={regions.length === 0 || isProcessing} onClick={handleProcess}>
                     {isProcessing ? <Loader2 size={18} className="spin" /> : <Wand2 size={18} />}
-                    {isProcessing ? '处理中...' : '开始去水印'}
+                    {isProcessing ? t('watermarkLab.processing', '处理中...') : t('watermarkLab.startRemoveWatermark', '开始去水印')}
                   </button>
-                  {isProcessing && <button className="btn btn-secondary" style={{ marginTop: '0.5rem' }} onClick={cancel}><X size={14} /> 取消</button>}
+                  {isProcessing && <button className="btn btn-secondary" style={{ marginTop: '0.5rem' }} onClick={cancel}><X size={14} /> {t('common.cancel', '取消')}</button>}
                 </>
               ) : (
                 <>
-                  <button className="btn btn-primary btn-generate" onClick={handleDownload}><Download size={18} /> 下载视频</button>
-                  <button className="btn btn-secondary" style={{ marginTop: '0.5rem' }} onClick={handleSaveToLibrary}><Save size={16} /> 保存到素材库</button>
-                  <button className="btn btn-secondary" style={{ marginTop: '0.5rem' }} onClick={() => { reset(); setRegions([]); }}><Trash2 size={16} /> 重新处理</button>
+                  <button className="btn btn-primary btn-generate" onClick={handleDownload}><Download size={18} /> {t('watermarkLab.downloadVideo', '下载视频')}</button>
+                  <button className="btn btn-secondary" style={{ marginTop: '0.5rem' }} onClick={handleSaveToLibrary}><Save size={16} /> {t('watermarkLab.saveToLibrary', '保存到素材库')}</button>
+                  <button className="btn btn-secondary" style={{ marginTop: '0.5rem' }} onClick={() => { reset(); setRegions([]); }}><Trash2 size={16} /> {t('watermarkLab.reprocess', '重新处理')}</button>
                 </>
               )}
             </AsyncState>
             {isProcessing && (
-              <div className="watermark-progress"><div className="watermark-progress-bar" style={{ width: `${progress * 100}%` }} /></div>
+              <div className="watermark-progress" role="progressbar" aria-valuenow={Math.round(progress * 100)} aria-valuemin={0} aria-valuemax={100}><div className="watermark-progress-bar" style={{ width: `${progress * 100}%` }} /></div>
             )}
             <button className="btn btn-secondary" style={{ marginTop: '0.5rem', fontSize: '0.75rem' }} onClick={() => { setFile(null); setFirstFrameUrl(null); setRegions([]); reset(); setAddress(''); }}>
-              更换视频
+              {t('watermarkLab.changeVideo', '更换视频')}
             </button>
           </div>
         </div>

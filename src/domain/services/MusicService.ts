@@ -11,8 +11,8 @@ export class MusicService {
   segmentRepo: IStorySegmentRepository;
   private getFileStorage: () => IFileStoragePort;
   private costMeter?: ICostMeter;
-  /** P1-2：可选注入的 HTTP 抓取 Port */
-  private httpFetch?: IHttpFetchPort;
+  /** HTTP 抓取 Port */
+  private httpFetch: IHttpFetchPort;
 
   constructor(
     router: PlatformRouter,
@@ -20,8 +20,8 @@ export class MusicService {
     segmentRepo: IStorySegmentRepository,
     fileStorage: IFileStoragePort | (() => IFileStoragePort),
     logger: ILoggerPort,
+    httpFetch: IHttpFetchPort,
     costMeter?: ICostMeter,
-    httpFetch?: IHttpFetchPort,
   ) {
     this.router = router;
     this.configStore = configStore;
@@ -192,14 +192,7 @@ export class MusicService {
 
     // Phase 2-B：尝试下载音频并持久化到 OPFS
     try {
-      // P1-2：优先走 IHttpFetchPort（自动 NetworkError/TimeoutError 归一化）
-      const blob = this.httpFetch
-        ? await this.httpFetch.fetchBlob(audioUrl)
-        : await (async () => {
-            const res = await fetch(audioUrl);
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            return res.blob();
-          })();
+      const blob = await this.httpFetch.fetchBlob(audioUrl);
       const storagePath = `audio/bgm_${segmentId}.mp3`;
       await this.getFileStorage().storeBlob(storagePath, blob);
       segment.bgmStoragePath = storagePath;

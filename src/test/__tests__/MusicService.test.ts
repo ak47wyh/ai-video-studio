@@ -14,7 +14,7 @@ import type { IFileStoragePort } from '../../domain/ports/FileStoragePorts';
 import type { IApiConfigStore } from '../../domain/ports/PlatformPorts';
 import type { ApiConfig } from '../../adapters/outbound/config/ApiConfigStore';
 import type { PlatformRouter } from '../../domain/services/PlatformRouter';
-import type { ILoggerPort } from '../../domain/ports/CrossCuttingPorts';
+import type { ILoggerPort, IHttpFetchPort } from '../../domain/ports/CrossCuttingPorts';
 
 function makeMockConfig(): ApiConfig {
   return {
@@ -149,6 +149,7 @@ describe('MusicService', () => {
   let fileStorage: IFileStoragePort;
   let musicPort: IMusicPort;
   let logger: ILoggerPort & LoggerCalls;
+  let httpFetch: IHttpFetchPort;
   let service: MusicService;
 
   beforeEach(() => {
@@ -158,17 +159,19 @@ describe('MusicService', () => {
     configStore = makeMockConfigStore();
     fileStorage = makeMockFileStorage();
     logger = makeMockLogger();
+    httpFetch = {
+      fetchBlob: vi.fn().mockResolvedValue(new Blob(['x'], { type: 'audio/mpeg' })),
+      fetchText: vi.fn(),
+      fetchJson: vi.fn(),
+    };
     service = new MusicService(
       router,
       configStore,
       segmentRepo,
       fileStorage,
       logger,
+      httpFetch,
     );
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      blob: () => Promise.resolve(new Blob(['x'], { type: 'audio/mpeg' })),
-    }) as unknown as typeof fetch;
   });
 
   it('uses injected configStore to read current config', async () => {

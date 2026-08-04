@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import type { VideoStyle } from '../../domain/entities/models';
 import type { PipelineStatus } from '../../domain/services/PipelineService';
 import { storyFilmService } from '../../dependencies';
@@ -46,6 +46,13 @@ export function useStoryFilm(): UseStoryFilmResult {
   const [isGeneratingText, setIsGeneratingText] = useState(false);
   const [generatedText, setGeneratedText] = useState('');
   const cancelledRef = useRef(false);
+
+  // 组件卸载时置位 cancelledRef，防止卸载后异步回调继续更新状态
+  useEffect(() => {
+    return () => {
+      cancelledRef.current = true;
+    };
+  }, []);
 
   const startFilm = useCallback(async (options: Parameters<UseStoryFilmResult['startFilm']>[0]) => {
     cancelledRef.current = false;

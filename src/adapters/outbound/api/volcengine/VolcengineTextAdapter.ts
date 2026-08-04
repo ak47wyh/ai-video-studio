@@ -2,6 +2,7 @@ import type {
   ITextGenerationPort, TextGenerationContext, TextGenerationResult,
   TextStreamCallbacks, TextContentBlock, TextGenerationMessage,
 } from '../../../../domain/ports/OutboundPorts';
+import type { ILoggerPort, LogContext } from '../../../../domain/ports/CrossCuttingPorts';
 import type { ApiConfig } from '../../config/ApiConfigStore';
 import { VolcengineHttpClient } from './VolcengineHttpClient';
 import { withRetry, isCorsError, classifyNetworkError } from './VolcengineErrorUtils';
@@ -18,31 +19,38 @@ import { withRetry, isCorsError, classifyNetworkError } from './VolcengineErrorU
 export class VolcengineTextAdapter implements ITextGenerationPort {
   private http: VolcengineHttpClient;
   private config: ApiConfig;
+  private readonly logger?: ILoggerPort;
 
-  constructor(config: ApiConfig) {
+  constructor(config: ApiConfig, logger?: ILoggerPort) {
     this.config = config;
+    this.logger = logger;
     // Text 按"偏好协议"选择（volcArkTextProtocol）
-    this.http = new VolcengineHttpClient(config, config.volcArkTextProtocol);
+    this.http = new VolcengineHttpClient(config, config.volcArkTextProtocol, undefined, logger);
+  }
+
+  /** 统一日志上下文工厂 */
+  private ctx(extra: LogContext = {}): LogContext {
+    return { service: 'VolcengineTextAdapter', ...extra };
   }
 
   async chatCompletion(context: TextGenerationContext): Promise<TextGenerationResult> {
-    console.log('[VolcengineTextAdapter] chatCompletion 入参', {
+    this.logger?.debug('chatCompletion 入参', this.ctx({
       protocol: this.config.volcArkTextProtocol,
       model: context.model,
       messagesCount: context.messages.length,
       maxTokens: context.maxTokens,
       temperature: context.temperature,
-    });
+    }));
 
     const result = this.http.isAnthropic
       ? await this.chatCompletionAnthropic(context)
       : await this.chatCompletionOpenAI(context);
 
-    console.log('[VolcengineTextAdapter] chatCompletion 出参', {
+    this.logger?.debug('chatCompletion 出参', this.ctx({
       protocol: this.config.volcArkTextProtocol,
       contentLength: result.content.length,
       usage: result.usage,
-    });
+    }));
 
     return result;
   }
@@ -173,7 +181,7 @@ export class VolcengineTextAdapter implements ITextGenerationPort {
     } catch (error) {
       // CORS 拦截降级：Anthropic 端点预检失败时，尝试切换到 OpenAI 协议
       if (isCorsError(error) && this.canFallbackToOpenAI()) {
-        console.warn('[VolcengineTextAdapter] Anthropic CORS 拦截，降级到 OpenAI 协议');
+        this.logger?.warn('Anthropic CORS 拦截，降级到 OpenAI 协议', this.ctx({}));
         return this.chatCompletionOpenAI(context);
       }
       throw classifyNetworkError(error);
@@ -257,7 +265,7 @@ export class VolcengineTextAdapter implements ITextGenerationPort {
       if (error instanceof DOMException && error.name === 'AbortError') return;
       // CORS 拦截降级：Anthropic 端点预检失败时，切换到 OpenAI 流式
       if (isCorsError(error) && this.canFallbackToOpenAI()) {
-        console.warn('[VolcengineTextAdapter] Anthropic 流式 CORS 拦截，降级到 OpenAI 流式');
+        this.logger?.warn('Anthropic 流式 CORS 拦截，降级到 OpenAI 流式', this.ctx({}));
         this.runStreamOpenAI(context, callbacks, abortController);
         return;
       }

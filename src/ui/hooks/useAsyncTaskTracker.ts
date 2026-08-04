@@ -79,7 +79,7 @@ export function useAsyncTaskTracker<T extends AsyncTaskBase>(
   // tasks 的 ref，供轮询闭包内读取最新值（必须先于 startPolling 声明）
   const tasksRef = useRef(tasks);
 
-  const pollingRef = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map());
+  const pollingRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const pollFnRef = useRef(pollFn);
   const onCompleteRef = useRef(onComplete);
 
@@ -103,7 +103,7 @@ export function useAsyncTaskTracker<T extends AsyncTaskBase>(
   // 组件卸载时清理所有轮询
   useEffect(() => {
     return () => {
-      pollingRef.current.forEach(handle => clearInterval(handle));
+      pollingRef.current.forEach(handle => clearTimeout(handle));
       pollingRef.current.clear();
     };
   }, []);
@@ -116,7 +116,7 @@ export function useAsyncTaskTracker<T extends AsyncTaskBase>(
     setTasks(prev => prev.filter(t => t.id !== id));
     const handle = pollingRef.current.get(id);
     if (handle) {
-      clearInterval(handle);
+      clearTimeout(handle);
       pollingRef.current.delete(id);
     }
   }, []);
@@ -128,7 +128,7 @@ export function useAsyncTaskTracker<T extends AsyncTaskBase>(
   const stopPolling = useCallback((id: string) => {
     const handle = pollingRef.current.get(id);
     if (handle) {
-      clearInterval(handle);
+      clearTimeout(handle);
       pollingRef.current.delete(id);
     }
   }, []);
@@ -137,7 +137,11 @@ export function useAsyncTaskTracker<T extends AsyncTaskBase>(
     // 避免重复轮询
     if (pollingRef.current.has(id)) return;
 
-    const handle = setInterval(async () => {
+    // 递归 setTimeout 自调度：前一次 pollFn 完成后才调度下一次，
+    // 避免 setInterval + async 在 pollFn 耗时 > intervalMs 时多 tick 并发
+    const tick = async (): Promise<void> => {
+      // 已被 stopPolling 移除则终止调度
+      if (!pollingRef.current.has(id)) return;
       try {
         const current = tasksRef.current.find(t => t.id === id);
         if (!current) {
@@ -161,13 +165,18 @@ export function useAsyncTaskTracker<T extends AsyncTaskBase>(
           stopPolling(id);
           const updated = { ...current, ...patch };
           onCompleteRef.current?.(updated);
+          return;
         }
       } catch {
         // 单次轮询失败不终止，下次重试
       }
-    }, pollIntervalMs);
+      // 当次 tick 完成后才调度下一次，天然消除重入
+      if (pollingRef.current.has(id)) {
+        pollingRef.current.set(id, setTimeout(() => void tick(), pollIntervalMs));
+      }
+    };
 
-    pollingRef.current.set(id, handle);
+    pollingRef.current.set(id, setTimeout(() => void tick(), pollIntervalMs));
   }, [pollIntervalMs, timeoutMs, updateTask, stopPolling]);
 
   const resumeAll = useCallback(() => {
@@ -179,7 +188,7 @@ export function useAsyncTaskTracker<T extends AsyncTaskBase>(
   }, [startPolling]);
 
   const clearAll = useCallback(() => {
-    pollingRef.current.forEach(handle => clearInterval(handle));
+    pollingRef.current.forEach(handle => clearTimeout(handle));
     pollingRef.current.clear();
     setTasks([]);
   }, []);

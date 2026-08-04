@@ -4,6 +4,7 @@ import type {
   FileUploadResult, T2AStreamCallbacks, T2AStreamHandle, VoiceCapabilities, VoiceInfo,
   VoiceConversionContext, VoiceConversionResult,
 } from '../../../../domain/ports/OutboundPorts';
+import type { ILoggerPort } from '../../../../domain/ports/CrossCuttingPorts';
 import { CapabilityNotSupportedError } from '../../../../domain/ports/OutboundPorts';
 import type { ApiConfig } from '../../config/ApiConfigStore';
 import { ApiConfigStore } from '../../config/ApiConfigStore';
@@ -52,10 +53,10 @@ export class VolcengineVoiceAdapter implements IVoicePort {
   /** fileId → base64 音频字节的内存缓存（火山引擎不需要预上传到服务端，base64 内联到 clone 请求） */
   private audioBytesCache: Map<string, string> = new Map();
 
-  constructor(config: ApiConfig) {
+  constructor(config: ApiConfig, logger?: ILoggerPort) {
     this.config = config;
     // 方舟 Ark TTS 永远走 OpenAI 协议（标准音色）
-    this.arkHttp = VolcengineHttpClient.createOpenAI(config);
+    this.arkHttp = VolcengineHttpClient.createOpenAI(config, logger);
     this.speechClient = new VolcengineSpeechClient(config);
   }
 

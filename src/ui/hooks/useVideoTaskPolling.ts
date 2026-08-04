@@ -45,6 +45,12 @@ export function useVideoTaskPolling(
   const attemptsRef = useRef(0);
   const allDoneRef = useRef(false);
   const onAllCompleteRef = useRef(onAllComplete);
+  // 跟踪最新 statuses，避免 onAllComplete 闭包读取过期的 state
+  const statusesRef = useRef(statuses);
+
+  useEffect(() => {
+    statusesRef.current = statuses;
+  }, [statuses]);
 
   useEffect(() => {
     onAllCompleteRef.current = onAllComplete;
@@ -124,7 +130,7 @@ export function useVideoTaskPolling(
       if (pending === 0 || attemptsRef.current >= maxAttempts) {
         clearInterval(interval);
         allDoneRef.current = true;
-        const finalResults = Object.values({ ...statuses, ...updated });
+        const finalResults = Object.values({ ...statusesRef.current, ...updated });
         onAllCompleteRef.current?.(finalResults);
       }
     }, intervalMs);

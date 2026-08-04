@@ -6,6 +6,7 @@ import type {
   TextContentBlock,
   TextGenerationMessage,
 } from '../../../../domain/ports/OutboundPorts';
+import type { ILoggerPort, LogContext } from '../../../../domain/ports/CrossCuttingPorts';
 import type { ApiConfig } from '../../config/ApiConfigStore';
 import { WanHttpClient } from './WanHttpClient';
 import { WanApiError } from './WanErrorUtils';
@@ -22,16 +23,23 @@ import { WanApiError } from './WanErrorUtils';
 export class WanTextAdapter implements ITextGenerationPort {
   private http: WanHttpClient;
   private readonly apiKey: string;
+  private readonly logger?: ILoggerPort;
 
-  constructor(config: ApiConfig) {
+  constructor(config: ApiConfig, logger?: ILoggerPort) {
     this.http = new WanHttpClient(config);
     this.apiKey = config.wanApiKey;
+    this.logger = logger;
+  }
+
+  /** 统一日志上下文工厂 */
+  private ctx(extra: LogContext = {}): LogContext {
+    return { service: 'WanTextAdapter', ...extra };
   }
 
   async chatCompletion(context: TextGenerationContext): Promise<TextGenerationResult> {
     // ── Mock 模式 ──
     if (!this.apiKey) {
-      console.warn('[WanTextAdapter] No API Key — returning mock result');
+      this.logger?.warn('No API Key - returning mock result', this.ctx({}));
       return {
         content: '[Mock] 请配置通义万相 API Key 以使用文本生成功能。',
         usage: { promptTokens: 0, completionTokens: 0 },

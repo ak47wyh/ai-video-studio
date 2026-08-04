@@ -10,7 +10,6 @@ import type { IFileStoragePort } from '../ports/FileStoragePorts';
 import type { IApiConfigStore } from '../ports/PlatformPorts';
 import type { ILoggerPort, IHttpFetchPort } from '../ports/CrossCuttingPorts';
 import type { PlatformRouter } from './PlatformRouter';
-import { createTrackedObjectUrl } from '../../utils/objectUrlRegistry';
 
 export interface ResolvedMusicResult {
   audioUrl: string;
@@ -36,15 +35,15 @@ export class MusicLabService {
   private configStore: IApiConfigStore;
   private logger: ILoggerPort;
   private getFileStorage: () => IFileStoragePort;
-  /** P1-2：可选注入的 HTTP 抓取 Port */
-  private httpFetch?: IHttpFetchPort;
+  /** HTTP 抓取 Port */
+  private httpFetch: IHttpFetchPort;
 
   constructor(
     router: PlatformRouter,
     configStore: IApiConfigStore,
     fileStorage: IFileStoragePort | (() => IFileStoragePort),
     logger: ILoggerPort,
-    httpFetch?: IHttpFetchPort,
+    httpFetch: IHttpFetchPort,
   ) {
     this.router = router;
     this.configStore = configStore;
@@ -81,7 +80,7 @@ export class MusicLabService {
         storagePath,
         error: e instanceof Error ? e.message : String(e),
       });
-      const audioUrl = createTrackedObjectUrl(audioBlob);
+      const audioUrl = URL.createObjectURL(audioBlob);
       return this.buildResult(audioUrl, undefined, result);
     }
 
@@ -165,11 +164,7 @@ export class MusicLabService {
       return this.hexToAudioBlob(result.audioHex);
     }
     if (result.audioUrl) {
-      // P1-2：优先走 IHttpFetchPort（自动错误归一化）
-      if (this.httpFetch) return this.httpFetch.fetchBlob(result.audioUrl);
-      const res = await fetch(result.audioUrl);
-      if (!res.ok) throw new Error(`Failed to fetch music: ${res.status}`);
-      return await res.blob();
+      return this.httpFetch.fetchBlob(result.audioUrl);
     }
     throw new Error('音频生成失败：未返回音频数据');
   }

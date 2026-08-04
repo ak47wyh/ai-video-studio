@@ -16,6 +16,17 @@ export interface VideoLabTask {
   model?: string;
   duration?: number;
   resolution?: string;
+  /** 重试用:原始参数快照 */
+  originalPrompt?: string;
+  originalModel?: string;
+  originalDuration?: number;
+  originalResolution?: string;
+  originalPromptOptimizer?: boolean;
+  originalFastPretreatment?: boolean;
+  originalWatermark?: boolean;
+  originalFirstFrame?: string | null;
+  originalLastFrame?: string | null;
+  originalSubjectImage?: string | null;
 }
 
 type UseAsInputTarget = 'i2v-first' | 'fl2v-first' | 'fl2v-last' | 's2v-subject';

@@ -375,8 +375,8 @@ export const MusicLab: React.FC = () => {
           {/* 模型 + 歌词优化 */}
           <div className="lab-model-config">
             <div className="lab-model-config-item" style={{ minWidth: '200px' }}>
-              <label className="form-label">{t('musicLab.model', '生成模型')}</label>
-              <select className="form-select" value={composeModel} onChange={e => setComposeModel(e.target.value as MusicModel)}>
+              <label className="form-label" htmlFor="music-compose-model">{t('musicLab.model', '生成模型')}</label>
+              <select id="music-compose-model" className="form-select" value={composeModel} onChange={e => setComposeModel(e.target.value as MusicModel)}>
                 <option value="music-2.6">music-2.6 (推荐，高质量)</option>
                 <option value="music-2.6-free">music-2.6-free (免费档)</option>
               </select>
@@ -442,7 +442,7 @@ export const MusicLab: React.FC = () => {
             disabled={!composePrompt.trim() || (!isInstrumental && !composeLyrics.trim()) || isComposing || !platformReady}
             onClick={handleCompose}
           >
-            {isComposing ? <RefreshCw className="spin" size={20} /> : <Sparkles size={20} />}
+            {isComposing ? <RefreshCw className="spin" size={20} aria-hidden="true" /> : <Sparkles size={20} aria-hidden="true" />}
             {isComposing ? t('musicLab.composing', '正在生成音乐...') : t('musicLab.composeBtn', '立即生成音乐')}
           </button>
 
@@ -548,7 +548,7 @@ export const MusicLab: React.FC = () => {
             disabled={(lyricsMode === 'write_full_song' && !lyricsPrompt.trim()) || (lyricsMode === 'edit' && !lyricsInput.trim()) || isGeneratingLyrics || !platformReady}
             onClick={handleGenerateLyrics}
           >
-            {isGeneratingLyrics ? <RefreshCw className="spin" size={20} /> : <FileText size={20} />}
+            {isGeneratingLyrics ? <RefreshCw className="spin" size={20} aria-hidden="true" /> : <FileText size={20} aria-hidden="true" />}
             {isGeneratingLyrics ? t('musicLab.generatingLyrics', '正在创作歌词...') : t('musicLab.generateLyricsBtn', '生成歌词')}
           </button>
 
@@ -611,7 +611,7 @@ export const MusicLab: React.FC = () => {
               disabled={!coverAudio || isPreprocessing || !platformReady}
               onClick={handlePreprocessCover}
             >
-              {isPreprocessing ? <RefreshCw className="spin" size={18} /> : <Mic2 size={18} />}
+              {isPreprocessing ? <RefreshCw className="spin" size={18} aria-hidden="true" /> : <Mic2 size={18} aria-hidden="true" />}
               {isPreprocessing ? t('musicLab.preprocessing', '正在预处理...') : t('musicLab.preprocessBtn', '开始预处理')}
             </button>
           </div>
@@ -673,8 +673,8 @@ export const MusicLab: React.FC = () => {
                 {/* 模型选择 */}
                 <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
                   <div style={{ flex: 1, minWidth: '200px' }}>
-                    <label className="form-label">{t('musicLab.coverModel', '翻唱模型')}</label>
-                    <select className="form-select" value={coverModel} onChange={e => setCoverModel(e.target.value as 'music-cover' | 'music-cover-free')}>
+                    <label className="form-label" htmlFor="music-cover-model">{t('musicLab.coverModel', '翻唱模型')}</label>
+                    <select id="music-cover-model" className="form-select" value={coverModel} onChange={e => setCoverModel(e.target.value as 'music-cover' | 'music-cover-free')}>
                       <option value="music-cover">music-cover (高质量)</option>
                       <option value="music-cover-free">music-cover-free (免费档)</option>
                     </select>
@@ -687,7 +687,7 @@ export const MusicLab: React.FC = () => {
             disabled={!coverPrompt.trim() || !coverLyrics.trim() || isGeneratingCover || !platformReady}
                   onClick={handleGenerateCover}
                 >
-                  {isGeneratingCover ? <RefreshCw className="spin" size={20} /> : <Mic2 size={20} />}
+                  {isGeneratingCover ? <RefreshCw className="spin" size={20} aria-hidden="true" /> : <Mic2 size={20} aria-hidden="true" />}
                   {isGeneratingCover ? t('musicLab.generatingCover', '正在生成翻唱...') : t('musicLab.generateCoverBtn', '生成翻唱')}
                 </button>
               </div>

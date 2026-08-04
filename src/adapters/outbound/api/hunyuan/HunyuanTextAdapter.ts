@@ -5,6 +5,7 @@ import type {
   TextStreamCallbacks,
   TextGenerationMessage,
 } from '../../../../domain/ports/OutboundPorts';
+import type { ILoggerPort, LogContext } from '../../../../domain/ports/CrossCuttingPorts';
 import type { ApiConfig } from '../../config/ApiConfigStore';
 import { HunyuanHttpClient } from './HunyuanHttpClient';
 import { withRetry } from './HunyuanErrorUtils';
@@ -22,10 +23,17 @@ import { withRetry } from './HunyuanErrorUtils';
 export class HunyuanTextAdapter implements ITextGenerationPort {
   private http: HunyuanHttpClient;
   private config: ApiConfig;
+  private readonly logger?: ILoggerPort;
 
-  constructor(config: ApiConfig) {
+  constructor(config: ApiConfig, logger?: ILoggerPort) {
     this.config = config;
+    this.logger = logger;
     this.http = new HunyuanHttpClient(config);
+  }
+
+  /** 统一日志上下文工厂 */
+  private ctx(extra: LogContext = {}): LogContext {
+    return { service: 'HunyuanTextAdapter', ...extra };
   }
 
   async chatCompletion(context: TextGenerationContext): Promise<TextGenerationResult> {
@@ -41,7 +49,7 @@ export class HunyuanTextAdapter implements ITextGenerationPort {
   ): Promise<TextGenerationResult> {
     // ── Mock 模式 ──
     if (!this.config.hunyuanSecretId || !this.config.hunyuanSecretKey) {
-      console.warn('[HunyuanTextAdapter] No SecretId/SecretKey — returning mock result');
+      this.logger?.warn('No SecretId/SecretKey - returning mock result', this.ctx({}));
       return {
         content: '[Mock] 请配置腾讯混元 SecretId/SecretKey 以使用文本生成功能。',
         usage: { promptTokens: 0, completionTokens: 0 },
