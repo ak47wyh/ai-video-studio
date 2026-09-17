@@ -27,7 +27,7 @@ function load(lang: string): string[] {
 }
 
 const LANG_BASELINE: Record<string, number> = {
-  ja: 62,
+  ja: 0,
   de: 313,
   es: 313,
   fr: 313,

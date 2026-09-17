@@ -3,7 +3,12 @@
     "cancel": "Cancel",
     "confirm": "Confirm",
     "expand": "Expand",
-    "collapse": "Collapse"
+    "collapse": "Collapse",
+    "noData": "データがありません",
+    "loading": "読み込み中...",
+    "operationFailed": "操作に失敗しました",
+    "retry": "再試行",
+    "unknownError": "不明なエラーが発生しました"
   },
   "errorBoundary": {
     "title": "問題が発生しました",
@@ -44,7 +49,12 @@
     "storyFilm": "AI 動画",
     "platformSwitcherTooltip": "アクティブプラットフォームを切り替え",
     "platformNotConfigured": "プラットフォームが未設定です。設定センターでAPIキーを入力してください。",
-    "languageSwitcherTooltip": "言語を切り替え"
+    "languageSwitcherTooltip": "言語を切り替え",
+    "active": "アクティブ",
+    "capabilityNotSupported": "このプラットフォームはこの機能をサポートしていません（現在：{{platform}}）",
+    "capabilityNotSupportedDefault": "このプラットフォームはこの機能をサポートしていません",
+    "activePlatformInfo": "現在のアクティブプラットフォーム：{{name}}（{{brand}}）\n機能：{{capabilities}}",
+    "activePlatformBrief": "現在のアクティブプラットフォーム：{{name}}（{{brand}}）"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -298,7 +308,14 @@
     "assembleSuccess": "合成成功、エクスポートセンターに保存しました！",
     "assembleFailed": "合成に失敗しました",
     "videoConfig": "動画設定",
-    "openEditor": "編集"
+    "openEditor": "編集",
+    "batchNarrate": "一括ナレーション",
+    "batchBGM": "一括BGM",
+    "narrateComplete": "ナレーション完了：成功 {{success}}、スキップ {{skipped}}（音声なし）{{failed}}",
+    "bgmComplete": "BGM完了：成功 {{success}}、失敗 {{failed}}",
+    "batchNarrateTitle": "ナレーションが未設定でキャラクターに音声が紐づいているセグメントへ自動生成します",
+    "batchBGMTitle": "セグメント内容からBGMスタイルを自動提案して生成します",
+    "assembleInit": "合成タスクを初期化中..."
   },
   "space": {
     "title": "Story Space Management",
@@ -375,7 +392,9 @@
       "maxUpload": "1回あたりのアップロード上限：{{size}}MB（vite.config.ts で調整可能）",
       "probeBtn": "再確認",
       "saveAndReloadBtn": "保存して再読み込み",
-      "whyHint": "なぜローカル保存が必要ですか？\n外部画像 URL（OSS 署名リンクなど）は通常ブラウザの CORS ポリシーによりブロックされ、Blob として直接取得できません。このアダプタは生成された画像/音声/動画 Blob をローカル Vite サーバーに直接 POST し、サーバー側でディスクに書き込みます。外部 API は一切呼び出しません。"
+      "whyHint": "なぜローカル保存が必要ですか？\n外部画像 URL（OSS 署名リンクなど）は通常ブラウザの CORS ポリシーによりブロックされ、Blob として直接取得できません。このアダプタは生成された画像/音声/動画 Blob をローカル Vite サーバーに直接 POST し、サーバー側でディスクに書き込みます。外部 API は一切呼び出しません。",
+      "directorySwitched": "ディレクトリを {{path}} に切り替えました。{{count}} ファイルを移行しました。ページを更新してください",
+      "switchFailed": "切り替えに失敗しました：{{error}}"
     },
     "mediaCache": {
       "title": "メディアキャッシュ（Service Worker）",
@@ -459,7 +478,43 @@
     "volcArkModeSwitchedToast": "Switched to {{mode}} mode, Base URL updated automatically",
     "volcTextProtocolTitle": "Text Generation Protocol Preference",
     "volcTextProtocolHint": "Only affects text generation; Video/Image always use OpenAI protocol",
-    "volcValidateHint": "Please validate OpenAI and Anthropic configurations separately"
+    "volcValidateHint": "Please validate OpenAI and Anthropic configurations separately",
+    "backup": {
+      "title": "データのバックアップと復元",
+      "desc": "すべてのローカルデータ（スペース、キャラクター、背景、ストーリー、セグメント、動画タスク、成片、パイプラインタスク、コスト記録）を単一のJSONファイルにエクスポートし、いつでもインポートして復元できます。",
+      "exportBtn": "全量バックアップをエクスポート",
+      "importBtn": "バックアップをインポート",
+      "exportDone": "バックアップをエクスポートしました",
+      "importDone": "インポート完了：{{count}} 件のレコード",
+      "ready": "準備完了"
+    },
+    "developerTools": "開発者ツール",
+    "vconsoleToggle": "vConsoleデバッグパネルを有効化",
+    "vconsoleDesc": "有効にするとページ右下にデバッグボタンが表示され、Console / Network / Element / Storage などを確認できます。変更後はページの更新が必要です。",
+    "platformConfig": "プラットフォーム設定",
+    "fullModalPlatforms": "フルモーダルプラットフォーム",
+    "fullModalHint": "動画/画像/テキスト/音声/音楽",
+    "verticalPlatforms": "垂直生成プラットフォーム",
+    "verticalHint": "動画/画像が中心",
+    "statusActivated": "アクティブ",
+    "statusReady": "準備完了",
+    "statusNotConfigured": "未設定",
+    "activatePlatform": "このプラットフォームをアクティブ化",
+    "docLink": "ドキュメント",
+    "platformSwitched": "{{name}}プラットフォームに切り替えました",
+    "validateBtn": "検証",
+    "getKeyLink": "Keyを取得",
+    "noValidationNeeded": "検証不要",
+    "validateViaLab": "設定を保存後、{{platform}}ラボでタスクを開始して検証できます",
+    "autosaveEnabled": "自動保存が有効です",
+    "capVideo": "動画",
+    "capVideoFl2v": "前後フレーム",
+    "capVideoS2v": "参照生成",
+    "capImage": "画像",
+    "capText": "テキスト",
+    "capVoice": "音声",
+    "capMusic": "音楽",
+    "capModel": "モデル"
   },
   "models": {
     "title": "Available Models",
@@ -474,7 +529,8 @@
     "musicModels": "Music Generation Models",
     "dynamic": "Dynamic",
     "static": "Static",
-    "cachedAt": "Cached at: {{time}}"
+    "cachedAt": "Cached at: {{time}}",
+    "onlyMinimaxHint": "モデル管理はMiniMax（Hailuo）プラットフォームのみ対応しています。Hailuoに切り替えて更新してください。"
   },
   "music": {
     "title": "Background Music",
@@ -604,7 +660,16 @@
     "noSubs": "No subtitles",
     "untitledStory": "Untitled story",
     "videoUpdated": "動画が更新されました",
-    "openEditor": "編集ワークベンチで編集"
+    "openEditor": "編集ワークベンチで編集",
+    "preset": {
+      "label": "エクスポートプリセット",
+      "generic": "汎用",
+      "douyin": "抖音（Douyin）",
+      "bilibili": "Bilibili"
+    },
+    "copyInfo": "成片情報をコピー",
+    "copied": "成片情報をコピーしました",
+    "copyFailed": "コピーに失敗しました"
   },
   "agent": {
     "title": "AI Assistant",
@@ -739,7 +804,8 @@
     "cancelBtn": "キャンセル",
     "includeNarration": "ナレーションを含む",
     "includeBGM": "BGMを含む",
-    "includeSubtitles": "字幕を含む"
+    "includeSubtitles": "字幕を含む",
+    "resumeBtn": "続行"
   },
   "postProcess": {
     "title": "ポストプロダクション",
