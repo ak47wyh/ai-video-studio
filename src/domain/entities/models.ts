@@ -155,8 +155,28 @@ export interface FinalCut {
   timelineId?: string;
   /** 来源平台（记录成片由哪个 AI 平台生成，便于成本统计） */
   sourcePlatform?: string;
+  // ===== P0-3 成片回改闭环 =====
+  /** 生成配置快照（回改表单回显用） */
+  pipelineOptions?: FinalCutPipelineOptions;
+  /** 版本溯源：本成片由哪个版本回改而来（根版本无值） */
+  sourceVersionId?: string;
+  /** 同源版本号（根为 1，每次回改 +1） */
+  version?: number;
 }
 
+
+/** 成片生成配置快照（P0-3 回改回显用，仅持久化可复现字段） */
+export interface FinalCutPipelineOptions {
+  videoMode?: VideoGenerationMode;
+  videoModel?: VideoModel;
+  videoResolution?: VideoResolution;
+  videoDuration?: 6 | 10;
+  promptOptimizer?: boolean;
+  includeNarration?: boolean;
+  includeBGM?: boolean;
+  includeSubtitles?: boolean;
+  videoStyle?: VideoStyle;
+}
 /** 成片来源类型 */
 export type FinalCutSource = 'pipeline' | 'timeline' | 'manual';
 

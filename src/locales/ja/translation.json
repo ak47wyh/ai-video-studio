@@ -1055,5 +1055,26 @@
     "retry": "再試行",
     "manualFail": "手動で失敗に設定",
     "hint": "公開はセミオートプロセスです：ファイルをエクスポートして対象プラットフォームで公開し、ここでステータスを進めて公開記録を残します。"
+  },
+  "rework": {
+    "title": "成片リワーク",
+    "close": "閉じる",
+    "baseVersion": "ベースバージョン",
+    "derivedFrom": "リワークにより生成",
+    "videoStyle": "画面スタイル",
+    "videoModel": "動画モデル",
+    "videoResolution": "解像度",
+    "videoDuration": "尺",
+    "includeNarration": "ナレーション",
+    "includeBgm": "BGM",
+    "includeSubtitles": "字幕",
+    "promptOptimizer": "プロンプト最適化",
+    "runBtn": "再生成",
+    "running": "生成中...",
+    "success": "リワーク完了",
+    "versionsTitle": "同源バージョン",
+    "noVersions": "他のバージョンはありません",
+    "currentVersion": "現在",
+    "fromVersion": "基づく"
   }
 }

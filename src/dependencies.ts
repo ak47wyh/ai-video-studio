@@ -9,6 +9,7 @@ import { TimelineRepositoryAdapter } from './adapters/outbound/repositories/Time
 import { PipelineTaskRepositoryAdapter } from './adapters/outbound/repositories/PipelineTaskRepositoryAdapter';
 import { PublishTaskRepositoryAdapter } from './adapters/outbound/repositories/PublishTaskRepositoryAdapter';
 import { PublishService } from './domain/services/PublishService';
+import { FinalCutReworkService } from './domain/services/FinalCutReworkService';
 import { DexieUnitOfWorkAdapter } from './adapters/outbound/repositories/TransactionAdapter';
 
 // ==================== 基础设施层（外部API适配器） ====================
@@ -388,6 +389,8 @@ export const pipelineService = new PipelineService({
   // P1-2 新增：HTTP 抓取 Port（NetworkError/TimeoutError 归一化）
   httpFetch,
 });
+
+export const reworkService = new FinalCutReworkService(finalCutRepo, pipelineService);
 
 // ========================================
 // AI 故事成片

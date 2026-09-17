@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Download, Trash2, Film, Filter, RefreshCw, FilmIcon, Scissors, Copy, Send } from 'lucide-react';
+import { Download, Trash2, Film, Filter, RefreshCw, FilmIcon, Scissors, Copy, Send, RotateCcw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { finalCutRepo } from '../../dependencies';
@@ -9,6 +9,7 @@ import { useConfirm } from '../contexts/ConfirmContext';
 import { getErrorMessage } from '../utils/errorUtils';
 import { useObjectUrl } from '../hooks/useObjectUrl';
 import { PublishPanel } from '../components/PublishPanel';
+import { ReworkPanel } from '../components/ReworkPanel';
 import { PostProductionPanel } from '../components/PostProductionPanel';
 import type { FinalCut } from '../../domain/entities/models';
 
@@ -59,6 +60,7 @@ export const ExportCenter: React.FC = () => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [previewCutId, setPreviewCutId] = useState<string | null>(null);
 const [publishCut, setPublishCut] = useState<FinalCut | null>(null);
+const [reworkCut, setReworkCut] = useState<FinalCut | null>(null);
   // 每张卡片的导出预设选择（B4）
   const [presetFor, setPresetFor] = useState<Record<string, ExportPreset>>({});
 
@@ -272,6 +274,14 @@ const [publishCut, setPublishCut] = useState<FinalCut | null>(null);
                 <button
                   className="btn btn-secondary btn-xs"
                   style={{ padding: '0.3rem 0.5rem' }}
+                  onClick={() => setReworkCut(cut)}
+                  title={t('rework.title')}
+                >
+                  <RotateCcw size={14} />
+                </button>
+                <button
+                  className="btn btn-secondary btn-xs"
+                  style={{ padding: '0.3rem 0.5rem' }}
                   onClick={() => setPublishCut(cut)}
                   title={t('publish.title')}
                 >
@@ -292,6 +302,9 @@ const [publishCut, setPublishCut] = useState<FinalCut | null>(null);
       )}
       {publishCut && (
         <PublishPanel finalCut={publishCut} storyTitle={getStoryTitle(publishCut.storyId)} onClose={() => setPublishCut(null)} />
+      )}
+      {reworkCut && (
+        <ReworkPanel cut={reworkCut} storyTitle={getStoryTitle(reworkCut.storyId)} onClose={() => setReworkCut(null)} onDone={() => {}} />
       )}
     </div>
   );

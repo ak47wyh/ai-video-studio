@@ -1052,5 +1052,26 @@
     "retry": "重试",
     "manualFail": "手动标记失败",
     "hint": "发布为半自动流程：导出文件后在目标平台发布，并在系统中推进状态以保留发布记录。"
+  },
+  "rework": {
+    "title": "成片回改",
+    "close": "关闭",
+    "baseVersion": "基础版本",
+    "derivedFrom": "由回改生成",
+    "videoStyle": "画面风格",
+    "videoModel": "视频模型",
+    "videoResolution": "分辨率",
+    "videoDuration": "时长",
+    "includeNarration": "旁白",
+    "includeBgm": "BGM",
+    "includeSubtitles": "字幕",
+    "promptOptimizer": "提示词优化",
+    "runBtn": "重新生成",
+    "running": "生成中...",
+    "success": "回改完成",
+    "versionsTitle": "同源版本",
+    "noVersions": "暂无其他版本",
+    "currentVersion": "当前",
+    "fromVersion": "基于"
   }
 }

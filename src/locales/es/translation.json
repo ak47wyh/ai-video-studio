@@ -741,5 +741,26 @@
     "retry": "Retry",
     "manualFail": "Manually marked failed",
     "hint": "Publish is semi-automatic: export the file, publish on the target platform, then advance the status here to keep a record."
+  },
+  "rework": {
+    "title": "Rework Final Cut",
+    "close": "Close",
+    "baseVersion": "Base version",
+    "derivedFrom": "Derived by rework",
+    "videoStyle": "Style",
+    "videoModel": "Video model",
+    "videoResolution": "Resolution",
+    "videoDuration": "Duration",
+    "includeNarration": "Narration",
+    "includeBgm": "BGM",
+    "includeSubtitles": "Subtitles",
+    "promptOptimizer": "Prompt optimizer",
+    "runBtn": "Regenerate",
+    "running": "Generating...",
+    "success": "Rework complete",
+    "versionsTitle": "Version history",
+    "noVersions": "No other versions",
+    "currentVersion": "Current",
+    "fromVersion": "from"
   }
 }
