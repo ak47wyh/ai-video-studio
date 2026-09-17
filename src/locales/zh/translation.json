@@ -768,7 +768,9 @@
       "failed": "QC 检测失败",
       "recheck": "重新检测"
     },
-    "versionCompare": "版本对比"
+    "versionCompare": "版本对比",
+    "downloading": "导出中…",
+    "downloadMetadataApplied": "已下载（含 AI 声明元数据）"
   },
   "agent": {
     "title": "AI 助手",

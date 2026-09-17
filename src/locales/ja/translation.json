@@ -696,7 +696,9 @@
       "failed": "QC チェック失敗",
       "recheck": "再チェック"
     },
-    "versionCompare": "バージョン比較"
+    "versionCompare": "バージョン比較",
+    "downloading": "エクスポート中…",
+    "downloadMetadataApplied": "ダウンロード完了（AI 宣言メタデータ付き）"
   },
   "agent": {
     "title": "AI Assistant",

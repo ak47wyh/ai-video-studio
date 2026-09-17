@@ -768,7 +768,9 @@
       "failed": "QC check failed",
       "recheck": "Re-check"
     },
-    "versionCompare": "Versions"
+    "versionCompare": "Versions",
+    "downloading": "Exporting…",
+    "downloadMetadataApplied": "Downloaded (AI declaration metadata included)"
   },
   "agent": {
     "title": "AI Assistant",

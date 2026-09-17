@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Download, Trash2, Film, Filter, RefreshCw, FilmIcon, Scissors, Copy, Send, RotateCcw, ShieldCheck, GitBranch } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { finalCutRepo, qcService } from '../../dependencies';
+import { complianceService, ffmpegAdapter, finalCutRepo, qcService } from '../../dependencies';
 import { useSpaceScopedStories, useSpaceScopedFinalCuts } from '../hooks/useSpaceScopedQuery';
 import { useToast } from '../contexts/ToastContext';
 import { useConfirm } from '../contexts/ConfirmContext';
@@ -66,6 +66,7 @@ const [reworkCut, setReworkCut] = useState<FinalCut | null>(null);
 const [compareCut, setCompareCut] = useState<FinalCut | null>(null);
   // P2-8 成片 QC：<cutId, report | 'running'>
   const [qcReports, setQcReports] = useState<Record<string, QcReport | 'running'>>({});
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
   // 每张卡片的导出预设选择（B4）
   const [presetFor, setPresetFor] = useState<Record<string, ExportPreset>>({});
 
@@ -76,17 +77,32 @@ const [compareCut, setCompareCut] = useState<FinalCut | null>(null);
 
   const filteredCuts = filterCuts(allCuts, filterRange);
 
-  const handleDownload = (cut: FinalCut, preset: ExportPreset = 'generic') => {
+  const handleDownload = async (cut: FinalCut, preset: ExportPreset = 'generic') => {
+    const base = `${PRESET_PREFIX[preset]}-${safeFileName(getStoryTitle(cut.storyId))}-${dateStamp(cut.createdAt)}`;
+    setDownloadingId(cut.id);
     try {
-      const base = `${PRESET_PREFIX[preset]}-${safeFileName(getStoryTitle(cut.storyId))}-${dateStamp(cut.createdAt)}`;
-      downloadBlob(cut.videoBlob, `${base}.mp4`);
+      // P2-9 收尾：导出时自动写入 AI 生成声明元数据（comment 字段，-c copy 不重编码）
+      let video = cut.videoBlob;
+      let metadataApplied = false;
+      try {
+        const meta = complianceService.buildAiMetadata(cut.version);
+        video = await ffmpegAdapter.withMetadata(cut.videoBlob, {
+          comment: complianceService.serializeAiMetadata(meta),
+        });
+        metadataApplied = true;
+      } catch {
+        // 元数据写入失败不阻断下载（保持可用性，诚实降级）
+      }
+      downloadBlob(video, `${base}.mp4`);
       // 含字幕的成片按渠道预设一并导出 SRT，便于二次剪辑/上传时复用
       if (preset !== 'generic' && cut.srtContent) {
         downloadBlob(new Blob([cut.srtContent], { type: 'text/plain;charset=utf-8' }), `${base}.srt`);
       }
-      showToast('success', t('export.downloadStarted'));
+      showToast('success', metadataApplied ? t('export.downloadMetadataApplied') : t('export.downloadStarted'));
     } catch (e) {
       showToast('error', getErrorMessage(e, t('export.downloadFailed')));
+    } finally {
+      setDownloadingId(null);
     }
   };
 
@@ -343,8 +359,9 @@ const [compareCut, setCompareCut] = useState<FinalCut | null>(null);
                   className="btn btn-primary btn-xs"
                   style={{ flex: 1 }}
                   onClick={() => handleDownload(cut, presetFor[cut.id] ?? 'generic')}
+                  disabled={downloadingId === cut.id}
                 >
-                  <Download size={14} /> {t('export.downloadBtn')}
+                  <Download size={14} /> {downloadingId === cut.id ? t('export.downloading') : t('export.downloadBtn')}
                 </button>
                 <button
                   className="btn btn-secondary btn-xs"
