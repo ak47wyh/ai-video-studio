@@ -8,7 +8,7 @@ import { ThemeProvider } from './ui/contexts/ThemeContext';
 import { PlatformProvider } from './ui/contexts/PlatformContext';
 import { ErrorBoundary } from './ui/components/ErrorBoundary';
 import { PageSkeleton } from './ui/components/PageSkeleton';
-import { videoGenerationService, pipelineService } from './dependencies';
+import { videoGenerationService, pipelineService, defaultLogger } from './dependencies';
 import { installGlobalErrorCapture } from './adapters/outbound/infrastructure/GlobalErrorCapture';
 import { logSink } from './adapters/outbound/infrastructure/RingBufferLogSinkAdapter';
 
@@ -64,7 +64,7 @@ function preloadCriticalChunks(): void {
 function App() {
   // Resume polling for any active video tasks after page reload
   React.useEffect(() => {
-    videoGenerationService.resumeActivePolling().catch(console.error);
+    videoGenerationService.resumeActivePolling().catch(err => defaultLogger.error('[App] resume video polling failed', err, { service: 'App', method: 'resumeActivePolling' }));
     return () => videoGenerationService.cancelAllPolling();
   }, []);
 
@@ -73,7 +73,7 @@ function App() {
   // restoreActiveTasks 内部会把处于中间阶段的任务标记为 failed 并保留元数据，
   // 供 UI 展示"任务已中断，请重试"提示，从而闭合业务链路。
   React.useEffect(() => {
-    pipelineService.restoreActiveTasks().catch(console.error);
+    pipelineService.restoreActiveTasks().catch(err => defaultLogger.error('[App] restore pipeline tasks failed', err, { service: 'App', method: 'restoreActiveTasks' }));
   }, []);
 
   // 安装全局错误捕获（window.onerror / unhandledrejection → logSink）

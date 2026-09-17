@@ -3,8 +3,7 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import './i18n'
 import App from './App.tsx'
-import { initializeFileStorage } from './dependencies'
-import { apiConfigStoreAdapter } from './dependencies'
+import { initializeFileStorage, apiConfigStoreAdapter, defaultLogger } from './dependencies'
 
 /**
  * 应用启动序列：
@@ -31,9 +30,9 @@ async function bootstrap(): Promise<void> {
         vconsoleLoaded = true;
         import('vconsole').then(({ default: VConsole }) => {
           new VConsole();
-          console.log('[vConsole] 已启用（同步）');
+          defaultLogger.info('[vConsole] 已启用（同步）', { service: 'main', method: 'bootstrap' });
         }).catch(err => {
-          console.warn('[vConsole] 加载失败:', err);
+          defaultLogger.warn('[vConsole] 加载失败:', { service: 'main', method: 'bootstrap', error: err instanceof Error ? err.message : String(err) });
         });
       }
     }
@@ -44,7 +43,7 @@ async function bootstrap(): Promise<void> {
     apiConfigStoreAdapter.init(),
     initializeFileStorage(),
   ]).catch(err => {
-    console.error('[Bootstrap] initialization failed:', err)
+    defaultLogger.error('[Bootstrap] initialization failed:', err, { service: 'main', method: 'bootstrap' })
   })
 
   // ── vConsole：异步补充加载（加密存储场景） ──
@@ -52,7 +51,7 @@ async function bootstrap(): Promise<void> {
   if (!vconsoleLoaded && apiConfigStoreAdapter.load().vconsoleEnabled) {
     import('vconsole').then(({ default: VConsole }) => {
       new VConsole();
-      console.log('[vConsole] 已启用（异步）');
+      defaultLogger.info('[vConsole] 已启用（异步）', { service: 'main', method: 'bootstrap' });
     }).catch(err => {
       console.warn('[vConsole] 加载失败:', err);
     });
