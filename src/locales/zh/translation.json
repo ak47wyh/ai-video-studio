@@ -1063,7 +1063,9 @@
     "markFailed": "失败",
     "retry": "重试",
     "manualFail": "手动标记失败",
-    "hint": "发布为半自动流程：导出文件后在目标平台发布，并在系统中推进状态以保留发布记录。"
+    "hint": "发布为半自动流程：导出文件后在目标平台发布，并在系统中推进状态以保留发布记录。",
+    "preflightBlocked": "预检未通过",
+    "aiDeclaration": "AI 声明"
   },
   "rework": {
     "title": "成片回改",

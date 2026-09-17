@@ -541,6 +541,27 @@ export class FFmpegAdapter implements IFFmpegPort, IQcMediaPort {
     return lines.join('\n');
   }
 
+  /** P2-9 写入媒体元数据（-metadata + -c copy 快速封装，不重编码） */
+  async withMetadata(video: Blob, metadata: Record<string, string>): Promise<Blob> {
+    await this.load();
+    const ffmpeg = this.ensureLoaded();
+    const inputName = 'meta-in.mp4';
+    const outName = 'meta-out.mp4';
+    try {
+      await this.writeFile(inputName, video);
+      const args = ['-i', inputName];
+      for (const [k, v] of Object.entries(metadata)) {
+        args.push('-metadata', `${k}=${v}`);
+      }
+      args.push('-c', 'copy', outName);
+      await ffmpeg.exec(args);
+      return await this.readFile(outName);
+    } finally {
+      await this.safeDelete(inputName);
+      await this.safeDelete(outName);
+    }
+  }
+
   /** P2-8 探测时长/分辨率 */
   async probe(input: Blob): Promise<MediaProbeResult> {
     await this.load();

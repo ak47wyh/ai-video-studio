@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Send, X, Trash2, RotateCcw } from 'lucide-react';
 import { publishService } from '../../dependencies';
 import type { FinalCut, PublishTask, PublishPlatform } from '../../domain/entities/models';
+import { complianceService } from '../../dependencies';
+import type { PreflightResult } from '../../domain/ports/CompliancePorts';
 
 const PLATFORMS: Array<{ id: PublishPlatform; labelKey: string }> = [
   { id: 'douyin', labelKey: 'publish.platformDouyin' },
@@ -34,6 +36,23 @@ export const PublishPanel: React.FC<{ finalCut: FinalCut; storyTitle: string; on
       .catch(() => {});
     return () => { alive = false; };
   }, [finalCut.id]);
+
+  // P2-9 发布预检：平台/标题/标签变化时同步重算（useMemo 渲染期计算）
+  const preflight: PreflightResult = useMemo(() => {
+    return complianceService.preflight({
+      durationSec: finalCut.duration,
+      resolution: finalCut.pipelineOptions?.videoResolution,
+      hasSubtitles: finalCut.hasSubtitles,
+      text: [title, tags].join(' '),
+      sensitiveWords: [], // 敏感词表可配置（默认空）
+      aiMetadataWritten: false,
+    }, platform);
+  }, [platform, title, tags, finalCut]);
+
+  // AI 生成内容声明（写入导出元数据）
+  const aiMeta = useMemo(() => {
+    return complianceService.serializeAiMetadata(complianceService.buildAiMetadata(finalCut.version));
+  }, [finalCut]);
 
   const createTask = async () => {
     if (!title.trim()) return;
@@ -101,8 +120,23 @@ export const PublishPanel: React.FC<{ finalCut: FinalCut; storyTitle: string; on
             <input className="input" placeholder={t('publish.titlePlaceholder', '发布标题')} value={title} onChange={e => setTitle(e.target.value)} style={{ flex: 1 }} />
           </div>
           <input className="input" placeholder={t('publish.tagsPlaceholder', '话题标签（逗号分隔）')} value={tags} onChange={e => setTags(e.target.value)} />
-          <button className="btn btn-primary" onClick={createTask} disabled={busy || !title.trim()}>
-            <Send size={14} /> {t('publish.createBtn', '创建发布任务')}
+          <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', padding: '0.35rem 0.4rem', background: 'rgba(0,0,0,0.03)', borderRadius: 8 }}>
+            <div style={{ marginBottom: '0.25rem' }}>
+              <span style={{ color: 'var(--color-info)' }}>{t('publish.aiDeclaration')}</span>：{aiMeta}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', marginTop: '0.3rem' }}>
+              {preflight.rules.map(r => (
+                <div key={r.id} style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+                  <span style={{ color: r.passed ? 'var(--color-success)' : r.severity === 'error' ? 'var(--color-danger)' : 'var(--color-warning)', fontWeight: 600 }}>
+                    {r.passed ? '✓' : '✗'}
+                  </span>
+                  <span style={{ fontSize: '0.72rem', color: r.passed ? 'var(--text-secondary)' : 'var(--text-primary)' }}>{r.message}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <button className="btn btn-primary" onClick={createTask} disabled={busy || !title.trim() || !preflight.passed}>
+            <Send size={14} /> {preflight.passed ? t('publish.createBtn', '创建发布任务') : t('publish.preflightBlocked', '预检未通过')}
           </button>
         </div>
 

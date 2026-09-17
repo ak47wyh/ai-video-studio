@@ -752,7 +752,9 @@
     "markFailed": "Failed",
     "retry": "Retry",
     "manualFail": "Manually marked failed",
-    "hint": "Publish is semi-automatic: export the file, publish on the target platform, then advance the status here to keep a record."
+    "hint": "Publish is semi-automatic: export the file, publish on the target platform, then advance the status here to keep a record.",
+    "preflightBlocked": "Preflight failed",
+    "aiDeclaration": "AI declaration"
   },
   "rework": {
     "title": "Rework Final Cut",

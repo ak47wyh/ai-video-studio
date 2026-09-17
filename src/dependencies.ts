@@ -46,6 +46,7 @@ import { VideoLabService } from './domain/services/VideoLabService';
 import { StorySpaceService } from './domain/services/StorySpaceService';
 import { PostProcessService } from './domain/services/PostProcessService';
 import { QcService } from './domain/services/QcService';
+import { ComplianceService } from './domain/services/ComplianceService';
 import { PipelineService } from './domain/services/PipelineService';
 import { SubtitleService } from './domain/services/SubtitleService';
 import { ImageGenerationService } from './domain/services/ImageGenerationService';
@@ -337,6 +338,7 @@ export const musicLabService = new MusicLabService(
 
 export const postProcessService = new PostProcessService(ffmpegAdapter, whisperAdapter);
 export const qcService = new QcService({ qcMedia: ffmpegAdapter, logger: defaultLogger.child({ service: 'QcService' }) });
+export const complianceService = new ComplianceService({ logger: defaultLogger.child({ service: 'ComplianceService' }) });
 
 export const timelineService = new TimelineService({
   timelineRepo,

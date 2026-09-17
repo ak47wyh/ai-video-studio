@@ -57,6 +57,8 @@ export interface IFFmpegPort {
   applyDelogo(video: Blob, regions: { x: number; y: number; width: number; height: number }[]): Promise<Blob>;
   /** 将图片帧序列重新编码为视频（含可选音频流） */
   encodeFromFrames(frames: Blob[], fps: number, audio?: Blob): Promise<Blob>;
+  /** P2-9 写入媒体元数据（-metadata + -c copy，不重编码） */
+  withMetadata(video: Blob, metadata: Record<string, string>): Promise<Blob>;
 }
 
 // --- 字幕转录 ---
