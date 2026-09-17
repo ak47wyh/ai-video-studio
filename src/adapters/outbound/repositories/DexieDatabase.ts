@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-import type { Character, Background, Story, StorySegment, StorySpace, VideoTask, PipelineTask, FinalCut, SavedImage, SavedVoice, SavedPrompt, SavedVideo, GeneratedFile } from '../../../domain/entities/models';
+import type { Character, Background, Story, StorySegment, StorySpace, VideoTask, PipelineTask, FinalCut, SavedImage, SavedVoice, SavedPrompt, SavedVideo, SavedBgm, PublishTask, GeneratedFile } from '../../../domain/entities/models';
 import type { SpaceSnapshot, Timeline } from '../../../domain/ports/PersistencePorts';
 
 export class AiVideoDatabase extends Dexie {
@@ -15,6 +15,8 @@ export class AiVideoDatabase extends Dexie {
   savedVoices!: Table<SavedVoice, string>;
   savedPrompts!: Table<SavedPrompt, string>;
   savedVideos!: Table<SavedVideo, string>;
+savedBgms!: Table<SavedBgm, string>;
+publishTasks!: Table<PublishTask, string>;
   snapshots!: Table<SpaceSnapshot, string>;
   timelines!: Table<Timeline, string>;
   generatedFiles!: Table<GeneratedFile, string>;
@@ -183,6 +185,47 @@ export class AiVideoDatabase extends Dexie {
       savedVoices: 'id, spaceId, name, sourceType, createdAt',
       savedPrompts: 'id, spaceId, name, category, createdAt',
       savedVideos: 'id, spaceId, name, sourceType, createdAt',
+      snapshots: 'id, spaceId, createdAt',
+      timelines: 'id, storyId, createdAt, updatedAt',
+      generatedFiles: 'id, spaceId, fileType, sourceEntityType, sourceEntityId, storagePath, createdAt, lastAccessedAt, compressedAt'
+    });
+
+// Version 14: Add publishTasks table (P0-1 发布中心)
+this.version(14).stores({
+      storySpaces: 'id, name, createdAt',
+      characters: 'id, spaceId, name, createdAt',
+      backgrounds: 'id, spaceId, name, createdAt',
+      stories: 'id, spaceId, status, createdAt',
+      segments: 'id, storyId, sequenceOrder',
+      videoTasks: 'id, segmentId, status, createdAt',
+      pipelineTasks: 'id, storyId, status, createdAt',
+      finalCuts: 'id, storyId, pipelineTaskId, createdAt',
+      savedImages: 'id, spaceId, name, sourceType, createdAt',
+      savedVoices: 'id, spaceId, name, sourceType, createdAt',
+      savedPrompts: 'id, spaceId, name, category, createdAt',
+      savedVideos: 'id, spaceId, name, sourceType, createdAt',
+      savedBgms: 'id, spaceId, name, sourceType, createdAt',
+      publishTasks: 'id, finalCutId, status, createdAt',
+      snapshots: 'id, spaceId, createdAt',
+      timelines: 'id, storyId, createdAt, updatedAt',
+      generatedFiles: 'id, spaceId, fileType, sourceEntityType, sourceEntityId, storagePath, createdAt, lastAccessedAt, compressedAt'
+    });
+
+// Version 13: Add savedBgms table (P0-4 资产沉淀：BGM 资产)
+this.version(13).stores({
+      storySpaces: 'id, name, createdAt',
+      characters: 'id, spaceId, name, createdAt',
+      backgrounds: 'id, spaceId, name, createdAt',
+      stories: 'id, spaceId, status, createdAt',
+      segments: 'id, storyId, sequenceOrder',
+      videoTasks: 'id, segmentId, status, createdAt',
+      pipelineTasks: 'id, storyId, status, createdAt',
+      finalCuts: 'id, storyId, pipelineTaskId, createdAt',
+      savedImages: 'id, spaceId, name, sourceType, createdAt',
+      savedVoices: 'id, spaceId, name, sourceType, createdAt',
+      savedPrompts: 'id, spaceId, name, category, createdAt',
+      savedVideos: 'id, spaceId, name, sourceType, createdAt',
+      savedBgms: 'id, spaceId, name, sourceType, createdAt',
       snapshots: 'id, spaceId, createdAt',
       timelines: 'id, storyId, createdAt, updatedAt',
       generatedFiles: 'id, spaceId, fileType, sourceEntityType, sourceEntityId, storagePath, createdAt, lastAccessedAt, compressedAt'

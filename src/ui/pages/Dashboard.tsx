@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useSpaceScopedCharacters, useSpaceScopedBackgrounds, useSpaceScopedStories, useSpaceVideoTaskStats, useRecentStories } from '../hooks/useSpaceScopedQuery';
 import { AgentChatPanel } from '../components/AgentChatPanel';
 import { AsyncState } from '../components/AsyncState';
+import { UsageReportPanel } from '../components/UsageReportPanel';
 
 export const Dashboard: React.FC = () => {
   const { t } = useTranslation();
@@ -278,6 +279,10 @@ export const Dashboard: React.FC = () => {
             )}
           </div>
         </div>
+      </div>
+      {/* P0-2 用量与预算报表 */}
+      <div className="dashboard-section">
+        <UsageReportPanel />
       </div>
 
       {/* P1 接入：AI Agent 助手面板（ReAct 工具循环，自然语言驱动端到端创作） */}

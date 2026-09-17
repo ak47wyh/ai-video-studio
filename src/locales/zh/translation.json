@@ -54,7 +54,8 @@
     "storyFilm": "AI 成片",
     "platformSwitcherTooltip": "切换激活平台",
     "platformNotConfigured": "平台未配置,请前往配置中心填写 API Key",
-    "languageSwitcherTooltip": "切换语言"
+    "languageSwitcherTooltip": "切换语言",
+    "assetLibrary": "素材库"
   },
   "dashboard": {
     "title": "控制台",
@@ -80,7 +81,16 @@
     "recentStories": "最近故事",
     "noStories": "暂无故事，去工作台创建一个吧！",
     "statusSplit": "已拆分",
-    "statusDraft": "草稿"
+    "statusDraft": "草稿",
+    "usageTitle": "用量与预算",
+    "totalCalls": "总调用",
+    "totalTokens": "Token 用量",
+    "refresh": "刷新",
+    "budgetLabel": "预算",
+    "budgetExceeded": "本月 Token 预算已超出",
+    "byPlatform": "平台用量",
+    "dailyTrend": "近 7 日调用趋势",
+    "noUsageData": "暂无用量记录，完成一次生成后自动统计"
   },
   "character": {
     "title": "角色管理",
@@ -311,7 +321,6 @@
     "openEditor": "剪辑",
     "batchNarrate": "批量旁白",
     "batchBGM": "批量 BGM",
-    "generating": "生成中...",
     "narrateComplete": "旁白完成：成功 {{success}}，跳过 {{skipped}}（无音色）{{failed}}",
     "bgmComplete": "BGM 完成：成功 {{success}}，失败 {{failed}}",
     "batchNarrateTitle": "为所有缺旁白且角色已绑定音色的段落自动生成旁白",
@@ -494,8 +503,8 @@
     "capText": "文本",
     "capVoice": "语音",
     "capMusic": "音乐",
-
-    "capModel": "模型",    "volcCorsWarning": "Anthropic 协议端点不支持浏览器直连 CORS(预检会拒绝 anthropic-version 头)。如遇跨域错误,可将 Base URL 改为您的反代地址,或开启下方自动降级。",
+    "capModel": "模型",
+    "volcCorsWarning": "Anthropic 协议端点不支持浏览器直连 CORS(预检会拒绝 anthropic-version 头)。如遇跨域错误,可将 Base URL 改为您的反代地址,或开启下方自动降级。",
     "volcProxyGuide": "查看反代示例(Cloudflare Worker)",
     "volcAutoFallbackToggle": "CORS 拦截时自动降级到 OpenAI 协议",
     "volcAutoFallbackDesc": "Anthropic 端点被浏览器预检拦截时,自动改用 OpenAI 协议发起请求。注意:OpenAI 协议按量计费,且 Agent Plan Key 不一定开通 OpenAI 接口权限。",
@@ -891,7 +900,17 @@
     "categoryStory": "故事剧本",
     "categoryScene": "场景描述",
     "categoryNarration": "旁白文本",
-    "categoryOther": "其他"
+    "categoryOther": "其他",
+    "subtitle": "沉淀生成结果，跨故事复用",
+    "tabImages": "图片",
+    "tabVoices": "音色",
+    "tabBgms": "BGM",
+    "tabVideos": "视频片段",
+    "empty": "暂无素材，生成结果可一键存入素材库",
+    "deleteTitle": "删除素材",
+    "deleteBtn": "删除",
+    "deleteFailed": "删除失败",
+    "downloadFailed": "下载失败"
   },
   "imageStyle": {
     "default": "默认",
@@ -1006,5 +1025,32 @@
   "notFound": {
     "message": "您访问的页面不存在",
     "backHome": "返回首页"
+  },
+  "publish": {
+    "title": "发布",
+    "close": "关闭",
+    "forCut": "成片",
+    "titlePlaceholder": "发布标题",
+    "tagsPlaceholder": "话题标签（逗号分隔）",
+    "createBtn": "创建发布任务",
+    "noTasks": "该成片暂无发布任务",
+    "platformDouyin": "抖音",
+    "platformBilibili": "B站",
+    "platformGeneric": "通用",
+    "platform_douyin": "抖音",
+    "platform_bilibili": "B站",
+    "platform_generic": "通用",
+    "status_draft": "草稿",
+    "status_ready": "就绪",
+    "status_exported": "已导出",
+    "status_published": "已发布",
+    "status_failed": "失败",
+    "markReady": "就绪",
+    "markExported": "已导出",
+    "markPublished": "已发布",
+    "markFailed": "失败",
+    "retry": "重试",
+    "manualFail": "手动标记失败",
+    "hint": "发布为半自动流程：导出文件后在目标平台发布，并在系统中推进状态以保留发布记录。"
   }
 }

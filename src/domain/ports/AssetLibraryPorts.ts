@@ -1,4 +1,4 @@
-import type { SavedImage, SavedVoice, SavedPrompt, SavedVideo } from '../entities/models';
+import type { SavedImage, SavedVoice, SavedPrompt, SavedVideo, SavedBgm } from '../entities/models';
 
 // --- Query Params ---
 
@@ -42,6 +42,13 @@ export interface ISavedVideoRepository {
   save(item: SavedVideo): Promise<void>;
   getById(id: string): Promise<SavedVideo | undefined>;
   query(params: AssetQueryParams): Promise<SavedVideo[]>;
+  delete(id: string): Promise<void>;
+  count(spaceId: string): Promise<number>;
+}
+export interface ISavedBgmRepository {
+  save(item: SavedBgm): Promise<void>;
+  getById(id: string): Promise<SavedBgm | undefined>;
+  query(params: AssetQueryParams): Promise<SavedBgm[]>;
   delete(id: string): Promise<void>;
   count(spaceId: string): Promise<number>;
 }

@@ -54,7 +54,8 @@
     "storyFilm": "AI Film",
     "platformSwitcherTooltip": "Switch active platform",
     "platformNotConfigured": "Platform not configured. Please go to Settings and fill in the API Key.",
-    "languageSwitcherTooltip": "Switch language"
+    "languageSwitcherTooltip": "Switch language",
+    "assetLibrary": "Asset Library"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -80,7 +81,16 @@
     "recentStories": "Recent Stories",
     "noStories": "No stories yet, head to the workbench to create one!",
     "statusSplit": "Split",
-    "statusDraft": "Draft"
+    "statusDraft": "Draft",
+    "usageTitle": "Usage & Budget",
+    "totalCalls": "Total Calls",
+    "totalTokens": "Token Usage",
+    "refresh": "Refresh",
+    "budgetLabel": "Budget",
+    "budgetExceeded": "Monthly token budget exceeded",
+    "byPlatform": "Usage by Platform",
+    "dailyTrend": "Last 7 Days Trend",
+    "noUsageData": "No usage records yet. Stats appear after your first generation."
   },
   "character": {
     "title": "Character Management",
@@ -474,8 +484,8 @@
     "capText": "Text",
     "capVoice": "Voice",
     "capMusic": "Music",
-
-    "capModel": "Model",    "volcCorsWarning": "The Anthropic protocol endpoint does not support browser-direct CORS (preflight rejects the anthropic-version header). If you encounter CORS errors, change the Base URL to your reverse proxy address, or enable auto-fallback below.",
+    "capModel": "Model",
+    "volcCorsWarning": "The Anthropic protocol endpoint does not support browser-direct CORS (preflight rejects the anthropic-version header). If you encounter CORS errors, change the Base URL to your reverse proxy address, or enable auto-fallback below.",
     "volcProxyGuide": "View reverse proxy example (Cloudflare Worker)",
     "volcAutoFallbackToggle": "Auto-fallback to OpenAI protocol on CORS block",
     "volcAutoFallbackDesc": "When the Anthropic endpoint is blocked by browser preflight, automatically switch to the OpenAI protocol. Note: OpenAI protocol is pay-as-you-go, and the Agent Plan key may not have OpenAI API access.",
@@ -855,7 +865,17 @@
     "categoryStory": "Story Script",
     "categoryScene": "Scene Description",
     "categoryNarration": "Narration Text",
-    "categoryOther": "Other"
+    "categoryOther": "Other",
+    "subtitle": "Reuse generated assets across stories",
+    "tabImages": "Images",
+    "tabVoices": "Voices",
+    "tabBgms": "BGM",
+    "tabVideos": "Video Clips",
+    "empty": "No assets yet. Save generated results with one click.",
+    "deleteTitle": "Delete Asset",
+    "deleteBtn": "Delete",
+    "deleteFailed": "Delete failed",
+    "downloadFailed": "Download failed"
   },
   "imageStyle": {
     "default": "Default",
@@ -1005,5 +1025,32 @@
   "notFound": {
     "message": "The page you are looking for does not exist",
     "backHome": "Back to Home"
+  },
+  "publish": {
+    "title": "Publish",
+    "close": "Close",
+    "forCut": "Final cut",
+    "titlePlaceholder": "Publish title",
+    "tagsPlaceholder": "Hashtags (comma separated)",
+    "createBtn": "Create publish task",
+    "noTasks": "No publish tasks for this final cut yet",
+    "platformDouyin": "Douyin",
+    "platformBilibili": "Bilibili",
+    "platformGeneric": "Generic",
+    "platform_douyin": "Douyin",
+    "platform_bilibili": "Bilibili",
+    "platform_generic": "Generic",
+    "status_draft": "Draft",
+    "status_ready": "Ready",
+    "status_exported": "Exported",
+    "status_published": "Published",
+    "status_failed": "Failed",
+    "markReady": "Ready",
+    "markExported": "Exported",
+    "markPublished": "Published",
+    "markFailed": "Failed",
+    "retry": "Retry",
+    "manualFail": "Manually marked failed",
+    "hint": "Publish is semi-automatic: export the file, publish on the target platform, then advance the status here to keep a record."
   }
 }

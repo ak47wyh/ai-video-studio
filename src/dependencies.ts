@@ -7,6 +7,8 @@ import { StorySpaceRepositoryAdapter, CharacterRepositoryAdapter, StoryRepositor
 import { SnapshotRepositoryAdapter } from './adapters/outbound/repositories/SnapshotRepositoryAdapter';
 import { TimelineRepositoryAdapter } from './adapters/outbound/repositories/TimelineRepositoryAdapter';
 import { PipelineTaskRepositoryAdapter } from './adapters/outbound/repositories/PipelineTaskRepositoryAdapter';
+import { PublishTaskRepositoryAdapter } from './adapters/outbound/repositories/PublishTaskRepositoryAdapter';
+import { PublishService } from './domain/services/PublishService';
 import { DexieUnitOfWorkAdapter } from './adapters/outbound/repositories/TransactionAdapter';
 
 // ==================== 基础设施层（外部API适配器） ====================
@@ -30,6 +32,7 @@ import { apiConfigStoreAdapter } from './adapters/outbound/config/ApiConfigStore
 export { apiConfigStoreAdapter };
 import { PlatformModelRegistry } from './adapters/outbound/config/PlatformModelRegistry';
 import { PersistedCostMeter } from './adapters/outbound/PersistedCostMeter';
+import { CostAnalyticsService } from './domain/services/CostAnalyticsService';
 
 // ==================== 领域服务层 ====================
 import { StoryService } from './domain/services/StoryService';
@@ -124,6 +127,8 @@ export const snapshotRepo = new SnapshotRepositoryAdapter();
 export const timelineRepo = new TimelineRepositoryAdapter();
 // M3.1: Pipeline 任务仓储（持久化到 IndexedDB）
 export const pipelineTaskRepo = new PipelineTaskRepositoryAdapter();
+export const publishTaskRepo = new PublishTaskRepositoryAdapter();
+export const publishService = new PublishService(publishTaskRepo);
 export const unitOfWork = new DexieUnitOfWorkAdapter();
 // 素材库仓储（提前声明，供 VoiceService 等服务注入）
 import { SavedVoiceRepository } from './adapters/outbound/repositories/AssetLibraryRepositories';
@@ -258,6 +263,8 @@ export const smartStoryBreakdown: import('./domain/ports/OutboundPorts').IStoryB
 // 必须先于所有业务服务实例化（imageGenerationService/textGenerationService 等依赖）
 // ========================================
 export const costMeter = new PersistedCostMeter();
+// P0-2：成本与产出报表（聚合 ICostMeter 记录）
+export const costAnalytics = new CostAnalyticsService(costMeter);
 
 // ========================================
 // 创作域服务（故事→分镜→角色/场景生成）
@@ -447,18 +454,19 @@ agentService.setToolRegistry(toolRegistry);
 
 // ==================== 素材库（离线存储） ====================
 import { AssetLibraryService } from './domain/services/AssetLibraryService';
-import { SavedImageRepository, SavedPromptRepository, SavedVideoRepository } from './adapters/outbound/repositories/AssetLibraryRepositories';
+import { SavedImageRepository, SavedPromptRepository, SavedVideoRepository, SavedBgmRepository } from './adapters/outbound/repositories/AssetLibraryRepositories';
 
 export const savedImageRepo = new SavedImageRepository();
 // savedVoiceRepo 已在仓储实例区域提前声明
 export const savedPromptRepo = new SavedPromptRepository();
 export const savedVideoRepo = new SavedVideoRepository();
+export const savedBgmRepo = new SavedBgmRepository();
 
 // AssetLibraryService 使用延迟获取模式（lazy accessor），
 // 允许在模块加载时构造，但实际调用方法时才获取 fileStorage。
 // 确保在调用 assetLibraryService 的方法前已执行 await initializeFileStorage()。
 export const assetLibraryService = new AssetLibraryService(
-  savedImageRepo, savedVoiceRepo, savedPromptRepo, savedVideoRepo,
+  savedImageRepo, savedVoiceRepo, savedPromptRepo, savedVideoRepo, savedBgmRepo,
   getFileStorage,        // 传入函数引用，延迟获取
   () => generatedFileRepo,  // 传入函数引用，延迟获取
   httpFetch,             // P1-2：HTTP 抓取 Port，统一 NetworkError/TimeoutError 归一化

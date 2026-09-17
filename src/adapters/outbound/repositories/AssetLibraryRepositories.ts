@@ -1,7 +1,7 @@
 import type { Table, Collection } from 'dexie';
 import { db } from './DexieDatabase';
-import type { SavedImage, SavedVoice, SavedPrompt, SavedVideo } from '../../../domain/entities/models';
-import type { ISavedImageRepository, ISavedVoiceRepository, ISavedPromptRepository, ISavedVideoRepository, AssetQueryParams } from '../../../domain/ports/AssetLibraryPorts';
+import type { SavedImage, SavedVoice, SavedPrompt, SavedVideo, SavedBgm } from '../../../domain/entities/models';
+import type { ISavedImageRepository, ISavedVoiceRepository, ISavedPromptRepository, ISavedVideoRepository, ISavedBgmRepository, AssetQueryParams } from '../../../domain/ports/AssetLibraryPorts';
 
 function applyQuery<T extends { spaceId: string; name: string; tags: string[]; sourceType: string; createdAt: number }>(
   collection: Table<T, string>,
@@ -130,5 +130,26 @@ export class SavedVideoRepository implements ISavedVideoRepository {
   }
   async count(spaceId: string): Promise<number> {
     return db.savedVideos.where('spaceId').equals(spaceId).count();
+  }
+}
+export class SavedBgmRepository implements ISavedBgmRepository {
+  async save(item: SavedBgm): Promise<void> {
+    await db.savedBgms.put(item);
+  }
+  async getById(id: string): Promise<SavedBgm | undefined> {
+    return db.savedBgms.get(id);
+  }
+  async query(params: AssetQueryParams): Promise<SavedBgm[]> {
+    let results = await applyQuery(db.savedBgms, params).toArray();
+    results.sort((a, b) => b.createdAt - a.createdAt);
+    if (params.offset) results = results.slice(params.offset);
+    if (params.limit) results = results.slice(0, params.limit);
+    return results;
+  }
+  async delete(id: string): Promise<void> {
+    await db.savedBgms.delete(id);
+  }
+  async count(spaceId: string): Promise<number> {
+    return db.savedBgms.where('spaceId').equals(spaceId).count();
   }
 }

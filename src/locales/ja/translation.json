@@ -54,7 +54,8 @@
     "capabilityNotSupported": "このプラットフォームはこの機能をサポートしていません（現在：{{platform}}）",
     "capabilityNotSupportedDefault": "このプラットフォームはこの機能をサポートしていません",
     "activePlatformInfo": "現在のアクティブプラットフォーム：{{name}}（{{brand}}）\n機能：{{capabilities}}",
-    "activePlatformBrief": "現在のアクティブプラットフォーム：{{name}}（{{brand}}）"
+    "activePlatformBrief": "現在のアクティブプラットフォーム：{{name}}（{{brand}}）",
+    "assetLibrary": "素材ライブラリ"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -80,7 +81,19 @@
     "recentStories": "Recent Stories",
     "noStories": "No stories yet, head to the workbench to create one!",
     "statusSplit": "Split",
-    "statusDraft": "Draft"
+    "statusDraft": "Draft",
+    "usageTitle": "コスト・利用量レポート",
+    "totalCalls": "総呼び出し",
+    "totalTokens": "総トークン",
+    "refresh": "更新",
+    "budgetLabel": "予算",
+    "budgetExceeded": "予算超過",
+    "byPlatform": "プラットフォーム別",
+    "byCallType": "呼び出し種別別",
+    "last7Days": "直近7日間の推移",
+    "noData": "レポートデータはまだありません",
+    "dailyTrend": "日次トレンド",
+    "noUsageData": "利用データがありません"
   },
   "character": {
     "title": "Character Management",
@@ -890,7 +903,17 @@
     "categoryStory": "ストーリー台本",
     "categoryScene": "シーン説明",
     "categoryNarration": "ナレーションテキスト",
-    "categoryOther": "その他"
+    "categoryOther": "その他",
+    "subtitle": "生成結果を蓄積し、ストーリーをまたいで再利用",
+    "tabImages": "画像",
+    "tabVoices": "音声",
+    "tabBgms": "BGM",
+    "tabVideos": "動画クリップ",
+    "empty": "素材はまだありません。生成結果をワンクリックで保存できます",
+    "deleteTitle": "素材の削除",
+    "deleteBtn": "削除",
+    "deleteFailed": "削除に失敗しました",
+    "downloadFailed": "ダウンロードに失敗しました"
   },
   "imageStyle": {
     "default": "デフォルト",
@@ -1005,5 +1028,32 @@
   "notFound": {
     "message": "お探しのページは存在しません",
     "backHome": "ホームに戻る"
+  },
+  "publish": {
+    "title": "公開",
+    "close": "閉じる",
+    "forCut": "成片",
+    "titlePlaceholder": "公開タイトル",
+    "tagsPlaceholder": "話題タグ（カンマ区切り）",
+    "createBtn": "公開タスクを作成",
+    "noTasks": "この成片には公開タスクがありません",
+    "platformDouyin": "抖音",
+    "platformBilibili": "B站",
+    "platformGeneric": "汎用",
+    "platform_douyin": "抖音",
+    "platform_bilibili": "B站",
+    "platform_generic": "汎用",
+    "status_draft": "下書き",
+    "status_ready": "準備完了",
+    "status_exported": "エクスポート済み",
+    "status_published": "公開済み",
+    "status_failed": "失敗",
+    "markReady": "準備完了",
+    "markExported": "エクスポート済み",
+    "markPublished": "公開済み",
+    "markFailed": "失敗",
+    "retry": "再試行",
+    "manualFail": "手動で失敗に設定",
+    "hint": "公開はセミオートプロセスです：ファイルをエクスポートして対象プラットフォームで公開し、ここでステータスを進めて公開記録を残します。"
   }
 }

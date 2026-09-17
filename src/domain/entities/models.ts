@@ -180,6 +180,26 @@ export type SavedVoiceSource = 'lab' | 'clone' | 'pipeline';
 export type PromptCategory = 'image' | 'voice' | 'story' | 'scene' | 'narration' | 'other';
 export type SavedPromptSource = 'lab' | 'pipeline' | 'manual';
 export type SavedVideoSource = 'lab' | 'pipeline' | 'editor' | 'import';
+export type SavedBgmSource = 'lab' | 'pipeline' | 'import';
+
+/**
+ * 已保存 BGM 资产（AI 生成 / 导入统一入口）。
+ */
+export interface SavedBgm {
+  id: string;
+  spaceId: string;
+  name: string;
+  /** 生成提示 / 风格描述 */
+  prompt: string;
+  model: string;
+  /** 时长（秒） */
+  durationSec: number;
+  audioBlobKey: string;
+  tags: string[];
+  sourceType: SavedBgmSource;
+  sourceId?: string;
+  createdAt: number;
+}
 
 export interface SavedImage {
   id: string;
@@ -430,4 +450,36 @@ export interface GeneratedFile {
   compressedAt?: number;
   /** 压缩率（0-1，如 0.21 表示压缩后为原图的 21%） */
   compressionRatio?: number;
+}
+// ===== P0-1 发布中心 =====
+
+/** 发布目标平台 */
+export type PublishPlatform = 'douyin' | 'bilibili' | 'generic';
+
+/** 发布任务状态机：draft → ready → exported → published；ready/exported 可转 failed，failed 可重试回 ready */
+export type PublishStatus = 'draft' | 'ready' | 'exported' | 'published' | 'failed';
+
+/** 发布任务（成片 → 平台发布配置 + 状态追踪） */
+export interface PublishTask {
+  id: string;
+  /** 关联成片 */
+  finalCutId: string;
+  storyId?: string;
+  /** 目标平台 */
+  platform: PublishPlatform;
+  /** 发布标题 */
+  title: string;
+  /** 发布简介 */
+  description?: string;
+  /** 话题标签 */
+  tags: string[];
+  /** 封面 URL（可选，缺省用成片缩略图） */
+  coverUrl?: string;
+  /** 复用导出预设（B4：generic/douyin/bilibili） */
+  presetKey?: string;
+  status: PublishStatus;
+  /** 失败原因 */
+  error?: string;
+  createdAt: number;
+  updatedAt: number;
 }

@@ -4,7 +4,8 @@ import {
   LayoutDashboard, Users, Image as ImageIcon, BookOpen,
   FolderOpen, Download, Mic, MessageSquare, Sparkles, Film, Scissors,
   ChevronLeft, ChevronRight, Plus, Zap, Palette, Music as MusicIcon, X, Menu, Eraser,
-  Ban
+  Ban,
+  Boxes,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAllSpaces } from '../hooks/useSpaceScopedQuery';
@@ -105,6 +106,7 @@ export const MainLayout: React.FC = () => {
       items: [
         { to: '/characters', icon: <Users size={18} />, label: t('nav.characters') },
         { to: '/backgrounds', icon: <Palette size={18} />, label: t('nav.backgrounds') },
+{ to: '/assets', icon: <Boxes size={18} />, label: t('nav.assetLibrary', '素材库') },
         { to: '/spaces', icon: <FolderOpen size={18} />, label: t('nav.spaces') },
       ],
     },

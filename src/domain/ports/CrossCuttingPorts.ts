@@ -327,4 +327,10 @@ export interface ICostMeter {
   clear(): void;
   /** B3 全量备份恢复：批量导入历史记录（可选实现，非持久化实现可忽略） */
   restore?(records: CostRecord[]): void;
+  /** 设置月度 Token 预算（undefined 表示清除预算；可选实现） */
+  setBudget?(tokens: number | undefined): void;
+  /** 当前预算（未设置返回 undefined；可选实现） */
+  getBudget?(): number | undefined;
+  /** 是否已超出预算（未设置预算返回 false；可选实现） */
+  getBudgetExceeded?(): boolean;
 }

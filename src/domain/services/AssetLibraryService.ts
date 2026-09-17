@@ -1,6 +1,6 @@
-import type { ISavedImageRepository, ISavedVoiceRepository, ISavedPromptRepository, ISavedVideoRepository, AssetQueryParams } from '../ports/AssetLibraryPorts';
+import type { ISavedImageRepository, ISavedVoiceRepository, ISavedPromptRepository, ISavedVideoRepository, ISavedBgmRepository, AssetQueryParams } from '../ports/AssetLibraryPorts';
 import type { IFileStoragePort, IGeneratedFileRepository } from '../ports/FileStoragePorts';
-import type { SavedImage, SavedVoice, SavedPrompt, SavedVideo, SavedImageSource, SavedVoiceSource, PromptCategory, SavedPromptSource, SavedVideoSource, GeneratedFile, GeneratedFileType } from '../entities/models';
+import type { SavedImage, SavedVoice, SavedPrompt, SavedVideo, SavedBgm, SavedImageSource, SavedVoiceSource, PromptCategory, SavedPromptSource, SavedVideoSource, SavedBgmSource, GeneratedFile, GeneratedFileType } from '../entities/models';
 import type { IHttpFetchPort } from '../ports/CrossCuttingPorts';
 
 function generateId(): string {
@@ -28,6 +28,7 @@ export class AssetLibraryService {
   private voiceRepo: ISavedVoiceRepository;
   private promptRepo: ISavedPromptRepository;
   private videoRepo: ISavedVideoRepository;
+private bgmRepo: ISavedBgmRepository;
   private getFileStorage: () => IFileStoragePort;
   private getFileRepo: () => IGeneratedFileRepository;
   private httpFetch?: IHttpFetchPort;
@@ -37,6 +38,7 @@ export class AssetLibraryService {
     voiceRepo: ISavedVoiceRepository,
     promptRepo: ISavedPromptRepository,
     videoRepo: ISavedVideoRepository,
+    bgmRepo: ISavedBgmRepository,
     fileStorage: IFileStoragePort | (() => IFileStoragePort),
     fileRepo: IGeneratedFileRepository | (() => IGeneratedFileRepository),
     httpFetch?: IHttpFetchPort,
@@ -45,6 +47,7 @@ export class AssetLibraryService {
     this.voiceRepo = voiceRepo;
     this.promptRepo = promptRepo;
     this.videoRepo = videoRepo;
+this.bgmRepo = bgmRepo;
     // 支持直接传入实例或延迟获取函数
     this.getFileStorage = typeof fileStorage === 'function' ? fileStorage : () => fileStorage;
     this.getFileRepo = typeof fileRepo === 'function' ? fileRepo : () => fileRepo;
@@ -588,6 +591,81 @@ export class AssetLibraryService {
   // ===== 文件存储管理 =====
 
   /** 获取文件存储统计信息 */
+
+  // ===== BGM Assets (P0-4) =====
+
+  /**
+   * 保存 BGM 到素材库（AI 生成 / 导入统一入口）。
+   * 二进制写入 OPFS（audio/ 目录），元数据进 Dexie savedBgms。
+   */
+  async saveBgmFromBlob(params: {
+    spaceId: string;
+    name: string;
+    blob: Blob;
+    prompt: string;
+    model: string;
+    durationSec: number;
+    tags?: string[];
+    sourceType: SavedBgmSource;
+    sourceId?: string;
+  }): Promise<SavedBgm> {
+    const fileStorage = this.getFileStorage();
+    const fileRepo = this.getFileRepo();
+    const id = generateId();
+    const storagePath = `audio/bgm_${id}.mp3`;
+
+    await fileStorage.storeBlob(storagePath, params.blob);
+
+    await this.registerFile(fileRepo, {
+      id: `file_${id}`,
+      spaceId: params.spaceId,
+      fileType: 'audio',
+      mimeType: params.blob.type || 'audio/mpeg',
+      fileName: `${params.name || id}.mp3`,
+      fileSize: params.blob.size,
+      storagePath,
+      sourceEntityType: 'saved_bgm',
+      sourceEntityId: id,
+      tags: params.tags || [],
+    });
+
+    const item: SavedBgm = {
+      id,
+      spaceId: params.spaceId,
+      name: params.name,
+      prompt: params.prompt,
+      model: params.model,
+      durationSec: params.durationSec,
+      audioBlobKey: storagePath,
+      tags: params.tags || [],
+      sourceType: params.sourceType,
+      sourceId: params.sourceId,
+      createdAt: Date.now(),
+    };
+
+    await this.bgmRepo.save(item);
+    return item;
+  }
+
+  async getBgmBlobUrl(savedBgm: SavedBgm): Promise<string> {
+    const fileStorage = this.getFileStorage();
+    return fileStorage.getObjectUrl(savedBgm.audioBlobKey);
+  }
+
+  async queryBgms(params: AssetQueryParams): Promise<SavedBgm[]> {
+    return this.bgmRepo.query(params);
+  }
+
+  async deleteBgm(id: string): Promise<void> {
+    const fileStorage = this.getFileStorage();
+    const fileRepo = this.getFileRepo();
+    const item = await this.bgmRepo.getById(id);
+    if (item) {
+      await fileStorage.deleteBlob(item.audioBlobKey);
+      await fileRepo.delete(`file_${id}`);
+      await this.bgmRepo.delete(id);
+    }
+  }
   async getStorageStats() {
     return this.getFileStorage().getStats();
   }
