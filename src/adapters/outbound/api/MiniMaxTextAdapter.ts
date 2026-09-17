@@ -5,16 +5,23 @@ import type {
   TextStreamCallbacks,
   TextContentBlock,
 } from '../../../domain/ports/OutboundPorts';
-import { ApiConfigStore } from '../config/ApiConfigStore';
+import type { ILoggerPort } from '../../../domain/ports/CrossCuttingPorts';
+import { apiConfigStoreAdapter } from '../config/ApiConfigStoreAdapter';
 import { getMiniMaxErrorMessage } from './MiniMaxErrorUtils';
 import axios from 'axios';
 
 export class MiniMaxTextAdapter implements ITextGenerationPort {
+  private logger?: ILoggerPort;
+
+  constructor(logger?: ILoggerPort) {
+    this.logger = logger;
+  }
+
 
   async chatCompletion(context: TextGenerationContext): Promise<TextGenerationResult> {
-    const config = ApiConfigStore.load();
+    const config = apiConfigStoreAdapter.load();
     if (!config.minimaxApiKey) {
-      console.warn('[MiniMaxTextAdapter] No API Key configured — returning mock result');
+      this.logger?.warn('[MiniMaxTextAdapter] No API Key configured — returning mock result');
       return {
         content: '[Mock] 请配置 MiniMax API Key 以使用文本生成功能。',
         usage: { promptTokens: 0, completionTokens: 0 },
@@ -39,7 +46,7 @@ export class MiniMaxTextAdapter implements ITextGenerationPort {
   chatCompletionStream(context: TextGenerationContext, callbacks: TextStreamCallbacks): AbortController {
     const controller = new AbortController();
 
-    const config = ApiConfigStore.load();
+    const config = apiConfigStoreAdapter.load();
     if (!config.minimaxApiKey) {
       callbacks.onError(new Error('API Key not configured'));
       return controller;
@@ -85,7 +92,7 @@ export class MiniMaxTextAdapter implements ITextGenerationPort {
     if (context.thinking) payload.thinking = context.thinking;
     if (context.serviceTier) payload.service_tier = context.serviceTier;
 
-    console.log(`[MiniMaxTextAdapter] Stream Anthropic, model: ${model}`);
+    this.logger?.info('[MiniMaxTextAdapter] Stream Anthropic', { model });
 
     // SSE streaming
     const url = `${baseUrl}/v1/messages`;
@@ -226,7 +233,7 @@ export class MiniMaxTextAdapter implements ITextGenerationPort {
    */
   private async chatCompletionOpenAI(
     context: TextGenerationContext,
-    config: ReturnType<typeof ApiConfigStore.load>
+    config: ReturnType<typeof apiConfigStoreAdapter.load>
   ): Promise<TextGenerationResult> {
     const baseUrl = config.minimaxBaseUrl.replace(/\/+$/, '');
     const model = context.model || 'MiniMax-M2.5';
@@ -253,7 +260,7 @@ export class MiniMaxTextAdapter implements ITextGenerationPort {
 
     payload.reasoning_split = true;
 
-    console.log(`[MiniMaxTextAdapter] OpenAI endpoint, model: ${model}, messages: ${context.messages.length}`);
+    this.logger?.info('[MiniMaxTextAdapter] OpenAI endpoint', { model, messages: context.messages.length });
 
     const response = await axios.post(`${baseUrl}/chat/completions`, payload, {
       headers: {
@@ -272,7 +279,7 @@ export class MiniMaxTextAdapter implements ITextGenerationPort {
    */
   private async chatCompletionAnthropic(
     context: TextGenerationContext,
-    config: ReturnType<typeof ApiConfigStore.load>
+    config: ReturnType<typeof apiConfigStoreAdapter.load>
   ): Promise<TextGenerationResult> {
     const baseUrl = (config.minimaxAnthropicBaseUrl || 'https://api.minimaxi.com/anthropic').replace(/\/+$/, '');
     const model = context.model || 'MiniMax-M2.5';
@@ -320,7 +327,7 @@ export class MiniMaxTextAdapter implements ITextGenerationPort {
       }));
     }
 
-    console.log(`[MiniMaxTextAdapter] Anthropic endpoint, model: ${model}, messages: ${anthropicMessages.length}`);
+    this.logger?.info('[MiniMaxTextAdapter] Anthropic endpoint', { model, messages: anthropicMessages.length });
 
     const response = await axios.post(`${baseUrl}/v1/messages`, payload, {
       headers: {

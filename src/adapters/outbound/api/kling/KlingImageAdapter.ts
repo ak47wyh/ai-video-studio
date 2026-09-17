@@ -1,4 +1,5 @@
 import type { IImageGeneratorPort, ImageGenerationContext, ImageGenerationResult } from '../../../../domain/ports/OutboundPorts';
+import type { ILoggerPort } from '../../../../domain/ports/CrossCuttingPorts';
 import type { ApiConfig } from '../../config/ApiConfigStore';
 import { KlingHttpClient } from './KlingHttpClient';
 import { withRetry } from './KlingErrorUtils';
@@ -13,10 +14,12 @@ import { withRetry } from './KlingErrorUtils';
  * 与可灵视频共用 JWT 鉴权（KlingHttpClient 内部统一处理）。
  */
 export class KlingImageAdapter implements IImageGeneratorPort {
+  private logger?: ILoggerPort;
   private http: KlingHttpClient;
 
   private config: ApiConfig;
-  constructor(config: ApiConfig) {
+  constructor(config: ApiConfig, logger?: ILoggerPort) {
+    this.logger = logger;
     this.config = config;
     this.http = new KlingHttpClient(config);
   }
@@ -24,14 +27,13 @@ export class KlingImageAdapter implements IImageGeneratorPort {
   async generateImage(context: ImageGenerationContext): Promise<ImageGenerationResult> {
     // ── Mock 模式 ──
     if (!this.config.klingAccessKey || !this.config.klingSecretKey) {
-      console.warn('[KlingImageAdapter] No AccessKey/SecretKey — returning placeholder image.');
+      this.logger?.warn('[KlingImageAdapter] No AccessKey/SecretKey — returning placeholder image.');
       const mockBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==';
       return { imageDataUri: `data:image/png;base64,${mockBase64}` };
     }
 
     const model = context.model || 'kling-v1';
-    console.log('[KlingImageAdapter] generateImage 入参', {
-      prompt: context.prompt,
+    this.logger?.info('[KlingImageAdapter] generateImage 入参', {
       promptLength: context.prompt.length,
       model,
     });

@@ -110,4 +110,12 @@ export default defineConfig([
       }],
     },
   },
+  // C4 日志收口守护（§7.7）：outbound 层禁止直接 console.*，统一走 ILoggerPort（ConsoleLoggerAdapter 是 logger 实现，豁免）
+  {
+    files: ['src/adapters/outbound/**/*.{ts,tsx}'],
+    ignores: ['src/adapters/outbound/infrastructure/ConsoleLoggerAdapter.ts'],
+    rules: {
+      'no-console': 'error',
+    },
+  },
 ])

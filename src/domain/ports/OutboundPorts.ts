@@ -445,23 +445,6 @@ export interface IVoicePort {
   getAvailableVoices(voiceType: VoiceType): Promise<VoiceListResult>;
 }
 
-export interface IVoiceCloneCapable extends IVoicePort {
-  cloneVoice(context: VoiceCloneContext): Promise<VoiceCloneResult>;
-}
-
-export interface IVoiceDesignCapable extends IVoicePort {
-  designVoice(prompt: string, previewText: string, voiceId?: string, aigcWatermark?: boolean): Promise<VoiceDesignResult>;
-  deleteVoice(voiceType: 'voice_cloning' | 'voice_generation', voiceId: string): Promise<void>;
-}
-
-export interface IVoiceStreamCapable extends IVoicePort {
-  synthesizeSpeechStream(context: T2ASyncContext, callbacks: T2AStreamCallbacks): T2AStreamHandle;
-}
-
-export interface IVoiceConversionCapable extends IVoicePort {
-  convertVoice(context: VoiceConversionContext): Promise<VoiceConversionResult>;
-}
-
 /**
  * IVoicePort 子能力声明（接口隔离原则）。
  * 调用方（如 VoiceService）应在使用某方法前检查 supportsClone / supportsDesign。

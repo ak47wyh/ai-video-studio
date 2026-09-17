@@ -1,4 +1,5 @@
 import type { ApiConfig } from '../../config/ApiConfigStore';
+import type { ILoggerPort } from '../../../../domain/ports/CrossCuttingPorts';
 import type { VolcArkProtocol } from '../../../../domain/entities/platform';
 import { BaseHttpClient } from '../_base/BaseHttpClient';
 import { parseVolcengineError, VolcengineApiError } from './VolcengineErrorUtils';
@@ -23,13 +24,14 @@ import { parseVolcengineError, VolcengineApiError } from './VolcengineErrorUtils
  * Phase 4 DRY：继承 BaseHttpClient，stream<T> 委托 readSseStream。
  */
 export class VolcengineHttpClient extends BaseHttpClient {
+  private logger?: ILoggerPort;
   private readonly config: ApiConfig;
   /** 当前生效的 Base URL（去除尾部斜杠） */
   private readonly activeBaseUrl: string;
   /** 是否为 Anthropic 协议（Agent Plan 接入） */
   readonly isAnthropic: boolean;
 
-  constructor(config: ApiConfig, protocol: VolcArkProtocol, baseUrlOverride?: string) {
+  constructor(config: ApiConfig, protocol: VolcArkProtocol, baseUrlOverride?: string, logger?: ILoggerPort) {
     const isAnthropic = protocol === 'anthropic';
     // baseUrlOverride 用于 Agent Plan 等独立路径场景，优先级最高
     const baseUrl = baseUrlOverride
@@ -50,11 +52,13 @@ export class VolcengineHttpClient extends BaseHttpClient {
 
     super({ baseUrl, headers, parseError: parseVolcengineError });
 
+    this.logger = logger;
+
     this.config = config;
     this.isAnthropic = isAnthropic;
     this.activeBaseUrl = baseUrl.replace(/\/+$/, '');
 
-    console.info('[VolcengineHttpClient] 初始化', {
+    this.logger?.info('[VolcengineHttpClient] 初始化', {
       protocol,
       baseUrlSource: baseUrlOverride ? 'agent-plan-override' : (isAnthropic ? 'anthropic' : 'openai-default'),
       baseUrl,

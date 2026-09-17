@@ -64,6 +64,10 @@ import { ConsoleLoggerAdapter } from './adapters/outbound/infrastructure/Console
 import { CompositeLoggerAdapter, ConsoleSinkAdapter } from './adapters/outbound/infrastructure/CompositeLoggerAdapter';
 import { logSink } from './adapters/outbound/infrastructure/RingBufferLogSinkAdapter';
 import { defaultEventBus } from './adapters/outbound/infrastructure/MemoryEventBusAdapter';
+import { confirmEventBus } from './adapters/outbound/ui/ReactConfirmAdapter';
+import { toastEventBus } from './adapters/outbound/ui/ReactNotificationAdapter';
+import { setRetryLogger } from './adapters/outbound/api/_base/withRetry';
+import { ApiConfigStore } from './adapters/outbound/config/ApiConfigStore';
 import { defaultMetrics } from './adapters/outbound/infrastructure/NoopMetricsAdapter';
 import { defaultResilience } from './adapters/outbound/infrastructure/DefaultResilienceAdapter';
 import { BrowserFetchAdapter } from './adapters/outbound/infrastructure/BrowserFetchAdapter';
@@ -84,6 +88,13 @@ export const defaultLogger = new CompositeLoggerAdapter([
   new ConsoleSinkAdapter(new ConsoleLoggerAdapter(), { service: 'app' }),
   logSink,
 ], { service: 'app' });
+
+// C4 日志收口装配（§7.6）：底层适配器统一注入 defaultLogger
+ApiConfigStore.setLogger(defaultLogger.child({ service: 'ApiConfigStore' }));
+setRetryLogger(defaultLogger.child({ service: 'Retry' }));
+(defaultEventBus as unknown as { setLogger(logger: import('./domain/ports/CrossCuttingPorts').ILoggerPort): void }).setLogger(defaultLogger.child({ service: 'EventBus' }));
+confirmEventBus.setLogger(defaultLogger.child({ service: 'ConfirmEventBus' }));
+toastEventBus.setLogger(defaultLogger.child({ service: 'ToastEventBus' }));
 
 // 平台路由器实例（Phase 5：注入 logger 供 VolcengineVideoAdapter 接口出入参日志）
 export const platformRouter = new PlatformRouter(
@@ -144,7 +155,7 @@ export async function initializeFileStorage(): Promise<IFileStoragePort> {
       defaultLogger.info('[FileStorage] migrating offline cache', {
         service: 'fileStorage',
       });
-      await migrateOfflineCache(_fileStorageAdapter, generatedFileRepo);
+      await migrateOfflineCache(_fileStorageAdapter, generatedFileRepo, undefined, defaultLogger.child({ service: 'OfflineCacheMigration' }));
     }
 
     return _fileStorageAdapter;
@@ -237,10 +248,10 @@ export const modelRegistry = new PlatformModelRegistry(
 // ========================================
 // Mock / 智能降级实例
 // ========================================
-export const mockTextSplitter = new MockTextSplitterAdapter();
-export const mockStoryBreakdown = new MockStoryBreakdownAdapter();
-export const smartTextSplitter = new PlatformAwareTextSplitter(platformRouter, apiConfigStoreAdapter, mockTextSplitter, modelRegistry, defaultLogger.child({ service: 'SmartTextSplitter' }));
-export const smartStoryBreakdown = new PlatformAwareStoryBreakdown(platformRouter, apiConfigStoreAdapter, mockStoryBreakdown, modelRegistry, defaultLogger.child({ service: 'SmartStoryBreakdown' }));
+export const mockTextSplitter: import('./domain/ports/OutboundPorts').ITextSplitterPort = new MockTextSplitterAdapter(defaultLogger.child({ service: 'MockTextSplitter' }));
+export const mockStoryBreakdown: import('./domain/ports/OutboundPorts').IStoryBreakdownPort = new MockStoryBreakdownAdapter(defaultLogger.child({ service: 'MockStoryBreakdown' }));
+export const smartTextSplitter: import('./domain/ports/OutboundPorts').ITextSplitterPort = new PlatformAwareTextSplitter(platformRouter, apiConfigStoreAdapter, mockTextSplitter, modelRegistry, defaultLogger.child({ service: 'SmartTextSplitter' }));
+export const smartStoryBreakdown: import('./domain/ports/OutboundPorts').IStoryBreakdownPort = new PlatformAwareStoryBreakdown(platformRouter, apiConfigStoreAdapter, mockStoryBreakdown, modelRegistry, defaultLogger.child({ service: 'SmartStoryBreakdown' }));
 
 // ========================================
 // M3.4 成本计量（EVOLUTION_DESIGN.md §7.4）

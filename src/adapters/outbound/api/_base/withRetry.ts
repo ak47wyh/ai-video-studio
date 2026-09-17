@@ -13,6 +13,14 @@
  * 韧性抽象。此函数属 adapter 层通用工具（无需通过 Port 暴露给 domain），
  * 只服务于 API HttpClient 内部的网络重试。
  */
+import type { ILoggerPort } from '../../../../domain/ports/CrossCuttingPorts';
+
+let defaultLogger: ILoggerPort | undefined;
+
+export function setRetryLogger(logger: ILoggerPort | undefined): void {
+  defaultLogger = logger;
+}
+
 export interface WithRetryOptions {
   /** 最多重试次数（不含首次尝试），默认 3 */
   maxRetries?: number;
@@ -38,7 +46,7 @@ export async function withRetry<T>(
       if (attempt < maxRetries && isRetryable(error, attempt)) {
         const delay = baseDelayMs * Math.pow(2, attempt);
         if (logTag) {
-          console.warn(`${logTag} 第 ${attempt + 1} 次重试（${delay}ms 后）`, {
+          defaultLogger?.warn(`${logTag} 第 ${attempt + 1} 次重试（${delay}ms 后）`, {
             errorName: error instanceof Error ? error.name : typeof error,
             message: error instanceof Error ? error.message : String(error),
           });

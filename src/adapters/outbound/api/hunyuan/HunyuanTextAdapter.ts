@@ -5,6 +5,7 @@ import type {
   TextStreamCallbacks,
   TextGenerationMessage,
 } from '../../../../domain/ports/OutboundPorts';
+import type { ILoggerPort } from '../../../../domain/ports/CrossCuttingPorts';
 import type { ApiConfig } from '../../config/ApiConfigStore';
 import { HunyuanHttpClient } from './HunyuanHttpClient';
 import { withRetry } from './HunyuanErrorUtils';
@@ -20,10 +21,12 @@ import { withRetry } from './HunyuanErrorUtils';
  * 混元的流式输出通过 SSE 返回，本适配器简化处理：非流式调用同步返回。
  */
 export class HunyuanTextAdapter implements ITextGenerationPort {
+  private logger?: ILoggerPort;
   private http: HunyuanHttpClient;
   private config: ApiConfig;
 
-  constructor(config: ApiConfig) {
+  constructor(config: ApiConfig, logger?: ILoggerPort) {
+    this.logger = logger;
     this.config = config;
     this.http = new HunyuanHttpClient(config);
   }
@@ -41,7 +44,7 @@ export class HunyuanTextAdapter implements ITextGenerationPort {
   ): Promise<TextGenerationResult> {
     // ── Mock 模式 ──
     if (!this.config.hunyuanSecretId || !this.config.hunyuanSecretKey) {
-      console.warn('[HunyuanTextAdapter] No SecretId/SecretKey — returning mock result');
+      this.logger?.warn('[HunyuanTextAdapter] No SecretId/SecretKey — returning mock result');
       return {
         content: '[Mock] 请配置腾讯混元 SecretId/SecretKey 以使用文本生成功能。',
         usage: { promptTokens: 0, completionTokens: 0 },

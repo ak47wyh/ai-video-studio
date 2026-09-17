@@ -1,4 +1,5 @@
 import type { GeneratedFile } from '../../../domain/entities/models';
+import type { ILoggerPort } from '../../../domain/ports/CrossCuttingPorts';
 
 /**
  * OfflineCache → OPFS 数据迁移工具。
@@ -107,10 +108,10 @@ function openOldDB(): Promise<IDBDatabase> {
  * 旧 DB 不存在或已被清理时（新环境 / 用户清除站点数据），objectStoreNames 为空，
  * 直接返回空数组跳过迁移，不抛错。
  */
-async function readOldEntries(db: IDBDatabase): Promise<{ key: string; blob: Blob; meta: OldCacheMeta }[]> {
+async function readOldEntries(db: IDBDatabase, logger?: ILoggerPort): Promise<{ key: string; blob: Blob; meta: OldCacheMeta }[]> {
   // 防御性检查：旧 DB 不存在或 schema 不匹配时跳过
   if (!db.objectStoreNames.contains(OLD_BLOB_STORE) || !db.objectStoreNames.contains(OLD_META_STORE)) {
-    console.log('[FileStorage Migration] Old DB has no blob/meta stores, skipping (new environment or already cleared).');
+    logger?.info('[FileStorage Migration] Old DB has no blob/meta stores, skipping (new environment or already cleared).');
     return [];
   }
   return new Promise((resolve, reject) => {
@@ -219,13 +220,14 @@ export async function migrateOfflineCache(
   fileStorage: { storeBlob(path: string, blob: Blob): Promise<void> },
   fileRepo: { save(file: GeneratedFile): Promise<void> },
   defaultSpaceId: string = '__default__',
+  logger?: ILoggerPort,
 ): Promise<number> {
   if (!needsMigration()) {
-    console.log('[FileStorage Migration] Already migrated, skipping.');
+    logger?.info('[FileStorage Migration] Already migrated, skipping.');
     return 0;
   }
 
-  console.log('[FileStorage Migration] Starting migration from OfflineCache...');
+  logger?.info('[FileStorage Migration] Starting migration from OfflineCache...');
 
   // P0 修复：上次失败的 key 集合，用于本次「仅重试失败项」。
   // - 首次迁移：集合为空 → 处理所有 entries
@@ -233,7 +235,7 @@ export async function migrateOfflineCache(
   const previousFailedKeys = loadFailedKeys();
   const isRetry = previousFailedKeys.size > 0;
   if (isRetry) {
-    console.log(`[FileStorage Migration] Retry mode: ${previousFailedKeys.size} previously failed keys.`);
+    logger?.info(`[FileStorage Migration] Retry mode: ${previousFailedKeys.size} previously failed keys.`);
   }
 
   let oldDB: IDBDatabase | null = null;
@@ -242,7 +244,7 @@ export async function migrateOfflineCache(
 
   try {
     oldDB = await openOldDB();
-    const entries = await readOldEntries(oldDB);
+    const entries = await readOldEntries(oldDB, logger);
 
     // 重试模式下仅处理失败项；首次模式处理全部
     const targets = isRetry
@@ -252,7 +254,7 @@ export async function migrateOfflineCache(
     // 无数据可迁移（新环境 / 旧库已清空）：直接标记完成，避免每次启动都跑空迁移
     if (entries.length === 0) {
       markMigrated();
-      console.log('[FileStorage Migration] No entries to migrate, marking as done.');
+      logger?.info('[FileStorage Migration] No entries to migrate, marking as done.');
       return 0;
     }
 
@@ -285,7 +287,7 @@ export async function migrateOfflineCache(
         await fileRepo.save(generatedFile);
         migratedCount++;
       } catch (err) {
-        console.warn(`[FileStorage Migration] Failed to migrate key "${key}":`, err);
+        logger?.warn('[FileStorage Migration] Failed to migrate key', { key, error: err instanceof Error ? err.message : String(err) });
         failedKeys.push(key);
         // 继续迁移其他文件
       }
@@ -294,19 +296,19 @@ export async function migrateOfflineCache(
     // P0 修复：仅当全部成功时才标记完成；否则持久化 failedKeys 供下次重试
     if (failedKeys.length === 0) {
       markMigrated();
-      console.log(
+      logger?.info(
         `[FileStorage Migration] Completed. Migrated ${migratedCount}/${targets.length} files` +
         (isRetry ? ' (retry).' : '.'),
       );
     } else {
       persistFailedKeys(failedKeys);
-      console.warn(
+      logger?.warn(
         `[FileStorage Migration] Partially completed. Migrated ${migratedCount}/${targets.length}, ` +
         `failed ${failedKeys.length}. Failed keys will be retried next launch.`,
       );
     }
   } catch (err) {
-    console.error('[FileStorage Migration] Failed:', err);
+    logger?.error('[FileStorage Migration] Failed', err);
     // 不标记为已迁移，下次启动时重试
     if (failedKeys.length > 0) {
       persistFailedKeys(failedKeys);

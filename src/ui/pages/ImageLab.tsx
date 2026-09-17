@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Image as ImageIcon, Sparkles, RefreshCw, Type, ImagePlus } from 'lucide-react';
-import { imageGenerationService, assetLibraryService } from '../../dependencies';
+import { imageGenerationService, assetLibraryService, apiConfigStoreAdapter } from '../../dependencies';
 import type { ImageAspectRatio, ImageGenerationContext } from '../../domain/ports/OutboundPorts';
 import { useToast } from '../contexts/ToastContext';
 import { getErrorMessage } from '../utils/errorUtils';
@@ -18,7 +18,6 @@ import { UnsupportedCapabilityNotice } from '../components/UnsupportedCapability
 import { usePlatformCapabilities } from '../hooks/usePlatformCapabilities';
 import { useImageModels } from '../hooks/useImageModels';
 import { usePlatform } from '../contexts/PlatformContext';
-import { ApiConfigStore } from '../../adapters/outbound/config/ApiConfigStore';
 import { isPlatformReady } from '../utils/platformReady';
 import { TextAreaWithCounter } from '../components/TextAreaWithCounter';
 import { SavedRecordsPanel } from '../components/SavedRecordsPanel';
@@ -69,7 +68,7 @@ export const ImageLab: React.FC = () => {
   const { currentSpaceId } = useSpace();
   const { hasCapability } = usePlatformCapabilities();
   const { activePlatform } = usePlatform();
-  const platformReady = isPlatformReady(ApiConfigStore.load(), activePlatform);
+  const platformReady = isPlatformReady(apiConfigStoreAdapter.load(), activePlatform);
 
   const [activeTab, setActiveTab] = useState<ImageLabTab>('t2i');
 
@@ -105,9 +104,11 @@ export const ImageLab: React.FC = () => {
   const { models, currentModel, fallbackModelId } = useImageModels(activePlatform, activeTab, model);
 
   // 当前选中模型不在过滤后列表中(如切换 Tab/平台),自动回退到推荐模型
+  // 延迟到下一宏任务，避免 effect 内同步 setState 触发级联渲染
   useEffect(() => {
     if (!currentModel && fallbackModelId) {
-      setModel(fallbackModelId);
+      const id = setTimeout(() => setModel(fallbackModelId), 0);
+      return () => clearTimeout(id);
     }
   }, [currentModel, fallbackModelId]);
 

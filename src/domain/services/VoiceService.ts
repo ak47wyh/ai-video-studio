@@ -1,4 +1,5 @@
-import type { IVoicePort, IVoiceCloneCapable, IVoiceDesignCapable, IVoiceStreamCapable, IVoiceConversionCapable, T2AAsyncContext, T2AAsyncStatus, T2ASyncContext, T2ASyncModel, T2ASyncResult, T2AStreamCallbacks, T2AStreamHandle, VoiceDesignResult, VoiceType, VoiceListResult, VoiceConversionContext, VoiceConversionResult } from '../ports/OutboundPorts';
+import { VoiceSubCapabilityNotSupportedError } from '../errors/VoiceSubCapabilityNotSupportedError';
+import type { IVoicePort, T2AAsyncContext, T2AAsyncStatus, T2ASyncContext, T2ASyncModel, T2ASyncResult, T2AStreamCallbacks, T2AStreamHandle, VoiceCloneContext, VoiceCloneResult, VoiceDesignResult, VoiceType, VoiceListResult, VoiceConversionContext, VoiceConversionResult } from '../ports/OutboundPorts';
 import type { ICharacterRepository, IStorySegmentRepository } from '../ports/OutboundPorts';
 import type { IFileStoragePort } from '../ports/FileStoragePorts';
 import type { IApiConfigStore } from '../ports/PlatformPorts';
@@ -153,7 +154,9 @@ export class VoiceService {
       promptAudioFileId = result.fileId;
     }
 
-    const cloneResult = await (this.getVoicePort() as IVoiceCloneCapable).cloneVoice({
+    const clonePort = this.getVoicePort();
+    if (!('cloneVoice' in clonePort)) throw new VoiceSubCapabilityNotSupportedError(this.configStore.load().activePlatform, 'supportsClone');
+    const cloneResult = await (clonePort as IVoicePort & { cloneVoice(context: VoiceCloneContext): Promise<VoiceCloneResult> }).cloneVoice({
       fileId,
       voiceId: customVoiceId,
       text,
@@ -251,7 +254,9 @@ export class VoiceService {
       languageBoost: options?.languageBoost || 'auto',
       ...options,
     };
-    return (this.getVoicePort() as IVoiceStreamCapable).synthesizeSpeechStream(context, callbacks);
+    const streamPort = this.getVoicePort();
+    if (!('synthesizeSpeechStream' in streamPort)) throw new VoiceSubCapabilityNotSupportedError(this.configStore.load().activePlatform, 'supportsStream');
+    return (streamPort as IVoicePort & { synthesizeSpeechStream(context: T2ASyncContext, callbacks: T2AStreamCallbacks): T2AStreamHandle }).synthesizeSpeechStream(context, callbacks);
   }
 
   /**
@@ -307,7 +312,9 @@ export class VoiceService {
    * Design a new voice using text description.
    */
   async designVoice(prompt: string, previewText: string, voiceId?: string, aigcWatermark?: boolean): Promise<VoiceDesignResult> {
-    return (this.getVoicePort() as IVoiceDesignCapable).designVoice(prompt, previewText, voiceId, aigcWatermark);
+    const designPort = this.getVoicePort();
+    if (!('designVoice' in designPort)) throw new VoiceSubCapabilityNotSupportedError(this.configStore.load().activePlatform, 'supportsDesign');
+    return (designPort as IVoicePort & { designVoice(prompt: string, previewText: string, voiceId?: string, aigcWatermark?: boolean): Promise<VoiceDesignResult> }).designVoice(prompt, previewText, voiceId, aigcWatermark);
   }
 
   /**
@@ -318,7 +325,9 @@ export class VoiceService {
     if (!character) throw new Error('Character not found');
 
     const voiceId = `design_${Date.now()}`;
-    const result = await (this.getVoicePort() as IVoiceDesignCapable).designVoice(prompt, previewText, voiceId);
+    const designForCharPort = this.getVoicePort();
+    if (!('designVoice' in designForCharPort)) throw new VoiceSubCapabilityNotSupportedError(this.configStore.load().activePlatform, 'supportsDesign');
+    const result = await (designForCharPort as IVoicePort & { designVoice(prompt: string, previewText: string, voiceId?: string): Promise<VoiceDesignResult> }).designVoice(prompt, previewText, voiceId);
 
     character.voiceId = result.voiceId;
     await this.characterRepo.save(character);
@@ -381,7 +390,9 @@ export class VoiceService {
       volumeRatio: options?.volumeRatio,
     });
 
-    const result = await (this.getVoicePort() as IVoiceConversionCapable).convertVoice(context);
+    const convertPort = this.getVoicePort();
+    if (!('convertVoice' in convertPort)) throw new VoiceSubCapabilityNotSupportedError(this.configStore.load().activePlatform, 'supportsConversion');
+    const result = await (convertPort as IVoicePort & { convertVoice(context: VoiceConversionContext): Promise<VoiceConversionResult> }).convertVoice(context);
 
     this.logger.info('[VoiceService] convertVoice 出参', {
       service: 'VoiceService',
@@ -572,7 +583,9 @@ export class VoiceService {
    * Also unbinds it from any character currently using it.
    */
   async deleteVoice(voiceType: 'voice_cloning' | 'voice_generation', voiceId: string): Promise<void> {
-    await (this.getVoicePort() as IVoiceDesignCapable).deleteVoice(voiceType, voiceId);
+    const deletePort = this.getVoicePort();
+    if (!('deleteVoice' in deletePort)) throw new VoiceSubCapabilityNotSupportedError(this.configStore.load().activePlatform, 'supportsDelete');
+    await (deletePort as IVoicePort & { deleteVoice(voiceType: 'voice_cloning' | 'voice_generation', voiceId: string): Promise<void> }).deleteVoice(voiceType, voiceId);
 
     // Unbind from any character using this voice
     const allCharacters = await this.characterRepo.findAll();

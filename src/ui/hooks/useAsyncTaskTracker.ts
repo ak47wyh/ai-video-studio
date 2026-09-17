@@ -100,11 +100,12 @@ export function useAsyncTaskTracker<T extends AsyncTaskBase>(
     }
   }, [tasks, storageKey]);
 
-  // 组件卸载时清理所有轮询
+  // 组件卸载时清理所有轮询（拷贝 ref 到局部变量，避免 cleanup 时引用过期值）
   useEffect(() => {
+    const polling = pollingRef.current;
     return () => {
-      pollingRef.current.forEach(handle => clearInterval(handle));
-      pollingRef.current.clear();
+      polling.forEach(handle => clearInterval(handle));
+      polling.clear();
     };
   }, []);
 

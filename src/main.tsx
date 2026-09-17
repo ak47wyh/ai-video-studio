@@ -4,7 +4,7 @@ import './index.css'
 import './i18n'
 import App from './App.tsx'
 import { initializeFileStorage } from './dependencies'
-import { ApiConfigStore } from './adapters/outbound/config/ApiConfigStore'
+import { apiConfigStoreAdapter } from './dependencies'
 
 /**
  * 应用启动序列：
@@ -41,7 +41,7 @@ async function bootstrap(): Promise<void> {
 
   // 并行初始化：解密 API 配置 + 文件存储
   await Promise.all([
-    ApiConfigStore.init(),
+    apiConfigStoreAdapter.init(),
     initializeFileStorage(),
   ]).catch(err => {
     console.error('[Bootstrap] initialization failed:', err)
@@ -49,7 +49,7 @@ async function bootstrap(): Promise<void> {
 
   // ── vConsole：异步补充加载（加密存储场景） ──
   // 同步阶段无法解密密文，init 完成后内存缓存已填充，再检查一次
-  if (!vconsoleLoaded && ApiConfigStore.load().vconsoleEnabled) {
+  if (!vconsoleLoaded && apiConfigStoreAdapter.load().vconsoleEnabled) {
     import('vconsole').then(({ default: VConsole }) => {
       new VConsole();
       console.log('[vConsole] 已启用（异步）');

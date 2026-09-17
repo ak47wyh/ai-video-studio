@@ -7,35 +7,19 @@
 
 import type { INetworkStatusPort, NetworkStatus } from '../../../domain/ports/UiPorts';
 import type { ILoggerPort } from '../../../domain/ports/CrossCuttingPorts';
+import { BaseEventBus } from './BaseEventBus';
 import { ConsoleLoggerAdapter } from './ConsoleLoggerAdapter';
 
 type NetworkListener = (status: NetworkStatus) => void;
 
-class NetworkEventBus {
-  private logger: ILoggerPort;
-
-  constructor(logger: ILoggerPort) {
-    this.logger = logger;
-  }
-
-  private listeners = new Set<NetworkListener>();
-
-  subscribe(listener: NetworkListener): () => void {
-    this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
+class NetworkEventBus extends BaseEventBus<NetworkListener> {
+  constructor(logger?: ILoggerPort) {
+    super({ service: 'BrowserNetworkStatusAdapter' });
+    this.setLogger(logger);
   }
 
   emit(status: NetworkStatus): void {
-    this.listeners.forEach(l => {
-      try {
-        l(status);
-      } catch (err) {
-        this.logger.error('[NetworkEventBus] listener error', err, {
-          service: 'BrowserNetworkStatusAdapter',
-          status,
-        });
-      }
-    });
+    this.emitAll(status);
   }
 }
 

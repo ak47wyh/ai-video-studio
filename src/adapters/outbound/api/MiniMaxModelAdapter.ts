@@ -1,5 +1,5 @@
 import type { IModelManagementPort, ModelInfo, ModelListResult } from '../../../domain/ports/OutboundPorts';
-import { ApiConfigStore } from '../config/ApiConfigStore';
+import { apiConfigStoreAdapter } from '../config/ApiConfigStoreAdapter';
 import axios from 'axios';
 
 export class MiniMaxModelAdapter implements IModelManagementPort {
@@ -9,7 +9,7 @@ export class MiniMaxModelAdapter implements IModelManagementPort {
    * Note: Uses Authorization: Bearer header (X-Api-Key not allowed by CORS)
    */
   async listModels(limit?: number, afterId?: string): Promise<ModelListResult> {
-    const config = ApiConfigStore.load();
+    const config = apiConfigStoreAdapter.load();
     if (!config.minimaxApiKey) {
       throw new Error('API Key not configured — cannot list models');
     }
@@ -49,7 +49,7 @@ export class MiniMaxModelAdapter implements IModelManagementPort {
    * Note: Uses Authorization: Bearer header (not X-Api-Key)
    */
   async retrieveModel(modelId: string): Promise<ModelInfo> {
-    const config = ApiConfigStore.load();
+    const config = apiConfigStoreAdapter.load();
     if (!config.minimaxApiKey) {
       throw new Error('API Key not configured — cannot retrieve model');
     }

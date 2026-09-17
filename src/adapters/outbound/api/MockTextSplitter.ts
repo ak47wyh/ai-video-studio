@@ -1,8 +1,14 @@
 import type { ITextSplitterPort, SegmentDraft } from '../../../domain/ports/OutboundPorts';
+import type { ILoggerPort } from '../../../domain/ports/CrossCuttingPorts';
 
 export class MockTextSplitterAdapter implements ITextSplitterPort {
+  private logger?: ILoggerPort;
+
+  constructor(logger?: ILoggerPort) {
+    this.logger = logger;
+  }
   async splitStoryToSegments(text: string, knownCharacterNames: string[]): Promise<SegmentDraft[]> {
-    console.log('[MockTextSplitterAdapter] Splitting text:', text.substring(0, 50) + '...');
+    this.logger?.info('[MockTextSplitterAdapter] Splitting text', { textPrefix: text.substring(0, 50) });
 
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 2000));

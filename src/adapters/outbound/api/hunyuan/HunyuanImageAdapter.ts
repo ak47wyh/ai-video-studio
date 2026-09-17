@@ -1,4 +1,5 @@
 import type { IImageGeneratorPort, ImageGenerationContext, ImageGenerationResult } from '../../../../domain/ports/OutboundPorts';
+import type { ILoggerPort } from '../../../../domain/ports/CrossCuttingPorts';
 import type { ApiConfig } from '../../config/ApiConfigStore';
 import { HunyuanHttpClient } from './HunyuanHttpClient';
 import { withRetry } from './HunyuanErrorUtils';
@@ -20,10 +21,12 @@ import { withRetry } from './HunyuanErrorUtils';
  * 同步备选 Action：TextToImageLite（同步返回，适合短文案快速预览）。
  */
 export class HunyuanImageAdapter implements IImageGeneratorPort {
+  private logger?: ILoggerPort;
   private http: HunyuanHttpClient;
   private config: ApiConfig;
 
-  constructor(config: ApiConfig) {
+  constructor(config: ApiConfig, logger?: ILoggerPort) {
+    this.logger = logger;
     this.config = config;
     this.http = new HunyuanHttpClient(config);
   }
@@ -31,7 +34,7 @@ export class HunyuanImageAdapter implements IImageGeneratorPort {
   async generateImage(context: ImageGenerationContext): Promise<ImageGenerationResult> {
     // ── Mock 模式 ──
     if (!this.config.hunyuanSecretId || !this.config.hunyuanSecretKey) {
-      console.warn('[HunyuanImageAdapter] No SecretId/SecretKey — returning placeholder image.');
+      this.logger?.warn('[HunyuanImageAdapter] No SecretId/SecretKey — returning placeholder image.');
       const mockBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==';
       return { imageDataUri: `data:image/png;base64,${mockBase64}` };
     }

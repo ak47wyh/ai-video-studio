@@ -25,6 +25,10 @@ export class ApiConfigStoreAdapter implements IApiConfigStore {
     this.lastActivePlatform = this.load().activePlatform;
   }
 
+  async init(): Promise<void> {
+    await LegacyStore.init();
+  }
+
   load(): ApiConfig {
     return LegacyStore.load();
   }

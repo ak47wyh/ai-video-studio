@@ -62,19 +62,24 @@ describe('MemoryEventBusAdapter', () => {
     expect(handler).toHaveBeenCalledTimes(2);
   });
 
-  it('isolates handler errors from other handlers', () => {
+  it('isolates handler errors from other handlers (via ILoggerPort)', () => {
     const bus = new MemoryEventBusAdapter();
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const errorSpy = vi.fn();
+    bus.setLogger({
+      error: errorSpy,
+      info: vi.fn(),
+      warn: vi.fn(),
+      debug: vi.fn(),
+      child: vi.fn(),
+    } as Parameters<MemoryEventBusAdapter['setLogger']>[0]);
     const goodHandler = vi.fn();
 
     bus.on('platform.changed', () => { throw new Error('boom'); });
     bus.on('platform.changed', goodHandler);
 
     bus.emit('platform.changed', { type: 'platform.changed' as const, from: 'a', to: 'b' });
-    expect(consoleSpy).toHaveBeenCalled();
+    expect(errorSpy).toHaveBeenCalled();
     expect(goodHandler).toHaveBeenCalledTimes(1);
-
-    consoleSpy.mockRestore();
   });
 
   it('handles multiple subscribers on the same event', () => {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Mic, Volume2, Upload, RefreshCw, Save, BookmarkPlus, Palette, FileText, Trash2, Play, Search, ChevronDown, ChevronUp, ArrowRight, Send, Pencil, Check, X, Repeat } from 'lucide-react';
-import { voiceService, assetLibraryService } from '../../dependencies';
+import { voiceService, assetLibraryService, apiConfigStoreAdapter } from '../../dependencies';
 import type { T2ASyncModel, VoiceListResult, VoiceInfo } from '../../domain/ports/OutboundPorts';
 import { VOICES_BY_LANGUAGE, LANGUAGE_LABELS } from '../../domain/data/systemVoices';
 import { useToast } from '../contexts/ToastContext';
@@ -17,7 +17,6 @@ import { usePlatformCapabilities } from '../hooks/usePlatformCapabilities';
 import { useVoiceCapabilities } from '../hooks/useVoiceCapabilities';
 import { useAsyncTaskTracker, type AsyncTaskBase } from '../hooks/useAsyncTaskTracker';
 import { usePlatform } from '../contexts/PlatformContext';
-import { ApiConfigStore } from '../../adapters/outbound/config/ApiConfigStore';
 import { isPlatformReady } from '../utils/platformReady';
 import { TextAreaWithCounter } from '../components/TextAreaWithCounter';
 import { InputWithCounter } from '../components/InputWithCounter';
@@ -48,7 +47,7 @@ export const VoiceLab: React.FC = () => {
   const { hasCapability } = usePlatformCapabilities();
   const { capabilities: voiceCaps, volcVoiceConfigured } = useVoiceCapabilities();
   const activePlatform = usePlatform().activePlatform;
-  const platformReady = isPlatformReady(ApiConfigStore.load(), activePlatform);
+  const platformReady = isPlatformReady(apiConfigStoreAdapter.load(), activePlatform);
 
   const [activeTab, setActiveTab] = useState<VoiceLabTab>('tts');
 

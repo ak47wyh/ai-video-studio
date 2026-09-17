@@ -1,4 +1,5 @@
 import type { IImageGeneratorPort, ImageGenerationContext, ImageGenerationResult } from '../../../../domain/ports/OutboundPorts';
+import type { ILoggerPort } from '../../../../domain/ports/CrossCuttingPorts';
 import type { ApiConfig } from '../../config/ApiConfigStore';
 import { ZhipuHttpClient } from './ZhipuHttpClient';
 import { withRetry } from './ZhipuErrorUtils';
@@ -11,10 +12,12 @@ import { withRetry } from './ZhipuErrorUtils';
  * Response: 默认返回 url 数组
  */
 export class ZhipuImageAdapter implements IImageGeneratorPort {
+  private logger?: ILoggerPort;
   private http: ZhipuHttpClient;
   private config: ApiConfig;
 
-  constructor(config: ApiConfig) {
+  constructor(config: ApiConfig, logger?: ILoggerPort) {
+    this.logger = logger;
     this.config = config;
     this.http = new ZhipuHttpClient(config);
   }
@@ -22,14 +25,13 @@ export class ZhipuImageAdapter implements IImageGeneratorPort {
   async generateImage(context: ImageGenerationContext): Promise<ImageGenerationResult> {
     // ── Mock 模式 ──
     if (!this.config.zhipuApiKey) {
-      console.warn('[ZhipuImageAdapter] No API key — returning placeholder image.');
+      this.logger?.warn('[ZhipuImageAdapter] No API key — returning placeholder image.');
       const mockBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==';
       return { imageDataUri: `data:image/png;base64,${mockBase64}` };
     }
 
     const model = context.model || 'cogview-3-plus';
-    console.log('[ZhipuImageAdapter] generateImage 入参', {
-      prompt: context.prompt,
+    this.logger?.info('[ZhipuImageAdapter] generateImage 入参', {
       promptLength: context.prompt.length,
       model,
     });

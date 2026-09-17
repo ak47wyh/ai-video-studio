@@ -1,7 +1,8 @@
 import type { IImageGeneratorPort, ImageGenerationContext, ImageGenerationResult } from '../../../domain/ports/OutboundPorts';
 import type { ImageStyleKey } from '../../../domain/data/imageStylePresets';
 import { findImageModel, getDefaultImageModel } from '../../../domain/services/platformCapabilities';
-import { ApiConfigStore } from '../config/ApiConfigStore';
+import type { ILoggerPort } from '../../../domain/ports/CrossCuttingPorts';
+import { apiConfigStoreAdapter } from '../config/ApiConfigStoreAdapter';
 import { getMiniMaxErrorMessage } from './MiniMaxErrorUtils';
 import axios from 'axios';
 
@@ -24,13 +25,19 @@ import axios from 'axios';
  *   - 风格透传接入统一抽象风格映射(MINIMAX_STYLE_MAP),不支持的画风降级为空
  */
 export class MiniMaxImageAdapter implements IImageGeneratorPort {
+  private logger?: ILoggerPort;
+
+  constructor(logger?: ILoggerPort) {
+    this.logger = logger;
+  }
+
 
   async generateImage(context: ImageGenerationContext): Promise<ImageGenerationResult> {
-    const config = ApiConfigStore.load();
+    const config = apiConfigStoreAdapter.load();
 
     // ── Mock mode ─────────────────────────────────────────────────────────
     if (!config.minimaxApiKey) {
-      console.warn('[MiniMaxImageAdapter] No API key — returning placeholder image.');
+      this.logger?.warn('[MiniMaxImageAdapter] No API key — returning placeholder image.');
       const mockBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==';
       return { imageDataUri: `data:image/png;base64,${mockBase64}` };
     }
@@ -58,7 +65,7 @@ export class MiniMaxImageAdapter implements IImageGeneratorPort {
     // 因此仅在未设置 aspect_ratio 时才透传 width/height,避免冗余字段冲突
     if (context.aspectRatio) {
       if (!descriptor?.supportedAspectRatios.includes(context.aspectRatio)) {
-        console.warn(`[MiniMaxImageAdapter] aspect_ratio "${context.aspectRatio}" not supported by ${model}, falling back to 16:9`);
+        this.logger?.warn('[MiniMaxImageAdapter] aspect_ratio not supported, falling back to 16:9', { aspectRatio: context.aspectRatio, model });
         payload.aspect_ratio = '16:9';
       } else {
         payload.aspect_ratio = context.aspectRatio;
@@ -107,8 +114,8 @@ export class MiniMaxImageAdapter implements IImageGeneratorPort {
       }
     }
 
-    console.log(`[MiniMaxImageAdapter] Generating image, model: ${model}, format: ${responseFormat}`);
-    console.log(`[MiniMaxImageAdapter] Payload:`, JSON.stringify(payload, null, 2));
+    this.logger?.info('[MiniMaxImageAdapter] Generating image', { model, responseFormat });
+    this.logger?.info('[MiniMaxImageAdapter] Payload', { payloadSize: JSON.stringify(payload).length, promptLength: typeof payload.prompt === 'string' ? payload.prompt.length : undefined });
 
     // ── Real API call ─────────────────────────────────────────────────────
     const baseUrl = config.minimaxBaseUrl.replace(/\/+$/, '');
@@ -131,8 +138,7 @@ export class MiniMaxImageAdapter implements IImageGeneratorPort {
     const statusMsg = data?.base_resp?.status_msg;
     const error = getMiniMaxErrorMessage(statusCode, statusMsg, 'MiniMax Image Generation error');
     if (error) {
-      console.error(`[MiniMaxImageAdapter] API error: status_code=${statusCode}, status_msg=${statusMsg}`);
-      console.error(`[MiniMaxImageAdapter] Request payload was:`, JSON.stringify(payload, null, 2));
+      this.logger?.error('[MiniMaxImageAdapter] API error', error, { statusCode, statusMsg });
       throw new Error(error);
     }
 
@@ -154,7 +160,7 @@ export class MiniMaxImageAdapter implements IImageGeneratorPort {
     // base64 format
     const images: string[] = data?.data?.image_base64;
     if (!images || images.length === 0) {
-      console.error('[MiniMaxImageAdapter] Unexpected response:', JSON.stringify(data));
+      this.logger?.error('[MiniMaxImageAdapter] Unexpected response', { bodySize: JSON.stringify(data).length });
       throw new Error('MiniMax Image API did not return any images.');
     }
 

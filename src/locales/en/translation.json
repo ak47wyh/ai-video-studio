@@ -735,7 +735,16 @@
     "noSubs": "No subtitles",
     "untitledStory": "Untitled story",
     "openEditor": "Edit in Video Editor",
-    "videoUpdated": "Video updated"
+    "videoUpdated": "Video updated",
+    "preset": {
+      "label": "Export preset",
+      "generic": "Generic",
+      "douyin": "Douyin",
+      "bilibili": "Bilibili"
+    },
+    "copyInfo": "Copy cut info",
+    "copied": "Cut info copied",
+    "copyFailed": "Copy failed"
   },
   "agent": {
     "title": "AI Assistant",

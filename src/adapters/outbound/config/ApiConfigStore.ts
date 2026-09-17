@@ -21,6 +21,7 @@ import {
 
 export type { PlatformId, ThemeId, VolcArkProtocol, ApiConfig } from '../../../domain/entities/platform';
 import type { PlatformId, ThemeId, VolcArkProtocol, ApiConfig } from '../../../domain/entities/platform';
+import type { ILoggerPort } from '../../../domain/ports/CrossCuttingPorts';
 
 // ===== ApiConfig 接口 =====
 // （类型已迁移到 domain 层，此处仅为向后兼容保留 re-export；
@@ -122,6 +123,11 @@ const PROXY_PATH_MIGRATIONS: Record<string, Partial<ApiConfig>> = {
 };
 
 export const ApiConfigStore = {
+  logger: undefined as ILoggerPort | undefined,
+
+  setLogger(logger?: ILoggerPort): void {
+    ApiConfigStore.logger = logger;
+  },
   /** 内存缓存（init 后填充，load 同步返回） */
   _cache: null as ApiConfig | null,
 
@@ -149,7 +155,7 @@ export const ApiConfigStore = {
       try {
         fn(platform);
       } catch (err) {
-        console.error('[ApiConfigStore] 平台变更监听器执行异常:', err);
+        ApiConfigStore.logger?.error('[ApiConfigStore] 平台变更监听器执行异常', err);
       }
     });
   },
@@ -308,7 +314,7 @@ export const ApiConfigStore = {
       vidu: !!config.viduApiKey.trim(),
     };
     // 使用 console 输出脱敏摘要（ApiConfigStore 是底层适配器，不注入 logger 以避免循环依赖）
-    console.log('[ApiConfigStore] 配置已保存:', summary);
+    ApiConfigStore.logger?.info('[ApiConfigStore] 配置已保存', summary);
   },
 
   /** 自动保存（防抖调用） */

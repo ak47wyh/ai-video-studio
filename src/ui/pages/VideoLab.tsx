@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { Film, Image, Layers, User, FileText, RefreshCw, ChevronDown, ChevronUp, AlertCircle, SplitSquareHorizontal } from 'lucide-react';
-import { videoLabService } from '../../dependencies';
+import { videoLabService, apiConfigStoreAdapter } from '../../dependencies';
 import type { VideoModel, VideoResolution, VideoGenerationMode, VideoAgentContext } from '../../domain/ports/OutboundPorts';
 import { useToast } from '../contexts/ToastContext';
 import { getErrorMessage } from '../utils/errorUtils';
@@ -15,7 +15,6 @@ import { AsyncState } from '../components/AsyncState';
 import { UnsupportedCapabilityNotice } from '../components/UnsupportedCapabilityNotice';
 import { usePlatformCapabilities } from '../hooks/usePlatformCapabilities';
 import { usePlatform } from '../contexts/PlatformContext';
-import { ApiConfigStore } from '../../adapters/outbound/config/ApiConfigStore';
 import { isPlatformReady } from '../utils/platformReady';
 import { TextAreaWithCounter } from '../components/TextAreaWithCounter';
 import { InputWithCounter } from '../components/InputWithCounter';
@@ -233,7 +232,7 @@ export const VideoLab: React.FC = () => {
   const { showToast } = useToast();
   const { hasCapability: hasCap } = usePlatformCapabilities();
   const { activePlatform } = usePlatform();
-  const platformReady = isPlatformReady(ApiConfigStore.load(), activePlatform);
+  const platformReady = isPlatformReady(apiConfigStoreAdapter.load(), activePlatform);
 
   // 动态模型列表：基于当前激活平台
   const currentT2vModels = useMemo(() => {
@@ -250,14 +249,6 @@ export const VideoLab: React.FC = () => {
 
   const currentS2vModels = useMemo(() => {
     return (PLATFORM_MODE_MODELS[activePlatform]?.s2v ?? []) as VideoModel[];
-  }, [activePlatform]);
-
-  // 平台切换时重置模型选择为该平台的默认模型
-  useEffect(() => {
-    const defaultT2v = PLATFORM_MODE_MODELS[activePlatform]?.t2v?.[0];
-    const defaultI2v = PLATFORM_MODE_MODELS[activePlatform]?.i2v?.[0];
-    if (defaultT2v) setT2vModel(defaultT2v as VideoModel);
-    if (defaultI2v) setI2vModel(defaultI2v as VideoModel);
   }, [activePlatform]);
 
   const [activeTab, setActiveTab] = useState<VideoLabTab>('t2v');
@@ -293,6 +284,18 @@ export const VideoLab: React.FC = () => {
   const [i2vDuration, setI2vDuration] = useState<6 | 10>(6);
   const [i2vResolution, setI2vResolution] = useState<VideoResolution>('720P');
   const [i2vPromptOptimizer, setI2vPromptOptimizer] = useState(true);
+
+  // 平台切换时重置模型选择为该平台的默认模型（延迟到下一宏任务，避免 effect 内同步 setState）
+  useEffect(() => {
+    const defaultT2v = PLATFORM_MODE_MODELS[activePlatform]?.t2v?.[0];
+    const defaultI2v = PLATFORM_MODE_MODELS[activePlatform]?.i2v?.[0];
+    if (!defaultT2v && !defaultI2v) return;
+    const id = setTimeout(() => {
+      if (defaultT2v) setT2vModel(defaultT2v as VideoModel);
+      if (defaultI2v) setI2vModel(defaultI2v as VideoModel);
+    }, 0);
+    return () => clearTimeout(id);
+  }, [activePlatform]);
   const [i2vFastPretreatment, setI2vFastPretreatment] = useState(false);
   const [i2vWatermark, setI2vWatermark] = useState(false);
   const [isSubmittingI2V, setIsSubmittingI2V] = useState(false);

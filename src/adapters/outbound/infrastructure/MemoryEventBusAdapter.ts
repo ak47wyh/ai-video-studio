@@ -5,9 +5,14 @@
  * 后续可实现：BroadcastChannelEventBus（跨 Tab）/ WebSocketEventBus（远端）。
  */
 
-import type { IEventBus, DomainEvent, EventListener } from '../../../domain/ports/CrossCuttingPorts';
+import type { IEventBus, DomainEvent, EventListener, ILoggerPort } from '../../../domain/ports/CrossCuttingPorts';
 
 export class MemoryEventBusAdapter implements IEventBus {
+  private logger?: ILoggerPort;
+
+  setLogger(logger?: ILoggerPort): void {
+    this.logger = logger;
+  }
   private listeners = new Map<DomainEvent['type'], Set<(e: DomainEvent) => void>>();
   private anyListeners = new Set<(e: DomainEvent) => void>();
 
@@ -18,12 +23,12 @@ export class MemoryEventBusAdapter implements IEventBus {
     const event = payload as DomainEvent;
     this.listeners.get(type)?.forEach(h => {
       try { h(event); } catch (e) {
-        console.error('[EventBus] handler error', e);
+        this.logger?.error('[EventBus] handler error', e);
       }
     });
     this.anyListeners.forEach(h => {
       try { h(event); } catch (e) {
-        console.error('[EventBus] any handler error', e);
+        this.logger?.error('[EventBus] any handler error', e);
       }
     });
   }

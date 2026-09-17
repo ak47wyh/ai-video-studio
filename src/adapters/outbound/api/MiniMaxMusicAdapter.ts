@@ -6,7 +6,8 @@ import type {
   LyricsGenerationResult,
   CoverPreprocessResult
 } from '../../../domain/ports/OutboundPorts';
-import { ApiConfigStore } from '../config/ApiConfigStore';
+import type { ILoggerPort } from '../../../domain/ports/CrossCuttingPorts';
+import { apiConfigStoreAdapter } from '../config/ApiConfigStoreAdapter';
 import { getMiniMaxErrorMessage } from './MiniMaxErrorUtils';
 import axios from 'axios';
 
@@ -25,9 +26,15 @@ import axios from 'axios';
  *   - Cover preprocess:  POST /v1/music_cover_preprocess
  */
 export class MiniMaxMusicAdapter implements IMusicPort {
+  private logger?: ILoggerPort;
+
+  constructor(logger?: ILoggerPort) {
+    this.logger = logger;
+  }
+
 
   async generateMusic(context: MusicGenerationContext): Promise<MusicGenerationResult> {
-    const config = ApiConfigStore.load();
+    const config = apiConfigStoreAdapter.load();
     if (!config.minimaxApiKey) {
       throw new Error('请先在设置中配置 MiniMax 的 API Key');
     }
@@ -87,7 +94,7 @@ export class MiniMaxMusicAdapter implements IMusicPort {
       }
     }
 
-    console.log(`[MiniMaxMusicAdapter] Generating music, model: ${model}, prompt: ${prompt.substring(0, 50)}`);
+    this.logger?.info('[MiniMaxMusicAdapter] Generating music', { model, promptLength: prompt.length });
 
     const response = await axios.post(`${baseUrl}/music_generation`, payload, {
       headers: {
@@ -128,9 +135,9 @@ export class MiniMaxMusicAdapter implements IMusicPort {
   }
 
   async generateLyrics(context: LyricsGenerationContext): Promise<LyricsGenerationResult> {
-    const config = ApiConfigStore.load();
+    const config = apiConfigStoreAdapter.load();
     if (!config.minimaxApiKey) {
-      console.warn('[MiniMaxMusicAdapter] No API Key configured — returning mock lyrics');
+      this.logger?.warn('[MiniMaxMusicAdapter] No API Key configured — returning mock lyrics');
       return {
         songTitle: 'Mock Song',
         styleTags: 'Pop, Upbeat',
@@ -156,7 +163,7 @@ export class MiniMaxMusicAdapter implements IMusicPort {
       payload.title = context.title;
     }
 
-    console.log('[MiniMaxMusicAdapter] Generating lyrics, mode:', context.mode);
+    this.logger?.info('[MiniMaxMusicAdapter] Generating lyrics', { mode: context.mode });
 
     const response = await axios.post(`${baseUrl}/lyrics_generation`, payload, {
       headers: {
@@ -180,7 +187,7 @@ export class MiniMaxMusicAdapter implements IMusicPort {
   }
 
   async preprocessCover(audioUrl: string): Promise<CoverPreprocessResult> {
-    const config = ApiConfigStore.load();
+    const config = apiConfigStoreAdapter.load();
     if (!config.minimaxApiKey) {
       throw new Error('API Key not configured — cannot preprocess cover');
     }
@@ -192,7 +199,7 @@ export class MiniMaxMusicAdapter implements IMusicPort {
       audio_url: audioUrl,
     };
 
-    console.log('[MiniMaxMusicAdapter] Preprocessing cover audio');
+    this.logger?.info('[MiniMaxMusicAdapter] Preprocessing cover audio');
 
     const response = await axios.post(`${baseUrl}/music_cover_preprocess`, payload, {
       headers: {

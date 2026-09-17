@@ -29,11 +29,13 @@ export function usePlatformTextModels(): UsePlatformTextModelsResult {
     const defaultId = modelRegistry.getDefaultTextModel() as TextModel;
     setTextModels(models);
     setDefaultModel(defaultId);
-  }, [activePlatform]);
+  }, []);
 
   useEffect(() => {
-    refresh();
-  }, [activePlatform, refresh]);
+    // 延迟到下一宏任务，避免 effect 内同步 setState 触发级联渲染
+    const id = setTimeout(refresh, 0);
+    return () => clearTimeout(id);
+  }, [refresh]);
 
   return { textModels, defaultModel, activePlatform };
 }

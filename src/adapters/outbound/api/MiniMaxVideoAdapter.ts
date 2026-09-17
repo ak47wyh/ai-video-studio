@@ -1,5 +1,6 @@
 import type { IVideoGeneratorPort, VideoPromptContext, VideoTaskResult, VideoDownloadResult, VideoAgentContext, VideoAgentTaskResult } from '../../../domain/ports/OutboundPorts';
-import { ApiConfigStore } from '../config/ApiConfigStore';
+import type { ILoggerPort } from '../../../domain/ports/CrossCuttingPorts';
+import { apiConfigStoreAdapter } from '../config/ApiConfigStoreAdapter';
 import { getMiniMaxErrorMessage } from './MiniMaxErrorUtils';
 import axios from 'axios';
 
@@ -24,9 +25,15 @@ import axios from 'axios';
  * Task statuses: Preparing → Queueing → Processing → Success / Fail
  */
 export class MiniMaxVideoAdapter implements IVideoGeneratorPort {
+  private logger?: ILoggerPort;
+
+  constructor(logger?: ILoggerPort) {
+    this.logger = logger;
+  }
+
 
   async submitVideoTask(context: VideoPromptContext): Promise<string> {
-    const config = ApiConfigStore.load();
+    const config = apiConfigStoreAdapter.load();
 
     if (!config.minimaxApiKey) {
       throw new Error('请先在设置中配置 MiniMax 的 API Key');
@@ -94,7 +101,7 @@ export class MiniMaxVideoAdapter implements IVideoGeneratorPort {
       payload.bgm_audio_url = context.bgmAudioUrl;
     }
 
-    console.log(`[MiniMaxVideoAdapter] Submitting ${mode.toUpperCase()} task, model: ${model}`);
+    this.logger?.info('[MiniMaxVideoAdapter] Submitting task', { mode: mode.toUpperCase(), model });
 
     // ── Real API call ───────────────────────────────────────────────────────
     const baseUrl = config.minimaxBaseUrl.replace(/\/+$/, '');
@@ -118,14 +125,14 @@ export class MiniMaxVideoAdapter implements IVideoGeneratorPort {
 
     const taskId: string = data?.task_id;
     if (!taskId) {
-      console.error('[MiniMaxVideoAdapter] Unexpected response:', JSON.stringify(data));
+      this.logger?.error('[MiniMaxVideoAdapter] Unexpected response', { bodySize: JSON.stringify(data).length });
       throw new Error('MiniMax API did not return a task_id. Please check your API Key and Group ID configuration.');
     }
     return taskId;
   }
 
   async queryTaskStatus(externalTaskId: string): Promise<VideoTaskResult> {
-    const config = ApiConfigStore.load();
+    const config = apiConfigStoreAdapter.load();
 
     if (!config.minimaxApiKey) {
       throw new Error('请先在设置中配置 MiniMax 的 API Key');
@@ -185,7 +192,7 @@ export class MiniMaxVideoAdapter implements IVideoGeneratorPort {
   }
 
   async downloadVideo(fileId: string): Promise<VideoDownloadResult> {
-    const config = ApiConfigStore.load();
+    const config = apiConfigStoreAdapter.load();
 
     if (!config.minimaxApiKey) {
       throw new Error('API key is required to download videos');
@@ -224,7 +231,7 @@ export class MiniMaxVideoAdapter implements IVideoGeneratorPort {
   }
 
   async createAgentTask(context: VideoAgentContext): Promise<string> {
-    const config = ApiConfigStore.load();
+    const config = apiConfigStoreAdapter.load();
 
     if (!config.minimaxApiKey) {
       throw new Error('请先在设置中配置 MiniMax 的 API Key');
@@ -260,7 +267,7 @@ export class MiniMaxVideoAdapter implements IVideoGeneratorPort {
   }
 
   async queryAgentTask(taskId: string): Promise<VideoAgentTaskResult> {
-    const config = ApiConfigStore.load();
+    const config = apiConfigStoreAdapter.load();
 
     if (!config.minimaxApiKey) {
       throw new Error('请先在设置中配置 MiniMax 的 API Key');

@@ -1,4 +1,5 @@
 import type { IImageGeneratorPort, ImageGenerationContext, ImageGenerationResult } from '../../../../domain/ports/OutboundPorts';
+import type { ILoggerPort } from '../../../../domain/ports/CrossCuttingPorts';
 import type { ApiConfig } from '../../config/ApiConfigStore';
 import { WanHttpClient } from './WanHttpClient';
 import { withRetry } from './WanErrorUtils';
@@ -12,10 +13,12 @@ import { withRetry } from './WanErrorUtils';
  * Models: wanx2.1-t2i-turbo / wanx-v1
  */
 export class WanImageAdapter implements IImageGeneratorPort {
+  private logger?: ILoggerPort;
   private http: WanHttpClient;
   private config: ApiConfig;
 
-  constructor(config: ApiConfig) {
+  constructor(config: ApiConfig, logger?: ILoggerPort) {
+    this.logger = logger;
     this.config = config;
     this.http = new WanHttpClient(config);
   }
@@ -23,7 +26,7 @@ export class WanImageAdapter implements IImageGeneratorPort {
   async generateImage(context: ImageGenerationContext): Promise<ImageGenerationResult> {
     // ── Mock 模式 ──
     if (!this.config.wanApiKey) {
-      console.warn('[WanImageAdapter] No API key — returning placeholder image.');
+      this.logger?.warn('[WanImageAdapter] No API key — returning placeholder image.');
       const mockBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==';
       return { imageDataUri: `data:image/png;base64,${mockBase64}` };
     }
@@ -34,8 +37,7 @@ export class WanImageAdapter implements IImageGeneratorPort {
       n: context.n ?? 1,
     };
 
-    console.log('[WanImageAdapter] generateImage 入参', {
-      prompt: context.prompt,
+    this.logger?.info('[WanImageAdapter] generateImage 入参', {
       promptLength: context.prompt.length,
       model,
     });

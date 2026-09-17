@@ -4,7 +4,7 @@ import {
   Music as MusicIcon, Sparkles, RefreshCw, FileText, Mic2,
   ChevronUp, ChevronDown, ArrowRight, BookmarkPlus, Wand2, CheckCircle2, Send,
 } from 'lucide-react';
-import { musicLabService, assetLibraryService } from '../../dependencies';
+import { musicLabService, assetLibraryService, apiConfigStoreAdapter } from '../../dependencies';
 import type {
   MusicModel, MusicGenerationContext, LyricsGenerationContext,
   LyricsGenerationResult, CoverPreprocessResult,
@@ -19,7 +19,6 @@ import { AsyncState } from '../components/AsyncState';
 import { UnsupportedCapabilityNotice } from '../components/UnsupportedCapabilityNotice';
 import { usePlatformCapabilities } from '../hooks/usePlatformCapabilities';
 import { usePlatform } from '../contexts/PlatformContext';
-import { ApiConfigStore } from '../../adapters/outbound/config/ApiConfigStore';
 import { isPlatformReady } from '../utils/platformReady';
 import { AudioPreviewPlayer } from '../components/AudioPreviewPlayer';
 import { AudioUploadField } from '../components/AudioUploadField';
@@ -54,7 +53,7 @@ export const MusicLab: React.FC = () => {
   const { currentSpaceId } = useSpace();
   const { hasCapability } = usePlatformCapabilities();
   const { activePlatform } = usePlatform();
-  const platformReady = isPlatformReady(ApiConfigStore.load(), activePlatform);
+  const platformReady = isPlatformReady(apiConfigStoreAdapter.load(), activePlatform);
 
   const [activeTab, setActiveTab] = useState<MusicLabTab>('compose');
 

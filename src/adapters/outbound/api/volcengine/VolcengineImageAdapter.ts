@@ -1,4 +1,5 @@
 import type { IImageGeneratorPort, ImageGenerationContext, ImageGenerationResult, ImageAspectRatio } from '../../../../domain/ports/OutboundPorts';
+import type { ILoggerPort } from '../../../../domain/ports/CrossCuttingPorts';
 import type { ApiConfig } from '../../config/ApiConfigStore';
 import { getDefaultImageModel } from '../../../../domain/services/platformCapabilities';
 import { VolcengineHttpClient } from './VolcengineHttpClient';
@@ -16,10 +17,12 @@ import { withRetry } from './VolcengineErrorUtils';
  * 模型 ID 读取顺序：context.model -> config.volcArkImageModel -> 注册表默认值。
  */
 export class VolcengineImageAdapter implements IImageGeneratorPort {
+  private logger?: ILoggerPort;
   private http: VolcengineHttpClient;
   private readonly config: ApiConfig;
 
-  constructor(config: ApiConfig) {
+  constructor(config: ApiConfig, logger?: ILoggerPort) {
+    this.logger = logger;
     this.http = VolcengineHttpClient.createAgentPlan(config);
     this.config = config;
   }
@@ -27,9 +30,8 @@ export class VolcengineImageAdapter implements IImageGeneratorPort {
   async generateImage(context: ImageGenerationContext): Promise<ImageGenerationResult> {
     const payload = this.buildPayload(context, this.config);
 
-    console.log('[VolcengineImageAdapter] generateImage 入参', {
+    this.logger?.info('[VolcengineImageAdapter] generateImage 入参', {
       model: payload.model,
-      prompt: context.prompt,
       promptLength: context.prompt.length,
       size: payload.size,
       n: context.n,
@@ -43,7 +45,7 @@ export class VolcengineImageAdapter implements IImageGeneratorPort {
       }>('/images/generations', payload),
     );
 
-    console.log('[VolcengineImageAdapter] generateImage 出参', {
+    this.logger?.info('[VolcengineImageAdapter] generateImage 出参', {
       successCount: result.data.filter(item => item.url || item.b64_json).length,
       totalCount: result.data.length,
     });

@@ -76,10 +76,13 @@ export const TextLab: React.FC = () => {
   const [refineStyle, setRefineStyle] = useState<RefineStyle>('standard');
   const [refineModel, setRefineModel] = useState<TextModel>('MiniMax-M3');
 
-  // 平台切换时同步模型选择
+  // 平台切换时同步模型选择（延迟到下一宏任务，避免 effect 内同步 setState）
   useEffect(() => {
-    setChatModel(defaultModel);
-    setRefineModel(defaultModel);
+    const id = setTimeout(() => {
+      setChatModel(defaultModel);
+      setRefineModel(defaultModel);
+    }, 0);
+    return () => clearTimeout(id);
   }, [defaultModel]);
   const [isRefining, setIsRefining] = useState(false);
   const [refineResult, setRefineResult] = useState<{ content: string; thinking?: string; usage?: TextGenerationResult['usage'] } | null>(null);

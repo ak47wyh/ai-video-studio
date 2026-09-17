@@ -12,7 +12,8 @@
  * 关键约束：这是一个**模块级单例**，在 ToastProvider 挂载前调用不报错（事件会被缓存）。
  */
 
-import type { INotificationPort, ToastInput, ToastVariant, ToastBridgeEvent } from '../../../domain/ports/CrossCuttingPorts';
+import type { INotificationPort, ToastInput, ToastVariant, ToastBridgeEvent, ILoggerPort } from '../../../domain/ports/CrossCuttingPorts';
+import { BaseEventBus } from '../infrastructure/BaseEventBus';
 
 /** 兼容旧引用：保留 ToastType 别名 */
 export type ToastType = ToastVariant;
@@ -27,20 +28,14 @@ type ToastListener = (event: ToastBridgeEvent) => void;
  * Phase 2 后：UI 层应通过 INotificationPort.subscribe 订阅，
  * 不再直接 import 此单例。仅为 adapter 内部解耦与测试需要保留。
  */
-class ToastEventBus {
-  private listeners = new Set<ToastListener>();
-
-  subscribe(listener: ToastListener): () => void {
-    this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
+class ToastEventBus extends BaseEventBus<ToastListener> {
+  constructor(logger?: ILoggerPort) {
+    super({ service: 'ReactNotificationAdapter' });
+    this.setLogger(logger);
   }
 
   emit(event: ToastBridgeEvent): void {
-    this.listeners.forEach(l => {
-      try { l(event); } catch (e) {
-        console.error('[ToastEventBus] listener error', e);
-      }
-    });
+    this.emitAll(event);
   }
 }
 

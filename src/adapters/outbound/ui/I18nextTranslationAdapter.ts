@@ -9,34 +9,19 @@
 import i18n from '../../../i18n';
 import type { ITranslationPort, LocaleCode } from '../../../domain/ports/UiPorts';
 import type { ILoggerPort } from '../../../domain/ports/CrossCuttingPorts';
+import { BaseEventBus } from '../infrastructure/BaseEventBus';
 import { ConsoleLoggerAdapter } from '../infrastructure/ConsoleLoggerAdapter';
 
 type LocaleListener = (locale: LocaleCode) => void;
 
-class LocaleEventBus {
-  private logger: ILoggerPort;
-
-  constructor(logger: ILoggerPort) {
-    this.logger = logger;
-  }
-
-  private listeners = new Set<LocaleListener>();
-
-  subscribe(listener: LocaleListener): () => void {
-    this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
+class LocaleEventBus extends BaseEventBus<LocaleListener> {
+  constructor(logger?: ILoggerPort) {
+    super({ service: 'I18nextTranslationAdapter' });
+    this.setLogger(logger);
   }
 
   emit(locale: LocaleCode): void {
-    this.listeners.forEach(l => {
-      try {
-        l(locale);
-      } catch (err) {
-        this.logger.error('[LocaleEventBus] listener error', err, {
-          service: 'I18nextTranslationAdapter',
-        });
-      }
-    });
+    this.emitAll(locale);
   }
 }
 

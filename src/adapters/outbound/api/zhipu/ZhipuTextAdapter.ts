@@ -6,6 +6,7 @@ import type {
   TextContentBlock,
   TextGenerationMessage,
 } from '../../../../domain/ports/OutboundPorts';
+import type { ILoggerPort } from '../../../../domain/ports/CrossCuttingPorts';
 import type { ApiConfig } from '../../config/ApiConfigStore';
 import { ZhipuHttpClient } from './ZhipuHttpClient';
 import { ZhipuApiError } from './ZhipuErrorUtils';
@@ -19,10 +20,12 @@ import { ZhipuApiError } from './ZhipuErrorUtils';
  *   Models: glm-4-plus / glm-4-air / glm-4-flash / glm-4-long
  */
 export class ZhipuTextAdapter implements ITextGenerationPort {
+  private logger?: ILoggerPort;
   private http: ZhipuHttpClient;
   private config: ApiConfig;
 
-  constructor(config: ApiConfig) {
+  constructor(config: ApiConfig, logger?: ILoggerPort) {
+    this.logger = logger;
     this.config = config;
     this.http = new ZhipuHttpClient(config);
   }
@@ -30,7 +33,7 @@ export class ZhipuTextAdapter implements ITextGenerationPort {
   async chatCompletion(context: TextGenerationContext): Promise<TextGenerationResult> {
     // ── Mock 模式 ──
     if (!this.config.zhipuApiKey) {
-      console.warn('[ZhipuTextAdapter] No API Key — returning mock result');
+      this.logger?.warn('[ZhipuTextAdapter] No API Key — returning mock result');
       return {
         content: '[Mock] 请配置智谱 API Key 以使用文本生成功能。',
         usage: { promptTokens: 0, completionTokens: 0 },

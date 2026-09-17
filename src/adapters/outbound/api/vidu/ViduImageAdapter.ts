@@ -1,4 +1,5 @@
 import type { IImageGeneratorPort, ImageGenerationContext, ImageGenerationResult } from '../../../../domain/ports/OutboundPorts';
+import type { ILoggerPort } from '../../../../domain/ports/CrossCuttingPorts';
 import type { ApiConfig } from '../../config/ApiConfigStore';
 import { ViduHttpClient } from './ViduHttpClient';
 import { withRetry } from './ViduErrorUtils';
@@ -25,10 +26,12 @@ import { withRetry } from './ViduErrorUtils';
  *   }
  */
 export class ViduImageAdapter implements IImageGeneratorPort {
+  private logger?: ILoggerPort;
   private http: ViduHttpClient;
   private config: ApiConfig;
 
-  constructor(config: ApiConfig) {
+  constructor(config: ApiConfig, logger?: ILoggerPort) {
+    this.logger = logger;
     this.config = config;
     this.http = new ViduHttpClient(config);
   }
@@ -36,14 +39,13 @@ export class ViduImageAdapter implements IImageGeneratorPort {
   async generateImage(context: ImageGenerationContext): Promise<ImageGenerationResult> {
     // ── Mock 模式 ──
     if (!this.config.viduApiKey) {
-      console.warn('[ViduImageAdapter] No API Key — returning placeholder image.');
+      this.logger?.warn('[ViduImageAdapter] No API Key — returning placeholder image.');
       const mockBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==';
       return { imageDataUri: `data:image/png;base64,${mockBase64}` };
     }
 
     const model = (context.model as string) || 'viduq1';
-    console.log('[ViduImageAdapter] generateImage 入参', {
-      prompt: context.prompt,
+    this.logger?.info('[ViduImageAdapter] generateImage 入参', {
       promptLength: context.prompt.length,
       model,
     });

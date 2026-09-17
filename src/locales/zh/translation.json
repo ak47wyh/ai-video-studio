@@ -736,7 +736,16 @@
     "noSubs": "无字幕",
     "untitledStory": "未命名故事",
     "videoUpdated": "视频已更新",
-    "openEditor": "在剪辑工作台编辑"
+    "openEditor": "在剪辑工作台编辑",
+    "preset": {
+      "label": "导出预设",
+      "generic": "通用",
+      "douyin": "抖音",
+      "bilibili": "B站"
+    },
+    "copyInfo": "复制成片信息",
+    "copied": "成片信息已复制",
+    "copyFailed": "复制失败"
   },
   "agent": {
     "title": "AI 助手",

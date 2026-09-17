@@ -1,12 +1,18 @@
 import type { IStoryBreakdownPort, StoryBreakdownResult } from '../../../domain/ports/OutboundPorts';
+import type { ILoggerPort } from '../../../domain/ports/CrossCuttingPorts';
 
 /**
  * Mock adapter that simulates AI-powered story breakdown.
  * In production, this would call an LLM API to extract characters, backgrounds, and segments.
  */
 export class MockStoryBreakdownAdapter implements IStoryBreakdownPort {
+  private logger?: ILoggerPort;
+
+  constructor(logger?: ILoggerPort) {
+    this.logger = logger;
+  }
   async breakdownStory(text: string): Promise<StoryBreakdownResult> {
-    console.log('[MockStoryBreakdownAdapter] Breaking down story:', text.substring(0, 80) + '...');
+    this.logger?.info('[MockStoryBreakdownAdapter] Breaking down story', { textPrefix: text.substring(0, 80) });
 
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 1000));

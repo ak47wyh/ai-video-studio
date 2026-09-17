@@ -17,12 +17,19 @@ import type {
   VoiceConversionResult,
 } from '../../../domain/ports/OutboundPorts';
 import { CapabilityNotSupportedError } from '../../../domain/ports/OutboundPorts';
-import { ApiConfigStore } from '../config/ApiConfigStore';
+import type { ILoggerPort } from '../../../domain/ports/CrossCuttingPorts';
+import { apiConfigStoreAdapter } from '../config/ApiConfigStoreAdapter';
 import { getMiniMaxErrorMessage } from './MiniMaxErrorUtils';
 import { createTrackedObjectUrl } from '../../../utils/objectUrlRegistry';
 import axios from 'axios';
 
 export class MiniMaxVoiceAdapter implements IVoicePort {
+  private logger?: ILoggerPort;
+
+  constructor(logger?: ILoggerPort) {
+    this.logger = logger;
+  }
+
   readonly voiceCapabilities: import('../../../domain/ports/OutboundPorts').VoiceCapabilities = {
     supportsClone: true,
     supportsDesign: true,
@@ -36,7 +43,7 @@ export class MiniMaxVoiceAdapter implements IVoicePort {
   }
 
   async uploadFile(file: File, purpose: 'voice_clone' | 'prompt_audio' | 't2a_async_input'): Promise<FileUploadResult> {
-    const config = ApiConfigStore.load();
+    const config = apiConfigStoreAdapter.load();
     if (!config.minimaxApiKey) {
       throw new Error('API Key not configured — cannot upload file');
     }
@@ -55,7 +62,7 @@ export class MiniMaxVoiceAdapter implements IVoicePort {
 
     const fileId = response.data?.file?.file_id;
     if (!fileId) {
-      console.error('[MiniMaxVoiceAdapter] Upload response:', JSON.stringify(response.data));
+      this.logger?.error('[MiniMaxVoiceAdapter] Upload response', response.data);
       throw new Error('Failed to upload file — no file_id returned');
     }
 
@@ -65,7 +72,7 @@ export class MiniMaxVoiceAdapter implements IVoicePort {
   // --- Voice Clone (enhanced) ---
 
   async cloneVoice(context: VoiceCloneContext): Promise<VoiceCloneResult> {
-    const config = ApiConfigStore.load();
+    const config = apiConfigStoreAdapter.load();
     if (!config.minimaxApiKey) {
       throw new Error('API Key not configured — cannot clone voice');
     }
@@ -79,9 +86,8 @@ export class MiniMaxVoiceAdapter implements IVoicePort {
 
     // 试听参数
     if (context.text) {
-      console.log('[MiniMaxVoiceAdapter] clone voice text 入参', {
-        text: context.text,
-        length: context.text.length,
+      this.logger?.info('[MiniMaxVoiceAdapter] clone voice text 入参', {
+        textLength: context.text.length,
       });
       payload.text = context.text;
       payload.model = context.model || 'speech-2.8-hd';
@@ -90,9 +96,8 @@ export class MiniMaxVoiceAdapter implements IVoicePort {
     // 示例音频
     if (context.promptAudioFileId) {
       if (context.promptText) {
-        console.log('[MiniMaxVoiceAdapter] clone prompt_text 入参', {
-          promptText: context.promptText,
-          length: context.promptText.length,
+        this.logger?.info('[MiniMaxVoiceAdapter] clone prompt_text 入参', {
+          promptTextLength: context.promptText.length,
         });
       }
       payload.clone_prompt = {
@@ -107,7 +112,7 @@ export class MiniMaxVoiceAdapter implements IVoicePort {
     if (context.languageBoost) payload.language_boost = context.languageBoost;
     if (context.aigcWatermark) payload.aigc_watermark = true;
 
-    console.log('[MiniMaxVoiceAdapter] Cloning voice:', context.voiceId);
+    this.logger?.info('[MiniMaxVoiceAdapter] Cloning voice', { voiceId: context.voiceId });
 
     const response = await axios.post(`${baseUrl}/voice_clone`, payload, {
       headers: {
@@ -140,7 +145,7 @@ export class MiniMaxVoiceAdapter implements IVoicePort {
   // --- Async T2A (enhanced) ---
 
   async createT2ATask(context: T2AAsyncContext): Promise<T2AAsyncResult> {
-    const config = ApiConfigStore.load();
+    const config = apiConfigStoreAdapter.load();
     if (!config.minimaxApiKey) {
       throw new Error('API Key not configured — cannot create T2A task');
     }
@@ -176,7 +181,7 @@ export class MiniMaxVoiceAdapter implements IVoicePort {
     if (context.voiceModify) payload.voice_modify = context.voiceModify;
     if (context.aigcWatermark) payload.aigc_watermark = true;
 
-    console.log('[MiniMaxVoiceAdapter] Creating T2A task, voice:', context.voiceId, 'text length:', context.text?.length || 0);
+    this.logger?.info('[MiniMaxVoiceAdapter] Creating T2A task', { voiceId: context.voiceId, textLength: context.text?.length || 0 });
 
     const response = await axios.post(`${baseUrl}/t2a_async_v2`, payload, {
       headers: {
@@ -194,7 +199,7 @@ export class MiniMaxVoiceAdapter implements IVoicePort {
 
     const taskId = data?.data?.task_id || data?.task_id;
     if (!taskId) {
-      console.error('[MiniMaxVoiceAdapter] T2A response:', JSON.stringify(data));
+      this.logger?.error('[MiniMaxVoiceAdapter] T2A response', data);
       throw new Error('T2A task creation failed — no task_id returned');
     }
 
@@ -207,7 +212,7 @@ export class MiniMaxVoiceAdapter implements IVoicePort {
   }
 
   async queryT2ATask(taskId: string): Promise<T2AAsyncStatus> {
-    const config = ApiConfigStore.load();
+    const config = apiConfigStoreAdapter.load();
     if (!config.minimaxApiKey) {
       throw new Error('API Key not configured');
     }
@@ -269,7 +274,7 @@ export class MiniMaxVoiceAdapter implements IVoicePort {
   }
 
   getFileUrl(fileId: string): string {
-    const config = ApiConfigStore.load();
+    const config = apiConfigStoreAdapter.load();
     const baseUrl = config.minimaxBaseUrl.replace(/\/+$/, '');
     return `${baseUrl}/files/retrieve_content?file_id=${fileId}`;
   }
@@ -280,12 +285,12 @@ export class MiniMaxVoiceAdapter implements IVoicePort {
    * 浏览器 <audio> 标签无法携带自定义 header，因此需要先 fetch 再创建 Blob URL。
    */
   async fetchAudioAsBlobUrl(audioUrl: string): Promise<string> {
-    const config = ApiConfigStore.load();
+    const config = apiConfigStoreAdapter.load();
     if (!config.minimaxApiKey) {
       throw new Error('API Key not configured — cannot fetch audio');
     }
 
-    console.log('[MiniMaxVoiceAdapter] Fetching audio as blob:', audioUrl.substring(0, 80));
+    this.logger?.info('[MiniMaxVoiceAdapter] Fetching audio as blob', { urlPrefix: audioUrl.substring(0, 60) });
 
     const response = await axios.get(audioUrl, {
       headers: {
@@ -333,7 +338,7 @@ export class MiniMaxVoiceAdapter implements IVoicePort {
   // 参考文档: https://platform.minimaxi.com/docs/api-reference/speech-t2a-http
 
   async synthesizeSpeechSync(context: T2ASyncContext): Promise<T2ASyncResult> {
-    const config = ApiConfigStore.load();
+    const config = apiConfigStoreAdapter.load();
     if (!config.minimaxApiKey) {
       throw new Error('API Key not configured — cannot synthesize speech');
     }
@@ -375,7 +380,7 @@ export class MiniMaxVoiceAdapter implements IVoicePort {
       if (context.subtitleType) payload.subtitle_type = context.subtitleType;
     }
 
-    console.log('[MiniMaxVoiceAdapter] Sync T2A, model:', model, 'voice:', context.voiceId, 'text length:', context.text.length);
+    this.logger?.info('[MiniMaxVoiceAdapter] Sync T2A', { model, voiceId: context.voiceId, textLength: context.text.length });
 
     const response = await axios.post(`${baseUrl}/t2a_v2`, payload, {
       headers: {
@@ -426,7 +431,7 @@ export class MiniMaxVoiceAdapter implements IVoicePort {
   // --- WebSocket Streaming T2A (enhanced: proper task_start/task_continue/task_finish protocol) ---
 
   synthesizeSpeechStream(context: T2ASyncContext, callbacks: T2AStreamCallbacks): T2AStreamHandle {
-    const config = ApiConfigStore.load();
+    const config = apiConfigStoreAdapter.load();
     if (!config.minimaxApiKey) {
       const error = new Error('API Key not configured — cannot stream speech');
       callbacks.onError?.(error);
@@ -638,17 +643,15 @@ export class MiniMaxVoiceAdapter implements IVoicePort {
   // --- Voice Design (enhanced) ---
 
   async designVoice(prompt: string, previewText: string, voiceId?: string, aigcWatermark?: boolean): Promise<VoiceDesignResult> {
-    const config = ApiConfigStore.load();
+    const config = apiConfigStoreAdapter.load();
     if (!config.minimaxApiKey) {
       throw new Error('API Key not configured — cannot design voice');
     }
 
     const baseUrl = config.minimaxBaseUrl.replace(/\/+$/, '');
 
-    console.log('[MiniMaxVoiceAdapter] design voice 入参', {
-      prompt,
+    this.logger?.info('[MiniMaxVoiceAdapter] design voice 入参', {
       promptLength: prompt.length,
-      previewText,
       previewLength: previewText.length,
     });
 
@@ -683,7 +686,7 @@ export class MiniMaxVoiceAdapter implements IVoicePort {
     const trialAudioHex = data?.data?.trial_audio || data?.trial_audio;
 
     if (!resultVoiceId) {
-      console.error('[MiniMaxVoiceAdapter] Voice Design response:', JSON.stringify(data));
+      this.logger?.error('[MiniMaxVoiceAdapter] Voice Design response', data);
       throw new Error('Voice Design failed — no voice_id returned');
     }
 
@@ -696,7 +699,7 @@ export class MiniMaxVoiceAdapter implements IVoicePort {
   // --- Get Available Voices (enhanced) ---
 
   async getAvailableVoices(voiceType: VoiceType): Promise<VoiceListResult> {
-    const config = ApiConfigStore.load();
+    const config = apiConfigStoreAdapter.load();
     if (!config.minimaxApiKey) {
       throw new Error('API Key not configured — cannot get voices');
     }
@@ -707,7 +710,7 @@ export class MiniMaxVoiceAdapter implements IVoicePort {
       voice_type: voiceType,
     };
 
-    console.log('[MiniMaxVoiceAdapter] getAvailableVoices request:', JSON.stringify({ url: `${baseUrl}/get_voice`, payload }));
+    this.logger?.info('[MiniMaxVoiceAdapter] getAvailableVoices request', { url: `${baseUrl}/get_voice`, payloadSize: JSON.stringify(payload).length });
 
     const response = await axios.post(`${baseUrl}/get_voice`, payload, {
       headers: {
@@ -719,7 +722,7 @@ export class MiniMaxVoiceAdapter implements IVoicePort {
 
     const data = response.data;
 
-    console.log('[MiniMaxVoiceAdapter] getAvailableVoices response:', JSON.stringify(data));
+    this.logger?.info('[MiniMaxVoiceAdapter] getAvailableVoices response', { bodySize: JSON.stringify(data).length });
 
     const statusCode = data?.base_resp?.status_code;
     const error = getMiniMaxErrorMessage(statusCode, data?.base_resp?.status_msg, 'MiniMax Get Voice error');
@@ -772,7 +775,7 @@ export class MiniMaxVoiceAdapter implements IVoicePort {
   // --- Delete Voice ---
 
   async deleteVoice(voiceType: 'voice_cloning' | 'voice_generation', voiceId: string): Promise<void> {
-    const config = ApiConfigStore.load();
+    const config = apiConfigStoreAdapter.load();
     if (!config.minimaxApiKey) {
       throw new Error('API Key not configured — cannot delete voice');
     }
@@ -784,7 +787,7 @@ export class MiniMaxVoiceAdapter implements IVoicePort {
       voice_id: voiceId,
     };
 
-    console.log('[MiniMaxVoiceAdapter] Deleting voice:', voiceId, 'type:', voiceType);
+    this.logger?.info('[MiniMaxVoiceAdapter] Deleting voice', { voiceId, voiceType });
 
     const response = await axios.post(`${baseUrl}/delete_voice`, payload, {
       headers: {

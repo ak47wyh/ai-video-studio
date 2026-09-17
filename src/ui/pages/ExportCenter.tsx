@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Download, Trash2, Film, Filter, RefreshCw, FilmIcon, Scissors } from 'lucide-react';
+import { Download, Trash2, Film, Filter, RefreshCw, FilmIcon, Scissors, Copy } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { finalCutRepo } from '../../dependencies';
@@ -13,6 +13,42 @@ import type { FinalCut } from '../../domain/entities/models';
 
 type FilterRange = 'all' | 'today' | 'week' | 'month';
 
+// B4 导出预设：按目标渠道一键下载，预设决定文件名模板与副产物
+type ExportPreset = 'generic' | 'douyin' | 'bilibili';
+
+const EXPORT_PRESETS: { id: ExportPreset; labelKey: string }[] = [
+  { id: 'generic', labelKey: 'export.preset.generic' },
+  { id: 'douyin', labelKey: 'export.preset.douyin' },
+  { id: 'bilibili', labelKey: 'export.preset.bilibili' },
+];
+
+const PRESET_PREFIX: Record<ExportPreset, string> = {
+  generic: 'final-cut',
+  douyin: 'douyin',
+  bilibili: 'bilibili',
+};
+
+/** 安全文件名：剔除 Windows/Unix 非法字符 */
+const safeFileName = (name: string): string => name.replace(/[\\/:*?"<>|]/g, '_').trim() || 'untitled';
+
+/** 日期戳 yyyyMMdd */
+const dateStamp = (ts: number): string => {
+  const d = new Date(ts);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}`;
+};
+
+const downloadBlob = (blob: Blob, fileName: string): void => {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
+
 export const ExportCenter: React.FC = () => {
   const { t } = useTranslation();
   const { showToast } = useToast();
@@ -21,6 +57,8 @@ export const ExportCenter: React.FC = () => {
   const [filterRange, setFilterRange] = useState<FilterRange>('all');
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [previewCutId, setPreviewCutId] = useState<string | null>(null);
+  // 每张卡片的导出预设选择（B4）
+  const [presetFor, setPresetFor] = useState<Record<string, ExportPreset>>({});
 
   const stories = useSpaceScopedStories();
   // Phase 6 闭环修复：useSpaceScopedFinalCuts 已通过 spaceQueryPort.subscribe 订阅数据变更，
@@ -29,19 +67,29 @@ export const ExportCenter: React.FC = () => {
 
   const filteredCuts = filterCuts(allCuts, filterRange);
 
-  const handleDownload = (cut: FinalCut) => {
+  const handleDownload = (cut: FinalCut, preset: ExportPreset = 'generic') => {
     try {
-      const url = URL.createObjectURL(cut.videoBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `final-cut-${cut.storyId}-${cut.createdAt}.mp4`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      const base = `${PRESET_PREFIX[preset]}-${safeFileName(getStoryTitle(cut.storyId))}-${dateStamp(cut.createdAt)}`;
+      downloadBlob(cut.videoBlob, `${base}.mp4`);
+      // 含字幕的成片按渠道预设一并导出 SRT，便于二次剪辑/上传时复用
+      if (preset !== 'generic' && cut.srtContent) {
+        downloadBlob(new Blob([cut.srtContent], { type: 'text/plain;charset=utf-8' }), `${base}.srt`);
+      }
       showToast('success', t('export.downloadStarted'));
     } catch (e) {
       showToast('error', getErrorMessage(e, t('export.downloadFailed')));
+    }
+  };
+
+  // 复制成片信息到剪贴板，便于归档/周报
+  const handleCopyInfo = async (cut: FinalCut) => {
+    try {
+      await navigator.clipboard.writeText(
+        `【成片】${getStoryTitle(cut.storyId)}\n时长: ${formatDuration(cut.duration)}\n大小: ${formatSize(cut.size)}\n生成: ${formatDate(cut.createdAt)}\n字幕: ${cut.hasSubtitles ? t('export.withSubs') : t('export.noSubs')}`
+      );
+      showToast('success', t('export.copied'));
+    } catch {
+      showToast('error', t('export.copyFailed'));
     }
   };
 
@@ -185,12 +233,31 @@ export const ExportCenter: React.FC = () => {
                 </div>
               )}
               <div style={{ display: 'flex', gap: '0.5rem', marginTop: 'auto' }}>
+                <select
+                  className="btn btn-secondary btn-xs"
+                  style={{ flex: 1, fontSize: '0.72rem', padding: '0.2rem 0.3rem' }}
+                  value={presetFor[cut.id] ?? 'generic'}
+                  onChange={(e) => setPresetFor(prev => ({ ...prev, [cut.id]: e.target.value as ExportPreset }))}
+                  aria-label={t('export.preset.label')}
+                >
+                  {EXPORT_PRESETS.map(p => (
+                    <option key={p.id} value={p.id}>{t(p.labelKey)}</option>
+                  ))}
+                </select>
                 <button
                   className="btn btn-primary btn-xs"
                   style={{ flex: 1 }}
-                  onClick={() => handleDownload(cut)}
+                  onClick={() => handleDownload(cut, presetFor[cut.id] ?? 'generic')}
                 >
                   <Download size={14} /> {t('export.downloadBtn')}
+                </button>
+                <button
+                  className="btn btn-secondary btn-xs"
+                  style={{ padding: '0.3rem 0.5rem' }}
+                  onClick={() => handleCopyInfo(cut)}
+                  title={t('export.copyInfo')}
+                >
+                  <Copy size={14} />
                 </button>
                 <button
                   className="btn btn-secondary btn-xs"

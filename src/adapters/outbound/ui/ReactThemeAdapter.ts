@@ -13,8 +13,9 @@
 
 import type { IThemePort, ThemeMode } from '../../../domain/ports/UiPorts';
 import type { ILoggerPort } from '../../../domain/ports/CrossCuttingPorts';
+import { BaseEventBus } from '../infrastructure/BaseEventBus';
 import { ConsoleLoggerAdapter } from '../infrastructure/ConsoleLoggerAdapter';
-import { ApiConfigStore } from '../config/ApiConfigStore';
+import { apiConfigStoreAdapter } from '../config/ApiConfigStoreAdapter';
 
 export type ThemeChangeEvent = {
   mode: ThemeMode;
@@ -22,30 +23,14 @@ export type ThemeChangeEvent = {
 
 type ThemeListener = (event: ThemeChangeEvent) => void;
 
-class ThemeEventBus {
-  private logger: ILoggerPort;
-
-  constructor(logger: ILoggerPort) {
-    this.logger = logger;
-  }
-
-  private listeners = new Set<ThemeListener>();
-
-  subscribe(listener: ThemeListener): () => void {
-    this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
+class ThemeEventBus extends BaseEventBus<ThemeListener> {
+  constructor(logger?: ILoggerPort) {
+    super({ service: 'ReactThemeAdapter' });
+    this.setLogger(logger);
   }
 
   emit(event: ThemeChangeEvent): void {
-    this.listeners.forEach(l => {
-      try {
-        l(event);
-      } catch (err) {
-        this.logger.error('[ThemeEventBus] listener error', err, {
-          service: 'ReactThemeAdapter',
-        });
-      }
-    });
+    this.emitAll(event);
   }
 }
 
@@ -64,13 +49,13 @@ class ReactThemeAdapter implements IThemePort {
   }
 
   getCurrentMode(): ThemeMode {
-    const config = ApiConfigStore.load();
+    const config = apiConfigStoreAdapter.load();
     return (config.theme as ThemeMode) || 'dark';
   }
 
   setMode(mode: ThemeMode): void {
-    const config = ApiConfigStore.load();
-    ApiConfigStore.save({ ...config, theme: mode });
+    const config = apiConfigStoreAdapter.load();
+    void apiConfigStoreAdapter.save({ ...config, theme: mode });
     this.eventBus.emit({ mode });
   }
 

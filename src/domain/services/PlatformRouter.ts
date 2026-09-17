@@ -92,33 +92,33 @@ export class PlatformRouter {
     this.register('video', 'hunyuan', (c) => new HunyuanVideoAdapter(c));
     this.register('video', 'zhipu', (c) => new ZhipuVideoAdapter(c));
     this.register('video', 'vidu', (c) => new ViduVideoAdapter(c));
-    this.register('video', 'minimax', () => new MiniMaxVideoAdapter());
+    this.register('video', 'minimax', () => new MiniMaxVideoAdapter(this.logger.child({ service: 'MiniMaxVideo' })));
 
     // image（7 平台）
-    this.register('image', 'volcengine', (c) => new VolcengineImageAdapter(c));
-    this.register('image', 'kling', (c) => new KlingImageAdapter(c));
-    this.register('image', 'wan', (c) => new WanImageAdapter(c));
-    this.register('image', 'hunyuan', (c) => new HunyuanImageAdapter(c));
-    this.register('image', 'zhipu', (c) => new ZhipuImageAdapter(c));
-    this.register('image', 'vidu', (c) => new ViduImageAdapter(c));
-    this.register('image', 'minimax', () => new MiniMaxImageAdapter());
+    this.register('image', 'volcengine', (c) => new VolcengineImageAdapter(c, this.logger.child({ service: 'VolcengineImage' })));
+    this.register('image', 'kling', (c) => new KlingImageAdapter(c, this.logger.child({ service: 'KlingImage' })));
+    this.register('image', 'wan', (c) => new WanImageAdapter(c, this.logger.child({ service: 'WanImage' })));
+    this.register('image', 'hunyuan', (c) => new HunyuanImageAdapter(c, this.logger.child({ service: 'HunyuanImage' })));
+    this.register('image', 'zhipu', (c) => new ZhipuImageAdapter(c, this.logger.child({ service: 'ZhipuImage' })));
+    this.register('image', 'vidu', (c) => new ViduImageAdapter(c, this.logger.child({ service: 'ViduImage' })));
+    this.register('image', 'minimax', () => new MiniMaxImageAdapter(this.logger.child({ service: 'MiniMaxImage' })));
 
     // text（5 平台）
-    this.register('text', 'volcengine', (c) => new VolcengineTextAdapter(c));
-    this.register('text', 'wan', (c) => new WanTextAdapter(c));
-    this.register('text', 'hunyuan', (c) => new HunyuanTextAdapter(c));
-    this.register('text', 'zhipu', (c) => new ZhipuTextAdapter(c));
-    this.register('text', 'minimax', () => new MiniMaxTextAdapter());
+    this.register('text', 'volcengine', (c) => new VolcengineTextAdapter(c, this.logger.child({ service: 'VolcengineText' })));
+    this.register('text', 'wan', (c) => new WanTextAdapter(c, this.logger.child({ service: 'WanText' })));
+    this.register('text', 'hunyuan', (c) => new HunyuanTextAdapter(c, this.logger.child({ service: 'HunyuanText' })));
+    this.register('text', 'zhipu', (c) => new ZhipuTextAdapter(c, this.logger.child({ service: 'ZhipuText' })));
+    this.register('text', 'minimax', () => new MiniMaxTextAdapter(this.logger.child({ service: 'MiniMaxText' })));
 
     // voice（5 平台；火山引擎语音独立于方舟协议）
     this.register('voice', 'volcengine', (c) => new VolcengineVoiceAdapter(c));
     this.register('voice', 'wan', (c) => new WanVoiceAdapter(c));
     this.register('voice', 'hunyuan', (c) => new HunyuanVoiceAdapter(c));
     this.register('voice', 'zhipu', (c) => new ZhipuVoiceAdapter(c));
-    this.register('voice', 'minimax', () => new MiniMaxVoiceAdapter());
+    this.register('voice', 'minimax', () => new MiniMaxVoiceAdapter(this.logger.child({ service: 'MiniMaxVoice' })));
 
     // music（仅 MiniMax；其他平台通过 ensureCap 拦截，符合 P2-6 修复）
-    this.register('music', 'minimax', () => new MiniMaxMusicAdapter());
+    this.register('music', 'minimax', () => new MiniMaxMusicAdapter(this.logger.child({ service: 'MiniMaxMusic' })));
 
     // model 模型管理（A2：仅 MiniMax 实现 List Models API，其他平台 ensureCap 拦截）
     this.register('model', 'minimax', () => new MiniMaxModelAdapter());
