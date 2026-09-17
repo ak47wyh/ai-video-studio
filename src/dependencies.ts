@@ -9,9 +9,11 @@ import { TimelineRepositoryAdapter } from './adapters/outbound/repositories/Time
 import { PipelineTaskRepositoryAdapter } from './adapters/outbound/repositories/PipelineTaskRepositoryAdapter';
 import { PublishTaskRepositoryAdapter } from './adapters/outbound/repositories/PublishTaskRepositoryAdapter';
 import { ProjectRepositoryAdapter } from './adapters/outbound/repositories/ProjectRepositoryAdapter';
+import { TemplateRepositoryAdapter } from './adapters/outbound/repositories/TemplateRepositoryAdapter';
 import { PublishService } from './domain/services/PublishService';
 import { FinalCutReworkService } from './domain/services/FinalCutReworkService';
 import { ProjectService } from './domain/services/ProjectService';
+import { TemplateService } from './domain/services/TemplateService';
 import { DexieUnitOfWorkAdapter } from './adapters/outbound/repositories/TransactionAdapter';
 
 // ==================== 基础设施层（外部API适配器） ====================
@@ -396,6 +398,9 @@ export const reworkService = new FinalCutReworkService(finalCutRepo, pipelineSer
 
 export const projectRepo = new ProjectRepositoryAdapter();
 export const projectService = new ProjectService(projectRepo, storyRepo);
+
+export const templateRepo = new TemplateRepositoryAdapter();
+export const templateService = new TemplateService(templateRepo);
 
 // ========================================
 // AI 故事成片

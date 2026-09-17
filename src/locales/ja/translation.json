@@ -56,7 +56,8 @@
     "activePlatformInfo": "現在のアクティブプラットフォーム：{{name}}（{{brand}}）\n機能：{{capabilities}}",
     "activePlatformBrief": "現在のアクティブプラットフォーム：{{name}}（{{brand}}）",
     "assetLibrary": "素材ライブラリ",
-    "projects": "プロジェクト"
+    "projects": "プロジェクト",
+    "templates": "テンプレート"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -1107,5 +1108,31 @@
     "unlink": "解除",
     "link": "関連付け",
     "hint": "シリーズ設定（スタイル/解像度/音声/BGM）は子話の生成時に継承されます。プロジェクトを削除しても話は削除されず、関連付けが解除されるだけです。"
+  },
+  "template": {
+    "title": "クリエイティブテンプレート",
+    "subtitle": "分鏡/スタイル/プロンプト/エクスポートのテンプレートライブラリ",
+    "createBtn": "新規テンプレート",
+    "createSuccess": "テンプレートを作成しました",
+    "restoreBuiltins": "組み込みを復元",
+    "builtinRestored": "組み込みテンプレートを復元しました",
+    "namePlaceholder": "テンプレート名",
+    "descPlaceholder": "説明（任意）",
+    "beatsPlaceholder": "1行1ビート：名前|説明（例：フック|冒頭でサスペンス）",
+    "beatsRequired": "ビートを1つ以上入力してください（1行：名前|説明）",
+    "styleVideo": "画面スタイル",
+    "styleBgm": "BGM の好み",
+    "styleCamera": "カメラワーク",
+    "promptPlaceholder": "プロンプトテンプレート（{var} でプレースホルダー）",
+    "promptVars": "変数名（カンマ区切り、例：title,outline）",
+    "promptRequired": "プロンプトテンプレートを入力してください",
+    "exportGeneric": "汎用",
+    "exportDouyin": "抖音",
+    "exportBilibili": "B站",
+    "exportSubs": "字幕",
+    "empty": "この種類のテンプレートはありません",
+    "copy": "適用",
+    "previewTitle": "適用プレビュー",
+    "deleteSuccess": "テンプレートを削除しました"
   }
 }

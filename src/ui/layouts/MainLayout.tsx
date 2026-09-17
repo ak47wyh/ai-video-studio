@@ -7,6 +7,7 @@ import {
   Ban,
   Boxes,
   FolderKanban,
+  LayoutTemplate,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAllSpaces } from '../hooks/useSpaceScopedQuery';
@@ -120,6 +121,7 @@ export const MainLayout: React.FC = () => {
         { to: '/workbench', icon: <BookOpen size={18} />, label: t('nav.workbench') },
         { to: '/editor', icon: <Scissors size={18} />, label: t('nav.editor', '视频剪辑') },
         { to: '/export', icon: <Download size={18} />, label: t('nav.export', '导出中心') },
+{ to: '/templates', icon: <LayoutTemplate size={18} />, label: t('nav.templates', '模板') },
       ],
     },
     {

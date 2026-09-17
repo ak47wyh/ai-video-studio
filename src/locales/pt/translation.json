@@ -24,7 +24,8 @@
     "platformNotConfigured": "Plataforma não configurada. Vá ao centro de configuração e insira a chave API.",
     "languageSwitcherTooltip": "Alternar idioma",
     "assetLibrary": "Asset Library",
-    "projects": "Projects"
+    "projects": "Projects",
+    "templates": "Templates"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -793,5 +794,31 @@
     "unlink": "Unlink",
     "link": "Link",
     "hint": "Series settings (style/resolution/voice/BGM) are inherited by child stories; deleting a project only unlinks stories, never deletes them."
+  },
+  "template": {
+    "title": "Creative Templates",
+    "subtitle": "Story structure / style / prompt / export template library",
+    "createBtn": "New Template",
+    "createSuccess": "Template created",
+    "restoreBuiltins": "Restore Builtins",
+    "builtinRestored": "Builtin templates restored",
+    "namePlaceholder": "Template name",
+    "descPlaceholder": "Description (optional)",
+    "beatsPlaceholder": "One beat per line: name|description (e.g. Hook|Open with suspense)",
+    "beatsRequired": "Add at least one beat (one per line: name|description)",
+    "styleVideo": "Style",
+    "styleBgm": "BGM preference",
+    "styleCamera": "Camera motion",
+    "promptPlaceholder": "Prompt template (use {var} placeholders)",
+    "promptVars": "Variables (comma separated, e.g. title,outline)",
+    "promptRequired": "Fill in the prompt template",
+    "exportGeneric": "Generic",
+    "exportDouyin": "Douyin",
+    "exportBilibili": "Bilibili",
+    "exportSubs": "Subtitles",
+    "empty": "No templates of this type",
+    "copy": "Apply",
+    "previewTitle": "Apply Preview",
+    "deleteSuccess": "Template deleted"
   }
 }

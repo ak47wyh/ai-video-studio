@@ -9,6 +9,31 @@ export interface StorySpace {
 // ===== P1-5 项目/系列 =====
 
 /** 系列设置（项目级偏好，供子故事继承） */
+
+// ===== P1-6 创作模板 =====
+
+/** 模板类型：分镜结构 / 风格组合 / 提示词 / 导出预设 */
+export type TemplateKind = 'story_structure' | 'style' | 'prompt' | 'export';
+
+/** 分镜模板的节拍（钩子-冲突-高潮-结局等） */
+export interface TemplateBeat {
+  name: string;
+  description: string;
+}
+
+/** 创作模板（内容按 kind 解释，见 TemplateService.resolve） */
+export interface ContentTemplate {
+  id: string;
+  kind: TemplateKind;
+  name: string;
+  description?: string;
+  /** 内置种子模板（不可删除） */
+  builtin?: boolean;
+  /** 模板内容 */
+  content: Record<string, unknown>;
+  createdAt: number;
+  updatedAt: number;
+}
 export interface ProjectStyleSettings {
   /** 统一画面风格 */
   videoStyle?: VideoStyle;

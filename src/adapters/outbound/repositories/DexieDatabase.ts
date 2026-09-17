@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-import type { Character, Background, Story, StorySegment, StorySpace, VideoTask, PipelineTask, FinalCut, SavedImage, SavedVoice, SavedPrompt, SavedVideo, SavedBgm, PublishTask, Project, GeneratedFile } from '../../../domain/entities/models';
+import type { Character, Background, Story, StorySegment, StorySpace, VideoTask, PipelineTask, FinalCut, SavedImage, SavedVoice, SavedPrompt, SavedVideo, SavedBgm, PublishTask, Project, ContentTemplate, GeneratedFile } from '../../../domain/entities/models';
 import type { SpaceSnapshot, Timeline } from '../../../domain/ports/PersistencePorts';
 
 export class AiVideoDatabase extends Dexie {
@@ -18,6 +18,7 @@ export class AiVideoDatabase extends Dexie {
 savedBgms!: Table<SavedBgm, string>;
 publishTasks!: Table<PublishTask, string>;
 projects!: Table<Project, string>;
+templates!: Table<ContentTemplate, string>;
   snapshots!: Table<SpaceSnapshot, string>;
   timelines!: Table<Timeline, string>;
   generatedFiles!: Table<GeneratedFile, string>;
@@ -229,6 +230,29 @@ this.version(16).stores({
       savedBgms: 'id, spaceId, name, sourceType, createdAt',
       publishTasks: 'id, finalCutId, status, createdAt',
       projects: 'id, spaceId, createdAt',
+      snapshots: 'id, spaceId, createdAt',
+      timelines: 'id, storyId, createdAt, updatedAt',
+      generatedFiles: 'id, spaceId, fileType, sourceEntityType, sourceEntityId, storagePath, createdAt, lastAccessedAt, compressedAt'
+    });
+
+// Version 17: Add templates table (P1-6 创作模板)
+this.version(17).stores({
+      storySpaces: 'id, name, createdAt',
+      characters: 'id, spaceId, name, createdAt',
+      backgrounds: 'id, spaceId, name, createdAt',
+      stories: 'id, spaceId, projectId, status, createdAt',
+      segments: 'id, storyId, sequenceOrder',
+      videoTasks: 'id, segmentId, status, createdAt',
+      pipelineTasks: 'id, storyId, status, createdAt',
+      finalCuts: 'id, storyId, pipelineTaskId, createdAt',
+      savedImages: 'id, spaceId, name, sourceType, createdAt',
+      savedVoices: 'id, spaceId, name, sourceType, createdAt',
+      savedPrompts: 'id, spaceId, name, category, createdAt',
+      savedVideos: 'id, spaceId, name, sourceType, createdAt',
+      savedBgms: 'id, spaceId, name, sourceType, createdAt',
+      publishTasks: 'id, finalCutId, status, createdAt',
+      projects: 'id, spaceId, createdAt',
+      templates: 'id, kind, createdAt',
       snapshots: 'id, spaceId, createdAt',
       timelines: 'id, storyId, createdAt, updatedAt',
       generatedFiles: 'id, spaceId, fileType, sourceEntityType, sourceEntityId, storagePath, createdAt, lastAccessedAt, compressedAt'

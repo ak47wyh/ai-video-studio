@@ -56,7 +56,8 @@
     "platformNotConfigured": "平台未配置,请前往配置中心填写 API Key",
     "languageSwitcherTooltip": "切换语言",
     "assetLibrary": "素材库",
-    "projects": "项目"
+    "projects": "项目",
+    "templates": "模板"
   },
   "dashboard": {
     "title": "控制台",
@@ -1104,5 +1105,31 @@
     "unlink": "解除",
     "link": "关联",
     "hint": "系列设置（风格/分辨率/音色/BGM）供子故事生成时继承；删除项目仅解除关联，不删除故事。"
+  },
+  "template": {
+    "title": "创作模板",
+    "subtitle": "分镜/风格/提示词/导出模板库，批量创作效率杠杆",
+    "createBtn": "新建模板",
+    "createSuccess": "模板已创建",
+    "restoreBuiltins": "恢复内置",
+    "builtinRestored": "内置模板已恢复",
+    "namePlaceholder": "模板名称",
+    "descPlaceholder": "描述（可选）",
+    "beatsPlaceholder": "每行一个节拍：名称|描述（如：钩子|开场抛出悬念）",
+    "beatsRequired": "请至少填写一个节拍（每行：名称|描述）",
+    "styleVideo": "画面风格",
+    "styleBgm": "BGM 偏好",
+    "styleCamera": "运镜",
+    "promptPlaceholder": "提示词模板（变量用 {var} 占位）",
+    "promptVars": "变量名（逗号分隔，如 title,outline）",
+    "promptRequired": "请填写提示词模板",
+    "exportGeneric": "通用",
+    "exportDouyin": "抖音",
+    "exportBilibili": "B站",
+    "exportSubs": "字幕",
+    "empty": "暂无该类型模板",
+    "copy": "套用",
+    "previewTitle": "套用预览",
+    "deleteSuccess": "模板已删除"
   }
 }
