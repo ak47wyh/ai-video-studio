@@ -756,7 +756,17 @@
     },
     "copyInfo": "Copy cut info",
     "copied": "Cut info copied",
-    "copyFailed": "Copy failed"
+    "copyFailed": "Copy failed",
+    "qc": {
+      "check": "QC Check",
+      "running": "Checking…",
+      "ok": "Pass",
+      "review": "Review",
+      "regenerate": "Regenerate",
+      "done": "QC check finished",
+      "issues": "{count} issue(s) found",
+      "failed": "QC check failed"
+    }
   },
   "agent": {
     "title": "AI Assistant",

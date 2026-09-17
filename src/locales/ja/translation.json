@@ -684,7 +684,17 @@
     },
     "copyInfo": "成片情報をコピー",
     "copied": "成片情報をコピーしました",
-    "copyFailed": "コピーに失敗しました"
+    "copyFailed": "コピーに失敗しました",
+    "qc": {
+      "check": "QC チェック",
+      "running": "チェック中…",
+      "ok": "合格",
+      "review": "要確認",
+      "regenerate": "再生成推奨",
+      "done": "QC チェック完了",
+      "issues": "{count} 件の問題を検出",
+      "failed": "QC チェック失敗"
+    }
   },
   "agent": {
     "title": "AI Assistant",

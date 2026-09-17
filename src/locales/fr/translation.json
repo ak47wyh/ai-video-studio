@@ -513,7 +513,17 @@
     "closePreview": "Close preview",
     "withSubs": "With subtitles",
     "noSubs": "No subtitles",
-    "untitledStory": "Untitled story"
+    "untitledStory": "Untitled story",
+    "qc": {
+      "check": "QC Check",
+      "running": "Checking…",
+      "ok": "Pass",
+      "review": "Review",
+      "regenerate": "Regenerate",
+      "done": "QC check finished",
+      "issues": "{count} issue(s) found",
+      "failed": "QC check failed"
+    }
   },
   "agent": {
     "title": "AI Assistant",

@@ -1,5 +1,6 @@
 import type { FFmpeg } from '@ffmpeg/ffmpeg';
 import type { IFFmpegPort, MergeContext, VideoClip, SubtitleStyle, BgmMixConfig, TransitionType, OutputFormat, CropOptions } from '../../../domain/ports/PostProcessPorts';
+import type { IQcMediaPort, MediaProbeResult, QcSilenceSegment, QcBlackSegment, QcLoudnessResult } from '../../../domain/ports/QcPorts';
 
 const CORE_VERSION = '0.12.6';
 const CORE_BASE = `https://unpkg.com/@ffmpeg/core@${CORE_VERSION}/dist/umd`;
@@ -17,7 +18,7 @@ const CORE_BASE = `https://unpkg.com/@ffmpeg/core@${CORE_VERSION}/dist/umd`;
  * - 首屏 vendor-ffmpeg chunk 从 ~4.5KB 维持现状（FFmpegAdapter 占大头在依赖图）
  *   但实际生效依赖被压到 postProcessService 调用方，按需触发
  */
-export class FFmpegAdapter implements IFFmpegPort {
+export class FFmpegAdapter implements IFFmpegPort, IQcMediaPort {
   private ffmpeg: FFmpeg | null = null;
   private loadPromise: Promise<void> | null = null;
   private fetchFileFn: typeof import('@ffmpeg/util').fetchFile | null = null;
@@ -519,5 +520,118 @@ export class FFmpegAdapter implements IFFmpegPort {
     }
     filters.push(`atempo=${remaining.toFixed(4)}`);
     return filters.join(',');
+  }
+
+  // ===== P2-8 成片 QC 探测（基于 ffmpeg 内建能力，不引新依赖） =====
+
+  /** 执行 ffmpeg 并捕获日志输出（探测类命令） */
+  private async runCapture(args: string[]): Promise<string> {
+    await this.load();
+    const ffmpeg = this.ensureLoaded();
+    const lines: string[] = [];
+    const handler = (ev: { message: string }) => { lines.push(ev.message); };
+    ffmpeg.on('log', handler);
+    try {
+      await ffmpeg.exec(args);
+    } catch {
+      // 探测命令（如 -i 无输出）exit code 非 0，流信息仍输出到日志
+    } finally {
+      ffmpeg.off('log', handler);
+    }
+    return lines.join('\n');
+  }
+
+  /** P2-8 探测时长/分辨率 */
+  async probe(input: Blob): Promise<MediaProbeResult> {
+    await this.load();
+    const inputName = 'qc-in.mp4';
+    try {
+      await this.writeFile(inputName, input);
+      const out = await this.runCapture(['-i', inputName]);
+      const dur = out.match(/Duration:\s*(\d+):(\d+):(\d+\.?\d*)/);
+      const vres = out.match(/Video:.*?\b(\d{2,5})x(\d{2,5})\b/);
+      if (!dur) throw new Error('无法解析成片时长');
+      const durationSec = Number(dur[1]) * 3600 + Number(dur[2]) * 60 + Number(dur[3]);
+      return {
+        durationSec,
+        width: vres ? Number(vres[1]) : 0,
+        height: vres ? Number(vres[2]) : 0,
+      };
+    } finally {
+      await this.safeDelete(inputName);
+    }
+  }
+
+  /** P2-8 检测静音段 */
+  async detectSilence(input: Blob): Promise<QcSilenceSegment[]> {
+    await this.load();
+    const inputName = 'qc-in.mp4';
+    try {
+      await this.writeFile(inputName, input);
+      const out = await this.runCapture([
+        '-i', inputName,
+        '-af', 'silencedetect=noise=-35dB:d=0.5',
+        '-f', 'null', '-',
+      ]);
+      const segments: QcSilenceSegment[] = [];
+      const starts = out.match(/silence_start:\s*([0-9.]+)/g) ?? [];
+      const ends = out.match(/silence_end:\s*([0-9.]+)/g) ?? [];
+      starts.forEach((s, i) => {
+        segments.push({
+          startSec: Number(s.match(/[0-9.]+/)?.[0] ?? 0),
+          endSec: Number(ends[i]?.match(/[0-9.]+/)?.[0] ?? 0),
+        });
+      });
+      return segments;
+    } finally {
+      await this.safeDelete(inputName);
+    }
+  }
+
+  /** P2-8 检测黑帧段 */
+  async detectBlackFrames(input: Blob): Promise<QcBlackSegment[]> {
+    await this.load();
+    const inputName = 'qc-in.mp4';
+    try {
+      await this.writeFile(inputName, input);
+      const out = await this.runCapture([
+        '-i', inputName,
+        '-vf', 'blackdetect=d=0.5:pix_th=0.10',
+        '-f', 'null', '-',
+      ]);
+      const segments: QcBlackSegment[] = [];
+      const pairs = out.match(/black_start:\s*([0-9.]+)\s+black_end:\s*([0-9.]+)/g) ?? [];
+      pairs.forEach(p => {
+        const nums = p.match(/[0-9.]+/g) ?? [];
+        if (nums.length >= 2) {
+          segments.push({ startSec: Number(nums[0]), endSec: Number(nums[1]) });
+        }
+      });
+      return segments;
+    } finally {
+      await this.safeDelete(inputName);
+    }
+  }
+
+  /** P2-8 检测音量 */
+  async detectLoudness(input: Blob): Promise<QcLoudnessResult> {
+    await this.load();
+    const inputName = 'qc-in.mp4';
+    try {
+      await this.writeFile(inputName, input);
+      const out = await this.runCapture([
+        '-i', inputName,
+        '-af', 'volumedetect',
+        '-f', 'null', '-',
+      ]);
+      const mean = out.match(/mean_volume:\s*(-?[0-9.]+)\s*dB/);
+      const max = out.match(/max_volume:\s*(-?[0-9.]+)\s*dB/);
+      return {
+        meanVolumeDb: mean ? Number(mean[1]) : -91,
+        maxVolumeDb: max ? Number(max[1]) : -91,
+      };
+    } finally {
+      await this.safeDelete(inputName);
+    }
   }
 }

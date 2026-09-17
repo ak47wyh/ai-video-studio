@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Download, Trash2, Film, Filter, RefreshCw, FilmIcon, Scissors, Copy, Send, RotateCcw } from 'lucide-react';
+import { Download, Trash2, Film, Filter, RefreshCw, FilmIcon, Scissors, Copy, Send, RotateCcw, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { finalCutRepo } from '../../dependencies';
+import { finalCutRepo, qcService } from '../../dependencies';
 import { useSpaceScopedStories, useSpaceScopedFinalCuts } from '../hooks/useSpaceScopedQuery';
 import { useToast } from '../contexts/ToastContext';
 import { useConfirm } from '../contexts/ConfirmContext';
@@ -12,6 +12,7 @@ import { PublishPanel } from '../components/PublishPanel';
 import { ReworkPanel } from '../components/ReworkPanel';
 import { PostProductionPanel } from '../components/PostProductionPanel';
 import type { FinalCut } from '../../domain/entities/models';
+import type { QcReport, QcRecommendation } from '../../domain/ports/QcPorts';
 
 type FilterRange = 'all' | 'today' | 'week' | 'month';
 
@@ -61,6 +62,8 @@ export const ExportCenter: React.FC = () => {
   const [previewCutId, setPreviewCutId] = useState<string | null>(null);
 const [publishCut, setPublishCut] = useState<FinalCut | null>(null);
 const [reworkCut, setReworkCut] = useState<FinalCut | null>(null);
+  // P2-8 成片 QC：<cutId, report | 'running'>
+  const [qcReports, setQcReports] = useState<Record<string, QcReport | 'running'>>({});
   // 每张卡片的导出预设选择（B4）
   const [presetFor, setPresetFor] = useState<Record<string, ExportPreset>>({});
 
@@ -95,6 +98,59 @@ const [reworkCut, setReworkCut] = useState<FinalCut | null>(null);
     } catch {
       showToast('error', t('export.copyFailed'));
     }
+  };
+
+  // P2-8 分辨率期望映射
+  const RES_EXPECT: Record<string, { w: number; h: number }> = {
+    '512P': { w: 910, h: 512 },
+    '720P': { w: 1280, h: 720 },
+    '768P': { w: 1366, h: 768 },
+    '1080P': { w: 1920, h: 1080 },
+  };
+
+  /** 解析 SRT 最后一条字幕的结束时间（秒） */
+  const parseSrtEndSec = (srt: string): number | undefined => {
+    const times = srt.match(/\d{2}:\d{2}:\d{2},\d{3}\s*-->\s*\d{2}:\d{2}:\d{2},\d{3}/g);
+    if (!times || times.length === 0) return undefined;
+    const last = times[times.length - 1];
+    const m = last.match(/(\d{2}):(\d{2}):(\d{2}),(\d{3})\s*-->\s*\d{2}:\d{2}:\d{2},\d{3}/);
+    if (!m) return undefined;
+    return Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3]) + Number(m[4]) / 1000;
+  };
+
+  const handleRunQc = async (cut: FinalCut) => {
+    setQcReports(prev => ({ ...prev, [cut.id]: 'running' }));
+    try {
+      const res = cut.pipelineOptions?.videoResolution ? RES_EXPECT[cut.pipelineOptions.videoResolution] : undefined;
+      const report = await qcService.runQc({
+        video: cut.videoBlob,
+        expectedDurationSec: cut.duration > 0 ? cut.duration / 1000 : undefined,
+        expectedWidth: res?.w,
+        expectedHeight: res?.h,
+        subtitleEndSec: cut.srtContent ? parseSrtEndSec(cut.srtContent) : undefined,
+      });
+      setQcReports(prev => ({ ...prev, [cut.id]: report }));
+      showToast(report.passed ? 'success' : 'error', report.passed ? t('export.qc.done') : t('export.qc.issues', { count: report.issues.length }));
+    } catch (e) {
+      showToast('error', getErrorMessage(e, t('export.qc.failed')));
+      setQcReports(prev => {
+        const next = { ...prev };
+        delete next[cut.id];
+        return next;
+      });
+    }
+  };
+
+  /** 收窄 qcReports：running 或缺失返回 null */
+  const qcReportOf = (cutId: string): QcReport | null => {
+    const r = qcReports[cutId];
+    return r && r !== 'running' ? r : null;
+  };
+
+    const qcBadgeColor = (r: QcRecommendation): string => {
+    if (r === 'ok') return 'var(--color-success)';
+    if (r === 'review') return 'var(--color-warning)';
+    return 'var(--color-danger)';
   };
 
   const handleDelete = async (cut: FinalCut) => {
@@ -236,6 +292,39 @@ const [reworkCut, setReworkCut] = useState<FinalCut | null>(null);
                   ✓ {t('export.withSubs')}
                 </div>
               )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.2rem' }}>
+                <button
+                  className="btn btn-secondary btn-xs"
+                  style={{ fontSize: '0.72rem', padding: '0.2rem 0.5rem' }}
+                  onClick={() => handleRunQc(cut)}
+                  disabled={qcReports[cut.id] === 'running'}
+                >
+                  <ShieldCheck size={13} /> {qcReports[cut.id] === 'running' ? t('export.qc.running') : t('export.qc.check')}
+                </button>
+                {(() => { const qc = qcReportOf(cut.id); if (!qc) return null; return (
+                  <span
+                    style={{
+                      fontSize: '0.72rem',
+                      fontWeight: 600,
+                      color: qcBadgeColor(qc.recommendation),
+                      padding: '0.15rem 0.45rem',
+                      borderRadius: '999px',
+                      background: qcBadgeColor(qc.recommendation) + '22',
+                    }}
+                  >
+                    {t('export.qc.' + qc.recommendation)}
+                  </span>
+                ); })()}
+              </div>
+              {(() => { const qc = qcReportOf(cut.id); if (!qc || qc.issues.length === 0) return null; return (
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                  {qc.issues.slice(0, 3).map((iss, i) => (
+                    <div key={i} style={{ color: iss.severity === 'error' ? 'var(--color-danger)' : 'var(--color-warning)' }}>
+                      {'• '}{iss.message}
+                    </div>
+                  ))}
+                </div>
+              ); })()}
               <div style={{ display: 'flex', gap: '0.5rem', marginTop: 'auto' }}>
                 <select
                   className="btn btn-secondary btn-xs"

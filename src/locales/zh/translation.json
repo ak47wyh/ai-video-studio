@@ -756,7 +756,17 @@
     },
     "copyInfo": "复制成片信息",
     "copied": "成片信息已复制",
-    "copyFailed": "复制失败"
+    "copyFailed": "复制失败",
+    "qc": {
+      "check": "QC 检测",
+      "running": "检测中…",
+      "ok": "通过",
+      "review": "需复核",
+      "regenerate": "建议重生成",
+      "done": "QC 检测完成",
+      "issues": "检测到 {count} 个问题",
+      "failed": "QC 检测失败"
+    }
   },
   "agent": {
     "title": "AI 助手",
