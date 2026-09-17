@@ -23,6 +23,7 @@ export type PlatformCapability =
   | 'text'         // 文本生成
   | 'voice'        // 语音合成
   | 'music'        // 音乐生成
+  | 'model'        // 模型管理（List Models 等）
   | 'threeD'       // 3D 模型
   | 'cache'        // 上下文缓存
   | 'modelResponse'; // Responses API

@@ -4,14 +4,24 @@ import type { ILoggerPort, LogContext } from '../ports/CrossCuttingPorts';
 import { getImageModels } from './platformCapabilities';
 
 export class ModelManagementService {
-  private modelPort: IModelManagementPort;
+  private modelPortProvider: () => IModelManagementPort;
   private cache: IModelCachePort<ModelInfo>;
   private logger: ILoggerPort;
 
-  constructor(modelPort: IModelManagementPort, cache: IModelCachePort<ModelInfo>, logger: ILoggerPort) {
-    this.modelPort = modelPort;
+  /**
+   * A2 平台路由：构造时注入懒加载 Port 提供器。
+   * 由 dependencies 装配为 platformRouter.resolveModel(configStore.load())，
+   * 使模型管理随激活平台路由；非 MiniMax 平台抛 UnsupportedCapabilityError。
+   */
+  constructor(modelPortProvider: () => IModelManagementPort, cache: IModelCachePort<ModelInfo>, logger: ILoggerPort) {
+    this.modelPortProvider = modelPortProvider;
     this.cache = cache;
     this.logger = logger;
+  }
+
+  /** 解析当前激活平台对应的模型管理 Port（每次调用实时解析，平台切换即刻生效） */
+  private getModelPort(): IModelManagementPort {
+    return this.modelPortProvider();
   }
 
   /** 统一上下文工厂：附加 service 字段 */
@@ -32,7 +42,7 @@ export class ModelManagementService {
     let pageCount = 0;
 
     do {
-      const result = await this.modelPort.listModels(100, afterId);
+      const result = await this.getModelPort().listModels(100, afterId);
       this.logger.debug('listModels page fetched', this.ctx({ page: pageCount, pageSize: result.models.length, hasMore: result.hasMore }));
       allModels.push(...result.models);
       afterId = result.hasMore ? result.lastId : undefined;

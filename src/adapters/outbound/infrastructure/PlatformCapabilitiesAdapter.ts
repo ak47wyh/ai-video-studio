@@ -20,6 +20,7 @@ const CAPABILITY_LABELS: Record<PlatformCapability, string> = {
   text: '文本',
   voice: '语音',
   music: '音乐',
+  model: '模型管理',
   threeD: '3D',
   cache: '缓存',
   modelResponse: 'Responses',
@@ -44,6 +45,8 @@ export class PlatformCapabilitiesAdapter implements IPlatformCapabilitiesPort {
     if (capability === 'threeD') return platform === 'volcengine';
     if (capability === 'cache') return platform === 'volcengine';
     if (capability === 'modelResponse') return platform === 'volcengine';
+    // A2 平台路由：模型管理（List Models API）仅 MiniMax 声明支持
+    if (capability === 'model') return platform === 'minimax';
     return false;
   }
 

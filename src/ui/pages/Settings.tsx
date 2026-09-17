@@ -21,6 +21,7 @@ import { StatusBadge } from '../components/settings/StatusBadge';
 import { ValidationButton } from '../components/settings/ValidationButton';
 import { ThemeSelector } from '../components/settings/ThemeSelector';
 import { CostMeterSection } from '../components/settings/CostMeterSection';
+import { BackupRestoreSection } from '../components/settings/BackupRestoreSection';
 
 // ===== Token 校验函数 =====
 
@@ -94,6 +95,7 @@ const CAPABILITY_LABEL_KEYS: Record<Capability, string> = {
   text: 'settings.capText',
   voice: 'settings.capVoice',
   music: 'settings.capMusic',
+  model: 'settings.capModel',
 };
 
 /** 能力小标签 */
@@ -1129,13 +1131,20 @@ export const Settings: React.FC = () => {
           <button
             type="button"
             className="btn btn-secondary btn-xs"
-            disabled={isLoadingModels}
+            disabled={isLoadingModels || config.activePlatform !== 'minimax'}
             onClick={handleRefreshModels}
           >
             {isLoadingModels ? <RefreshCw size={12} className="spin" /> : <RefreshCw size={12} />}
             {isLoadingModels ? t('models.refreshing') : t('models.refreshBtn')}
           </button>
         </div>
+
+        {/* A2 平台路由：模型管理仅 MiniMax 声明支持（List Models API） */}
+        {config.activePlatform !== 'minimax' && (
+          <p style={{ fontSize: '0.8rem', color: 'var(--warning-color)', marginBottom: '0.75rem' }}>
+            {t('models.onlyMinimaxHint')}
+          </p>
+        )}
 
         {/* Text Models */}
         <div style={{ marginBottom: '1rem' }}>
@@ -1206,6 +1215,9 @@ export const Settings: React.FC = () => {
 
       {/* ── AI 调用成本统计（P1-21） ─────────────────── */}
       <CostMeterSection />
+
+      {/* ── 数据备份与恢复（B3） ─────────────────── */}
+      <BackupRestoreSection />
 
       {/* ── Auto-save indicator ─────────────────────────── */}
       <div className="settings-autosave-floating" style={{

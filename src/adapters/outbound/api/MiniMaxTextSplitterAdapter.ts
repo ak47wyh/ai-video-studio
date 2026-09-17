@@ -1,4 +1,5 @@
 import type { ITextSplitterPort, SegmentDraft, ITextGenerationPort } from '../../../domain/ports/OutboundPorts';
+import type { ILoggerPort } from '../../../domain/ports/CrossCuttingPorts';
 
 const SPLIT_SYSTEM_PROMPT = `你是一个专业的视频剧本编辑，擅长将故事文本按场景/情节拆分为独立段落。
 
@@ -18,16 +19,24 @@ const SPLIT_SYSTEM_PROMPT = `你是一个专业的视频剧本编辑，擅长将
 export class MiniMaxTextSplitterAdapter implements ITextSplitterPort {
   textPort: ITextGenerationPort;
   fallback: ITextSplitterPort;
+  private modelId: string;
+  private logger?: ILoggerPort;
 
-  constructor(textPort: ITextGenerationPort, fallback: ITextSplitterPort) {
+  /**
+   * A2 平台路由：modelId 由调用方按激活平台解析（默认 MiniMax），
+   * 不再硬编码单平台模型。
+   */
+  constructor(textPort: ITextGenerationPort, fallback: ITextSplitterPort, modelId = 'MiniMax-M2.5-highspeed', logger?: ILoggerPort) {
     this.textPort = textPort;
     this.fallback = fallback;
+    this.modelId = modelId;
+    this.logger = logger;
   }
 
   async splitStoryToSegments(text: string, knownCharacterNames: string[]): Promise<SegmentDraft[]> {
     try {
       const result = await this.textPort.chatCompletion({
-        model: 'MiniMax-M2.5-highspeed',
+        model: this.modelId,
         messages: [
           { role: 'system', content: SPLIT_SYSTEM_PROMPT },
           { role: 'user', content: text },
@@ -49,7 +58,11 @@ export class MiniMaxTextSplitterAdapter implements ITextSplitterPort {
           : knownCharacterNames.filter(name => String(seg.content || '').includes(name)),
       })).filter(seg => seg.content.length > 0);
     } catch (e) {
-      console.warn('[MiniMaxTextSplitterAdapter] AI split failed, falling back to mock:', e);
+      this.logger?.warn('MiniMaxTextSplitterAdapter: AI split failed, falling back to mock', {
+      service: 'MiniMaxTextSplitterAdapter',
+      method: 'splitStoryToSegments',
+      error: e instanceof Error ? e.message : String(e),
+    });
       return this.fallback.splitStoryToSegments(text, knownCharacterNames);
     }
   }

@@ -37,6 +37,7 @@ const CAPABILITY_LABELS: Record<Capability, { zh: string; en: string }> = {
   text: { zh: '文本生成', en: 'Text Generation' },
   voice: { zh: '语音合成', en: 'Voice Synthesis' },
   music: { zh: '音乐生成', en: 'Music Generation' },
+  model: { zh: '模型管理', en: 'Model Management' },
 };
 
 export const UnsupportedCapabilityNotice: React.FC<UnsupportedCapabilityNoticeProps> = ({

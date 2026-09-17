@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Play, Loader2, CheckCircle2, XCircle, Clock, ChevronDown, ChevronUp } from 'lucide-react';
+import { Play, Loader2, CheckCircle2, XCircle, Clock, ChevronDown, ChevronUp, RotateCcw } from 'lucide-react';
 import { pipelineService } from '../../dependencies';
 import type { PipelineTask, PipelineOptions, PipelineStatus } from '../../domain/services/PipelineService';
 import type { VideoGenerationMode, VideoResolution } from '../../domain/ports/OutboundPorts';
@@ -74,6 +74,21 @@ export const PipelinePanel: React.FC<PipelinePanelProps> = ({ storyId, storyTitl
     } catch { /* ignore */ }
   }, [storyId, options]);
 
+  // A3 断点续跑：普通函数（每次渲染重建），避免 memoization 依赖竞态
+  const handleResume = async () => {
+    if (!currentTask?.id) return;
+    setIsRunning(true);
+    setExpanded(true);
+    try {
+      // A3 断点续跑：从第一个未完成阶段继续，已完成资产自动跳过
+      const task = await pipelineService.resumePipeline(currentTask.id, {
+        ...options,
+        onProgress: () => { },
+      });
+      setCurrentTask(task);
+    } catch { /* ignore */ }
+  };
+
   const handleCancel = () => {
     if (currentTask?.id) {
       pipelineService.cancelTask(currentTask.id);
@@ -109,6 +124,12 @@ export const PipelinePanel: React.FC<PipelinePanelProps> = ({ storyId, storyTitl
           )}
         </div>
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          {!isRunning && currentTask?.status === 'failed' && currentTask.steps.some(s => s.status === 'done') && (
+            <button className="btn btn-secondary" onClick={handleResume}
+              style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <RotateCcw size={14} /> {t('pipeline.resumeBtn')}
+            </button>
+          )}
           {!isRunning ? (
             <button className="btn btn-primary" disabled={!storyId}
               onClick={handleStart}

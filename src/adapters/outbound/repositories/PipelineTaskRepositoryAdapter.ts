@@ -35,6 +35,11 @@ export class PipelineTaskRepositoryAdapter implements IPipelineTaskRepository {
     return db.pipelineTasks.where('status').noneOf(['complete', 'failed']).toArray();
   }
 
+  /** B3 全量备份：查询全部任务（含历史终态） */
+  async findAll(): Promise<PipelineTask[]> {
+    return db.pipelineTasks.toArray();
+  }
+
   async delete(id: string): Promise<void> {
     await db.pipelineTasks.delete(id);
   }

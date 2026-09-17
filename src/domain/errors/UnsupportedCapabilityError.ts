@@ -29,6 +29,7 @@ export class UnsupportedCapabilityError extends DomainError {
       text: '文本生成',
       voice: '语音合成',
       music: '音乐生成',
+      model: '模型管理',
     };
     const capLabel = capabilityLabels[capability] ?? capability;
     // 推荐支持该能力的其他平台

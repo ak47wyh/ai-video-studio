@@ -20,7 +20,8 @@ export type Capability =
   | 'image'        // 图片生成
   | 'text'         // 文本生成
   | 'voice'        // 语音合成
-  | 'music';       // 音乐生成
+  | 'music'        // 音乐生成
+  | 'model';       // 模型管理
 
 /** 图片模型能力标志 */
 export interface ImageModelCapabilities {
@@ -116,7 +117,7 @@ export const PLATFORM_METADATA: Record<PlatformId, PlatformMeta> = {
     description: '视频/图片/文本/语音/音乐 · 全模态',
     externalLink: 'https://platform.minimaxi.com/user-center/basic-information/interface-key',
     docLink: 'https://platform.minimaxi.com/document/Platform%20Introduction',
-    capabilities: ['video', 'videoFl2v', 'videoS2v', 'image', 'text', 'voice', 'music'],
+    capabilities: ['video', 'videoFl2v', 'videoS2v', 'image', 'text', 'voice', 'music', 'model'],
     videoModels: ['MiniMax-Hailuo-2.3', 'MiniMax-Hailuo-02', 'T2V-01-Director', 'I2V-01'],
     imageModels: [
       {
@@ -301,6 +302,7 @@ export function getCapabilitySummary(platform: PlatformId): string {
     text: '文本',
     voice: '语音',
     music: '音乐',
+    model: '模型',
   };
   return caps.map(c => labels[c]).join(' / ');
 }

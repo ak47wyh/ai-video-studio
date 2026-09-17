@@ -1,4 +1,5 @@
 import type { IStoryBreakdownPort, StoryBreakdownResult, ITextGenerationPort } from '../../../domain/ports/OutboundPorts';
+import type { ILoggerPort } from '../../../domain/ports/CrossCuttingPorts';
 
 const BREAKDOWN_SYSTEM_PROMPT = `你是一个专业的视频剧本分析师，擅长从故事中提取角色、场景和分镜。
 
@@ -56,16 +57,24 @@ interface RawBreakdownResult {
 export class MiniMaxStoryBreakdownAdapter implements IStoryBreakdownPort {
   textPort: ITextGenerationPort;
   fallback: IStoryBreakdownPort;
+  private modelId: string;
+  private logger?: ILoggerPort;
 
-  constructor(textPort: ITextGenerationPort, fallback: IStoryBreakdownPort) {
+  /**
+   * A2 平台路由：modelId 由调用方按激活平台解析（默认 MiniMax），
+   * 不再硬编码单平台模型。
+   */
+  constructor(textPort: ITextGenerationPort, fallback: IStoryBreakdownPort, modelId = 'MiniMax-M2.5', logger?: ILoggerPort) {
     this.textPort = textPort;
     this.fallback = fallback;
+    this.modelId = modelId;
+    this.logger = logger;
   }
 
   async breakdownStory(text: string): Promise<StoryBreakdownResult> {
     try {
       const result = await this.textPort.chatCompletion({
-        model: 'MiniMax-M2.5',
+        model: this.modelId,
         messages: [
           { role: 'system', content: BREAKDOWN_SYSTEM_PROMPT },
           { role: 'user', content: text },
@@ -114,7 +123,11 @@ export class MiniMaxStoryBreakdownAdapter implements IStoryBreakdownPort {
 
       return { characters, backgrounds, segments };
     } catch (e) {
-      console.warn('[MiniMaxStoryBreakdownAdapter] AI breakdown failed, falling back to mock:', e);
+      this.logger?.warn('MiniMaxStoryBreakdownAdapter: AI breakdown failed, falling back to mock', {
+      service: 'MiniMaxStoryBreakdownAdapter',
+      method: 'breakdownStory',
+      error: e instanceof Error ? e.message : String(e),
+    });
       return this.fallback.breakdownStory(text);
     }
   }

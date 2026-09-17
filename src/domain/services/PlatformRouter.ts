@@ -1,5 +1,5 @@
 import type { ApiConfig, PlatformId } from '../entities/platform';
-import type { IVideoGeneratorPort, IImageGeneratorPort, ITextGenerationPort, IVoicePort, IMusicPort } from '../ports/OutboundPorts';
+import type { IVideoGeneratorPort, IImageGeneratorPort, ITextGenerationPort, IVoicePort, IMusicPort, IModelManagementPort } from '../ports/OutboundPorts';
 import type { IApiConfigStore, IPlatformCapabilitiesPort, PlatformCapability } from '../ports/PlatformPorts';
 import type { ILoggerPort } from '../ports/CrossCuttingPorts';
 
@@ -9,6 +9,7 @@ import { MiniMaxImageAdapter } from '../../adapters/outbound/api/MiniMaxImageAda
 import { MiniMaxTextAdapter } from '../../adapters/outbound/api/MiniMaxTextAdapter';
 import { MiniMaxVoiceAdapter } from '../../adapters/outbound/api/MiniMaxVoiceAdapter';
 import { MiniMaxMusicAdapter } from '../../adapters/outbound/api/MiniMaxMusicAdapter';
+import { MiniMaxModelAdapter } from '../../adapters/outbound/api/MiniMaxModelAdapter';
 import { VolcengineVideoAdapter } from '../../adapters/outbound/api/volcengine/VolcengineVideoAdapter';
 import { VolcengineImageAdapter } from '../../adapters/outbound/api/volcengine/VolcengineImageAdapter';
 import { VolcengineTextAdapter } from '../../adapters/outbound/api/volcengine/VolcengineTextAdapter';
@@ -118,6 +119,9 @@ export class PlatformRouter {
 
     // music（仅 MiniMax；其他平台通过 ensureCap 拦截，符合 P2-6 修复）
     this.register('music', 'minimax', () => new MiniMaxMusicAdapter());
+
+    // model 模型管理（A2：仅 MiniMax 实现 List Models API，其他平台 ensureCap 拦截）
+    this.register('model', 'minimax', () => new MiniMaxModelAdapter());
   }
 
   /** 注册某 (capability, platform) 的工厂 */
@@ -151,6 +155,7 @@ export class PlatformRouter {
   resolve(capability: 'text', config: ApiConfig): ITextGenerationPort;
   resolve(capability: 'voice', config: ApiConfig): IVoicePort;
   resolve(capability: 'music', config: ApiConfig): IMusicPort;
+  resolve(capability: 'model', config: ApiConfig): IModelManagementPort;
   resolve(capability: string, config: ApiConfig): unknown {
     switch (capability) {
       case 'video': return this.resolveVideo(config);
@@ -158,13 +163,14 @@ export class PlatformRouter {
       case 'text': return this.resolveText(config);
       case 'voice': return this.resolveVoice(config);
       case 'music': return this.resolveMusic(config);
+      case 'model': return this.resolveModel(config);
       default: throw new Error(`Unsupported capability: ${capability}`);
     }
   }
 
   private ensureCap(platform: PlatformId, cap: PlatformCapability): void {
     if (!this.capabilities.hasCapability(platform, cap)) {
-      throw new UnsupportedCapabilityError(platform, cap as 'video' | 'image' | 'text' | 'voice' | 'music');
+      throw new UnsupportedCapabilityError(platform, cap as 'video' | 'image' | 'text' | 'voice' | 'music' | 'model');
     }
   }
 
@@ -173,7 +179,7 @@ export class PlatformRouter {
     const platform = config.activePlatform;
     const capMap = this.registry.get(capability);
     if (!capMap || !capMap.has(platform)) {
-      throw new UnsupportedCapabilityError(platform, capability as 'video' | 'image' | 'text' | 'voice' | 'music');
+      throw new UnsupportedCapabilityError(platform, capability as 'video' | 'image' | 'text' | 'voice' | 'music' | 'model');
     }
     const cached = this.cache.get(capability);
     if (cached && cached.platform === platform) {
@@ -215,6 +221,13 @@ export class PlatformRouter {
     // P2-6 修复：music 能力仅 MiniMax 声明支持（platformCapabilities.ts）；
     // 注册表未注册的平台会抛 UnsupportedCapabilityError，避免静默 fallback。
     return this.resolveAdapter<IMusicPort>('music', config);
+  }
+
+  resolveModel(config: ApiConfig): IModelManagementPort {
+    this.ensureCap(config.activePlatform, 'model');
+    // A2：模型管理能力仅 MiniMax 声明支持（List Models API），
+    // 其他平台走 UnsupportedCapabilityError，UI 层据此提示切换平台。
+    return this.resolveAdapter<IModelManagementPort>('model', config);
   }
 
   hasCapability(capability: PlatformCapability): boolean {

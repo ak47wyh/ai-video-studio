@@ -95,5 +95,7 @@ export interface IPipelineTaskRepository {
   findByStoryId(storyId: string): Promise<PipelineTask[]>;
   /** 查询所有运行中（status='running'）的任务，用于启动恢复 */
   findActive(): Promise<PipelineTask[]>;
+  /** B3 全量备份：查询全部任务（含历史） */
+  findAll(): Promise<PipelineTask[]>;
   delete(id: string): Promise<void>;
 }

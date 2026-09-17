@@ -345,6 +345,15 @@
     "copyToSpace": "Copy to other space"
   },
   "settings": {
+    "backup": {
+      "title": "Data Backup & Restore",
+      "desc": "Export all local data (spaces, characters, backgrounds, stories, segments, video tasks, final cuts, pipeline tasks and cost records) as a single JSON file, and restore it anytime.",
+      "exportBtn": "Export Full Backup",
+      "importBtn": "Import Backup",
+      "exportDone": "Backup exported",
+      "importDone": "Import complete: {{count}} records",
+      "ready": "Ready"
+    },
     "title": "Settings",
     "localStorage": {
       "title": "Local Save Path",
@@ -465,7 +474,8 @@
     "capText": "Text",
     "capVoice": "Voice",
     "capMusic": "Music",
-    "volcCorsWarning": "The Anthropic protocol endpoint does not support browser-direct CORS (preflight rejects the anthropic-version header). If you encounter CORS errors, change the Base URL to your reverse proxy address, or enable auto-fallback below.",
+
+    "capModel": "Model",    "volcCorsWarning": "The Anthropic protocol endpoint does not support browser-direct CORS (preflight rejects the anthropic-version header). If you encounter CORS errors, change the Base URL to your reverse proxy address, or enable auto-fallback below.",
     "volcProxyGuide": "View reverse proxy example (Cloudflare Worker)",
     "volcAutoFallbackToggle": "Auto-fallback to OpenAI protocol on CORS block",
     "volcAutoFallbackDesc": "When the Anthropic endpoint is blocked by browser preflight, automatically switch to the OpenAI protocol. Note: OpenAI protocol is pay-as-you-go, and the Agent Plan key may not have OpenAI API access.",
@@ -519,7 +529,8 @@
     "musicModels": "Music Generation Models",
     "dynamic": "Dynamic",
     "static": "Static",
-    "cachedAt": "Cached at: {{time}}"
+    "cachedAt": "Cached at: {{time}}",
+    "onlyMinimaxHint": "Model management is only supported on MiniMax (Hailuo). Switch to Hailuo to refresh."
   },
   "music": {
     "title": "Background Music",
@@ -852,6 +863,7 @@
   "pipeline": {
     "title": "Pipeline",
     "startBtn": "Generate All",
+    "resumeBtn": "Resume",
     "cancelBtn": "Cancel",
     "includeNarration": "Include Narration",
     "includeBGM": "Include BGM",

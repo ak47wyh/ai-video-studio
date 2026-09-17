@@ -22,15 +22,24 @@ export class TextGenerationService {
     this.configStore = configStore;
     this.costMeter = costMeter;
     this.logger = logger;
-    this.modelRegistry = modelRegistry ?? {
-      resolveTextModel: () => 'MiniMax-M2.5-highspeed',
-      resolveImageModel: () => 'image-01',
-      resolveVideoModel: () => 'T2V-01-Director',
-    };
+    this.modelRegistry = modelRegistry ?? this.createStaticFallbackRegistry();
     // 注:resolveImageModel 的默认值 'image-01' 为 MiniMax 默认模型,
     // 实际运行时由 PlatformModelRegistry.resolveImageModel() 从注册表读取真实 ID。
   }
 
+  /**
+   * 静态降级模型注册表（未注入 IModelRegistry 时使用）。
+   * 实际运行由 PlatformModelRegistry 按激活平台解析，此处仅供测试/手动构造兜底。
+   */
+  private createStaticFallbackRegistry(): IModelRegistry {
+    return {
+      resolveTextModel: () => 'MiniMax-M2.5-highspeed',
+      resolveImageModel: () => 'image-01',
+      resolveVideoModel: () => 'T2V-01-Director',
+      getPlatformTextModels: () => [],
+      getDefaultTextModel: () => 'MiniMax-M2.5-highspeed',
+    };
+  }
   /**
    * 记录一次文本调用到成本计量（P1-21）。
    * 仅在 costMeter 注入时生效；usage 缺失时仅记录调用次数。

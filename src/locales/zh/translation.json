@@ -346,6 +346,15 @@
     "copyToSpace": "复制到其他空间"
   },
   "settings": {
+    "backup": {
+      "title": "数据备份与恢复",
+      "desc": "导出全部本地数据（空间、角色、背景、故事、分镜、视频任务、成片、Pipeline 任务与成本记录）为单个 JSON 文件，可随时导入恢复。",
+      "exportBtn": "导出全量备份",
+      "importBtn": "导入备份",
+      "exportDone": "备份已导出",
+      "importDone": "导入完成：{{count}} 条记录",
+      "ready": "就绪"
+    },
     "title": "配置中心",
     "localStorage": {
       "title": "本地保存路径",
@@ -485,7 +494,8 @@
     "capText": "文本",
     "capVoice": "语音",
     "capMusic": "音乐",
-    "volcCorsWarning": "Anthropic 协议端点不支持浏览器直连 CORS(预检会拒绝 anthropic-version 头)。如遇跨域错误,可将 Base URL 改为您的反代地址,或开启下方自动降级。",
+
+    "capModel": "模型",    "volcCorsWarning": "Anthropic 协议端点不支持浏览器直连 CORS(预检会拒绝 anthropic-version 头)。如遇跨域错误,可将 Base URL 改为您的反代地址,或开启下方自动降级。",
     "volcProxyGuide": "查看反代示例(Cloudflare Worker)",
     "volcAutoFallbackToggle": "CORS 拦截时自动降级到 OpenAI 协议",
     "volcAutoFallbackDesc": "Anthropic 端点被浏览器预检拦截时,自动改用 OpenAI 协议发起请求。注意:OpenAI 协议按量计费,且 Agent Plan Key 不一定开通 OpenAI 接口权限。",
@@ -520,7 +530,8 @@
     "musicModels": "音乐生成模型",
     "dynamic": "动态获取",
     "static": "静态配置",
-    "cachedAt": "缓存时间：{{time}}"
+    "cachedAt": "缓存时间：{{time}}",
+    "onlyMinimaxHint": "模型管理仅支持 MiniMax（海螺）平台，请切换到海螺后刷新。"
   },
   "music": {
     "title": "背景音乐",
@@ -782,6 +793,7 @@
   "pipeline": {
     "title": "全流程管线",
     "startBtn": "一键生成",
+    "resumeBtn": "继续",
     "cancelBtn": "取消",
     "includeNarration": "包含旁白",
     "includeBGM": "包含BGM",

@@ -325,4 +325,6 @@ export interface ICostMeter {
   getRecords(filter?: { spaceId?: string; storyId?: string; pipelineTaskId?: string }, limit?: number): CostRecord[];
   /** 清空记录 */
   clear(): void;
+  /** B3 全量备份恢复：批量导入历史记录（可选实现，非持久化实现可忽略） */
+  restore?(records: CostRecord[]): void;
 }

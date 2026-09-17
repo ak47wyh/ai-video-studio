@@ -4,6 +4,7 @@ import { DollarSign, Trash2, RefreshCw, TrendingUp, Cpu, Mic, Music, Film, Image
 import { SettingsSection } from './SettingsSection';
 import { costMeter } from '../../../dependencies';
 import type { CostSummary, CostRecord } from '../../../domain/ports/CrossCuttingPorts';
+import type { PersistedCostMeter } from '../../../adapters/outbound/PersistedCostMeter';
 
 /** 调用类型图标与颜色映射 */
 const CALL_TYPE_META: Record<CostRecord['callType'], { icon: React.ReactNode; color: string; label: string }> = {
@@ -32,13 +33,25 @@ const CALL_TYPE_META: Record<CostRecord['callType'], { icon: React.ReactNode; co
  */
 export const CostMeterSection: React.FC = () => {
   const { t } = useTranslation();
+  // B1：PersistedCostMeter 提供 localStorage 持久化 + 预算告警
+  const meter = costMeter as unknown as PersistedCostMeter;
   const [summary, setSummary] = useState<CostSummary | null>(() => costMeter.getSummary());
   const [records, setRecords] = useState<CostRecord[]>(() => costMeter.getRecords(undefined, 20));
+  const [budget, setBudget] = useState<string>(() => meter.getBudget()?.toString() ?? '');
+  const [budgetExceeded, setBudgetExceeded] = useState<boolean>(() => meter.getBudgetExceeded());
 
   const refresh = useCallback(() => {
     setSummary(costMeter.getSummary());
     setRecords(costMeter.getRecords(undefined, 20));
-  }, []);
+    setBudget(meter.getBudget()?.toString() ?? '');
+    setBudgetExceeded(meter.getBudgetExceeded());
+  }, [meter]);
+
+  const handleBudgetSave = () => {
+    const n = Number(budget);
+    meter.setBudget(Number.isFinite(n) && n > 0 ? n : undefined);
+    refresh();
+  };
 
   const handleClear = () => {
     costMeter.clear();
@@ -78,6 +91,33 @@ export const CostMeterSection: React.FC = () => {
           <Trash2 size={12} />
           {t('settings.costMeter.clear', '清空')}
         </button>
+      </div>
+
+      {/* B1 预算告警：Token 预算设置 + 超额提示（PersistedCostMeter 持久化） */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+          {t('settings.costMeter.budgetLabel', 'Token 预算')}
+        </label>
+        <input
+          type="number"
+          min={0}
+          value={budget}
+          onChange={e => setBudget(e.target.value)}
+          placeholder={t('settings.costMeter.budgetPlaceholder', '不限制')}
+          style={{
+            width: '120px', fontSize: '0.8rem', padding: '0.3rem 0.5rem',
+            borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)',
+            background: 'var(--bg-color)', color: 'var(--text-primary)',
+          }}
+        />
+        <button className="btn btn-secondary" onClick={handleBudgetSave} style={{ fontSize: '0.8rem', padding: '0.3rem 0.7rem' }}>
+          {t('settings.costMeter.budgetSave', '保存')}
+        </button>
+        {budgetExceeded && (
+          <span style={{ fontSize: '0.8rem', color: '#f87171', fontWeight: 600 }}>
+            {t('settings.costMeter.budgetExceeded', '已超出 Token 预算，请检查用量或提高预算')}
+          </span>
+        )}
       </div>
 
       {!summary || summary.totalCalls === 0 ? (

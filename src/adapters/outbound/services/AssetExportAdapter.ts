@@ -25,6 +25,9 @@ interface ExportBundle {
   segments: StorySegment[];
   videoTasks: VideoTask[];
   finalCuts: FinalCut[];
+  /** B3 全量备份：Pipeline 任务（含历史终态）与成本记录（可选字段，向后兼容） */
+  pipelineTasks?: PipelineTask[];
+  costRecords?: CostRecord[];
 }
 
 interface SpaceBundle {
@@ -46,6 +49,9 @@ import type { IStoryRepository } from '../../../domain/ports/OutboundPorts';
 import type { IStorySegmentRepository } from '../../../domain/ports/OutboundPorts';
 import type { IVideoTaskRepository } from '../../../domain/ports/OutboundPorts';
 import type { IFinalCutRepository } from '../../../domain/ports/OutboundPorts';
+import type { IPipelineTaskRepository } from '../../../domain/ports/PersistencePorts';
+import type { ICostMeter, CostRecord } from '../../../domain/ports/CrossCuttingPorts';
+import type { PipelineTask } from '../../../domain/entities/models';
 
 export class AssetExportAdapter implements IAssetExportPort {
   private spaceRepo: IStorySpaceRepository;
@@ -55,6 +61,8 @@ export class AssetExportAdapter implements IAssetExportPort {
   private segmentRepo: IStorySegmentRepository;
   private videoTaskRepo: IVideoTaskRepository;
   private finalCutRepo: IFinalCutRepository;
+  private pipelineTaskRepo?: IPipelineTaskRepository;
+  private costMeter?: ICostMeter;
 
   constructor(
     spaceRepo: IStorySpaceRepository,
@@ -64,6 +72,8 @@ export class AssetExportAdapter implements IAssetExportPort {
     segmentRepo: IStorySegmentRepository,
     videoTaskRepo: IVideoTaskRepository,
     finalCutRepo: IFinalCutRepository,
+    pipelineTaskRepo?: IPipelineTaskRepository,
+    costMeter?: ICostMeter,
   ) {
     this.spaceRepo = spaceRepo;
     this.characterRepo = characterRepo;
@@ -72,6 +82,8 @@ export class AssetExportAdapter implements IAssetExportPort {
     this.segmentRepo = segmentRepo;
     this.videoTaskRepo = videoTaskRepo;
     this.finalCutRepo = finalCutRepo;
+    this.pipelineTaskRepo = pipelineTaskRepo;
+    this.costMeter = costMeter;
   }
 
   async exportSpaceAsJson(spaceId: string): Promise<Blob> {
@@ -128,6 +140,9 @@ export class AssetExportAdapter implements IAssetExportPort {
     );
     const finalCuts = finalCutsNested.flat();
 
+    const pipelineTasks = this.pipelineTaskRepo ? await this.pipelineTaskRepo.findAll() : undefined;
+    const costRecords = this.costMeter ? this.costMeter.getRecords(undefined, 10000) : undefined;
+
     const bundle: ExportBundle = {
       version: 'v1',
       exportedAt: Date.now(),
@@ -138,6 +153,8 @@ export class AssetExportAdapter implements IAssetExportPort {
       segments,
       videoTasks,
       finalCuts,
+      pipelineTasks,
+      costRecords,
     };
     return new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' });
   }
@@ -180,6 +197,13 @@ export class AssetExportAdapter implements IAssetExportPort {
     await Promise.all(eb.segments.map(s => this.segmentRepo.save(s)));
     await Promise.all(eb.videoTasks.map(t => this.videoTaskRepo.save(t)));
     await Promise.all(eb.finalCuts.map(c => this.finalCutRepo.save(c)));
+    // B3：恢复 Pipeline 任务与成本记录（备份文件含这些字段时）
+    if (eb.pipelineTasks && this.pipelineTaskRepo) {
+      await Promise.all(eb.pipelineTasks.map(t => this.pipelineTaskRepo!.save(t)));
+    }
+    if (eb.costRecords) {
+      this.costMeter?.restore?.(eb.costRecords);
+    }
 
     const imported =
       eb.spaces.length +

@@ -15,11 +15,10 @@ import { MiniMaxImageAdapter } from './adapters/outbound/api/MiniMaxImageAdapter
 import { MiniMaxVoiceAdapter } from './adapters/outbound/api/MiniMaxVoiceAdapter';
 import { MiniMaxMusicAdapter } from './adapters/outbound/api/MiniMaxMusicAdapter';
 import { MiniMaxTextAdapter } from './adapters/outbound/api/MiniMaxTextAdapter';
-import { MiniMaxTextSplitterAdapter } from './adapters/outbound/api/MiniMaxTextSplitterAdapter';
-import { MiniMaxStoryBreakdownAdapter } from './adapters/outbound/api/MiniMaxStoryBreakdownAdapter';
-import { MiniMaxModelAdapter } from './adapters/outbound/api/MiniMaxModelAdapter';
+import { PlatformAwareTextSplitter } from './adapters/outbound/services/PlatformAwareTextSplitter';
+import { PlatformAwareStoryBreakdown } from './adapters/outbound/services/PlatformAwareStoryBreakdown';
 import { FFmpegAdapter } from './adapters/outbound/api/FFmpegAdapter';
-import { WhisperAdapter } from './adapters/outbound/api/WhisperAdapter';
+import { DashScopeAsrAdapter } from './adapters/outbound/api/DashScopeAsrAdapter';
 
 // ==================== Mock / 降级适配器 ====================
 import { MockTextSplitterAdapter } from './adapters/outbound/api/MockTextSplitter';
@@ -30,7 +29,7 @@ import { apiConfigStoreAdapter } from './adapters/outbound/config/ApiConfigStore
 /** API 配置 Port 单例（暴露给 UI 层读取激活平台） */
 export { apiConfigStoreAdapter };
 import { PlatformModelRegistry } from './adapters/outbound/config/PlatformModelRegistry';
-import { InMemoryCostMeter } from './adapters/outbound/InMemoryCostMeter';
+import { PersistedCostMeter } from './adapters/outbound/PersistedCostMeter';
 
 // ==================== 领域服务层 ====================
 import { StoryService } from './domain/services/StoryService';
@@ -220,23 +219,34 @@ export const imageAdapter = new MiniMaxImageAdapter();
 export const voiceAdapter = new MiniMaxVoiceAdapter();
 export const musicAdapter = new MiniMaxMusicAdapter();
 export const textAdapter = new MiniMaxTextAdapter();
-export const modelAdapter = new MiniMaxModelAdapter();
 export const ffmpegAdapter = new FFmpegAdapter();
-export const whisperAdapter = new WhisperAdapter();
+// A1：字幕 ASR 接入真实云端服务（DashScope Paraformer，复用 Wan 平台 Key）；
+// 未配置 Key / 失败时自动降级为平均分配（WhisperAdapter 占位实现保留在代码库）
+export const whisperAdapter = new DashScopeAsrAdapter(apiConfigStoreAdapter, defaultLogger.child({ service: 'DashScopeAsr' }));
+
+// ========================================
+// M3.3 模型注册表（EVOLUTION_DESIGN.md §7.3）
+// 必须先于所有业务服务实例化（TextGenerationService 等依赖）与
+// smartTextSplitter / smartStoryBreakdown（A2 平台路由拆分器）
+// ========================================
+export const modelRegistry = new PlatformModelRegistry(
+  apiConfigStoreAdapter,
+  defaultLogger.child({ service: 'ModelRegistry' })
+);
 
 // ========================================
 // Mock / 智能降级实例
 // ========================================
 export const mockTextSplitter = new MockTextSplitterAdapter();
 export const mockStoryBreakdown = new MockStoryBreakdownAdapter();
-export const smartTextSplitter = new MiniMaxTextSplitterAdapter(textAdapter, mockTextSplitter);
-export const smartStoryBreakdown = new MiniMaxStoryBreakdownAdapter(textAdapter, mockStoryBreakdown);
+export const smartTextSplitter = new PlatformAwareTextSplitter(platformRouter, apiConfigStoreAdapter, mockTextSplitter, modelRegistry, defaultLogger.child({ service: 'SmartTextSplitter' }));
+export const smartStoryBreakdown = new PlatformAwareStoryBreakdown(platformRouter, apiConfigStoreAdapter, mockStoryBreakdown, modelRegistry, defaultLogger.child({ service: 'SmartStoryBreakdown' }));
 
 // ========================================
 // M3.4 成本计量（EVOLUTION_DESIGN.md §7.4）
 // 必须先于所有业务服务实例化（imageGenerationService/textGenerationService 等依赖）
 // ========================================
-export const costMeter = new InMemoryCostMeter();
+export const costMeter = new PersistedCostMeter();
 
 // ========================================
 // 创作域服务（故事→分镜→角色/场景生成）
@@ -246,15 +256,6 @@ export const storyService = new StoryService(
   smartTextSplitter, smartStoryBreakdown, videoTaskRepo,
   defaultLogger, // Phase 7：日志注入
   unitOfWork // P0 修复：applyBreakdown 事务包裹
-);
-
-// ========================================
-// M3.3 模型注册表（EVOLUTION_DESIGN.md §7.3）
-// 必须先于所有业务服务实例化（TextGenerationService等依赖）
-// ========================================
-export const modelRegistry = new PlatformModelRegistry(
-  apiConfigStoreAdapter,
-  defaultLogger.child({ service: 'ModelRegistry' })
 );
 
 export const imageGenerationService = new ImageGenerationService(
@@ -393,7 +394,7 @@ export const storySpaceService = new StorySpaceService(
 import { ModelCacheAdapter } from './adapters/outbound/repositories/ModelCacheAdapter';
 import type { ModelInfo } from './domain/ports/OutboundPorts';
 const modelCache = new ModelCacheAdapter<ModelInfo>('minimax_cached_models', 60 * 60 * 1000);
-export const modelManagementService = new ModelManagementService(modelAdapter, modelCache, defaultLogger);
+export const modelManagementService = new ModelManagementService(() => platformRouter.resolveModel(apiConfigStoreAdapter.load()), modelCache, defaultLogger);
 
 // ========================================
 // AI 增强服务
@@ -520,7 +521,9 @@ import { AssetExportAdapter } from './adapters/outbound/services/AssetExportAdap
 
 export const autoEditPort: import('./domain/ports/DomainServicePorts').IAutoEditPort = new AutoEditPortAdapter(autoEditService);
 export const assetExportPort: import('./domain/ports/DomainServicePorts').IAssetExportPort = new AssetExportAdapter(
-  spaceRepo, characterRepo, backgroundRepo, storyRepo, segmentRepo, videoTaskRepo, finalCutRepo
+  spaceRepo, characterRepo, backgroundRepo, storyRepo, segmentRepo, videoTaskRepo, finalCutRepo,
+  pipelineTaskRepo, // B3：全量备份含 Pipeline 任务（含历史）
+  costMeter,       // B3：全量备份含成本记录
 );
 
 // ========================================
