@@ -6,6 +6,7 @@ import {
   ChevronLeft, ChevronRight, Plus, Zap, Palette, Music as MusicIcon, X, Menu, Eraser,
   Ban,
   Boxes,
+  FolderKanban,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAllSpaces } from '../hooks/useSpaceScopedQuery';
@@ -108,6 +109,7 @@ export const MainLayout: React.FC = () => {
         { to: '/backgrounds', icon: <Palette size={18} />, label: t('nav.backgrounds') },
 { to: '/assets', icon: <Boxes size={18} />, label: t('nav.assetLibrary', '素材库') },
         { to: '/spaces', icon: <FolderOpen size={18} />, label: t('nav.spaces') },
+{ to: '/projects', icon: <FolderKanban size={18} />, label: t('nav.projects', '项目') },
       ],
     },
     {

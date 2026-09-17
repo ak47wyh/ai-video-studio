@@ -55,7 +55,8 @@
     "capabilityNotSupportedDefault": "このプラットフォームはこの機能をサポートしていません",
     "activePlatformInfo": "現在のアクティブプラットフォーム：{{name}}（{{brand}}）\n機能：{{capabilities}}",
     "activePlatformBrief": "現在のアクティブプラットフォーム：{{name}}（{{brand}}）",
-    "assetLibrary": "素材ライブラリ"
+    "assetLibrary": "素材ライブラリ",
+    "projects": "プロジェクト"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -1076,5 +1077,35 @@
     "noVersions": "他のバージョンはありません",
     "currentVersion": "現在",
     "fromVersion": "基づく"
+  },
+  "project": {
+    "title": "プロジェクト/シリーズ",
+    "subtitle": "シリーズ脚本集と統一スタイル設定",
+    "createBtn": "新規プロジェクト",
+    "createSuccess": "プロジェクトを作成しました",
+    "namePlaceholder": "シリーズ名",
+    "descPlaceholder": "説明（任意）",
+    "empty": "プロジェクトはまだありません。シリーズを作成して多話制作を支えましょう",
+    "storiesCount": "話",
+    "settingsTitle": "シリーズ設定",
+    "deleteBtn": "プロジェクトを削除",
+    "deleteSuccess": "プロジェクトを削除しました",
+    "nameLabel": "名前",
+    "descLabel": "説明",
+    "videoStyle": "統一画面スタイル",
+    "videoResolution": "統一解像度",
+    "narrationVoice": "音声の好み",
+    "narrationVoicePlaceholder": "例：優しい女性の声",
+    "bgmPreference": "BGM の好み",
+    "bgmPreferencePlaceholder": "例：壮大なオーケストラ",
+    "saveBtn": "設定を保存",
+    "saveSuccess": "保存しました",
+    "linkedStories": "関連付けた話",
+    "noLinkedStories": "関連付けた話はありません",
+    "availableStories": "関連付け可能な話",
+    "noAvailableStories": "関連付け可能な話はありません",
+    "unlink": "解除",
+    "link": "関連付け",
+    "hint": "シリーズ設定（スタイル/解像度/音声/BGM）は子話の生成時に継承されます。プロジェクトを削除しても話は削除されず、関連付けが解除されるだけです。"
   }
 }

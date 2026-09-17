@@ -23,7 +23,8 @@
     "platformSwitcherTooltip": "Aktive Plattform wechseln",
     "platformNotConfigured": "Plattform nicht konfiguriert. Bitte im Einstellungszentrum den API-Schlüssel eintragen.",
     "languageSwitcherTooltip": "Sprache wechseln",
-    "assetLibrary": "Asset Library"
+    "assetLibrary": "Asset Library",
+    "projects": "Projects"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -762,5 +763,35 @@
     "noVersions": "No other versions",
     "currentVersion": "Current",
     "fromVersion": "from"
+  },
+  "project": {
+    "title": "Projects / Series",
+    "subtitle": "Series script sets with unified style settings",
+    "createBtn": "New Project",
+    "createSuccess": "Project created",
+    "namePlaceholder": "Series name",
+    "descPlaceholder": "Description (optional)",
+    "empty": "No projects yet. Create a series for multi-episode creation.",
+    "storiesCount": "stories",
+    "settingsTitle": "Series Settings",
+    "deleteBtn": "Delete Project",
+    "deleteSuccess": "Project deleted",
+    "nameLabel": "Name",
+    "descLabel": "Description",
+    "videoStyle": "Unified style",
+    "videoResolution": "Unified resolution",
+    "narrationVoice": "Voice preference",
+    "narrationVoicePlaceholder": "e.g. soft female voice",
+    "bgmPreference": "BGM preference",
+    "bgmPreferencePlaceholder": "e.g. epic orchestral",
+    "saveBtn": "Save Settings",
+    "saveSuccess": "Saved",
+    "linkedStories": "Linked Stories",
+    "noLinkedStories": "No linked stories",
+    "availableStories": "Available Stories",
+    "noAvailableStories": "No available stories",
+    "unlink": "Unlink",
+    "link": "Link",
+    "hint": "Series settings (style/resolution/voice/BGM) are inherited by child stories; deleting a project only unlinks stories, never deletes them."
   }
 }

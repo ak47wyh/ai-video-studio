@@ -55,7 +55,8 @@
     "platformSwitcherTooltip": "切换激活平台",
     "platformNotConfigured": "平台未配置,请前往配置中心填写 API Key",
     "languageSwitcherTooltip": "切换语言",
-    "assetLibrary": "素材库"
+    "assetLibrary": "素材库",
+    "projects": "项目"
   },
   "dashboard": {
     "title": "控制台",
@@ -1073,5 +1074,35 @@
     "noVersions": "暂无其他版本",
     "currentVersion": "当前",
     "fromVersion": "基于"
+  },
+  "project": {
+    "title": "项目/系列",
+    "subtitle": "系列剧本集与统一风格设定",
+    "createBtn": "新建项目",
+    "createSuccess": "项目已创建",
+    "namePlaceholder": "系列名称",
+    "descPlaceholder": "描述（可选）",
+    "empty": "暂无项目，创建系列以承载多集创作",
+    "storiesCount": "故事",
+    "settingsTitle": "系列设置",
+    "deleteBtn": "删除项目",
+    "deleteSuccess": "项目已删除",
+    "nameLabel": "名称",
+    "descLabel": "描述",
+    "videoStyle": "统一画面风格",
+    "videoResolution": "统一分辨率",
+    "narrationVoice": "音色偏好",
+    "narrationVoicePlaceholder": "如：温柔女声",
+    "bgmPreference": "BGM 偏好",
+    "bgmPreferencePlaceholder": "如：史诗管弦",
+    "saveBtn": "保存设置",
+    "saveSuccess": "已保存",
+    "linkedStories": "已关联故事",
+    "noLinkedStories": "暂无关联故事",
+    "availableStories": "可关联故事",
+    "noAvailableStories": "无可关联故事",
+    "unlink": "解除",
+    "link": "关联",
+    "hint": "系列设置（风格/分辨率/音色/BGM）供子故事生成时继承；删除项目仅解除关联，不删除故事。"
   }
 }

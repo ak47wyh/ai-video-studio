@@ -6,6 +6,32 @@ export interface StorySpace {
   description: string;
   createdAt: number;
 }
+// ===== P1-5 项目/系列 =====
+
+/** 系列设置（项目级偏好，供子故事继承） */
+export interface ProjectStyleSettings {
+  /** 统一画面风格 */
+  videoStyle?: VideoStyle;
+  /** 统一分辨率 */
+  videoResolution?: VideoResolution;
+  /** 音色偏好（角色名/音色 ID） */
+  narrationVoice?: string;
+  /** BGM 偏好描述 */
+  bgmPreference?: string;
+}
+
+/** 项目/系列：Space 之上的系列剧本集与统一风格设定 */
+export interface Project {
+  id: string;
+  spaceId: string;
+  name: string;
+  description?: string;
+  /** 系列设置（子故事继承） */
+  styleSettings?: ProjectStyleSettings;
+  createdAt: number;
+  updatedAt: number;
+}
+
 
 export interface Character {
   id: string;
@@ -39,6 +65,8 @@ export type StoryStatus = 'DRAFT' | 'SPLIT';
 export interface Story {
   id: string;
   spaceId: string;
+  /** P1-5 所属项目（系列），无则独立故事 */
+  projectId?: string;
   title: string;
   originalText: string;
   status: StoryStatus;

@@ -21,6 +21,7 @@ const StoryWorkbench = lazy(() => import('./ui/pages/StoryWorkbench').then(m => 
 const StorySpaceManagement = lazy(() => import('./ui/pages/StorySpaceManagement').then(m => ({ default: m.StorySpaceManagement })));
 const Settings = lazy(() => import('./ui/pages/Settings').then(m => ({ default: m.Settings })));
 const AssetLibrary = lazy(() => import('./ui/pages/AssetLibrary').then(m => ({ default: m.AssetLibrary })));
+const ProjectPage = lazy(() => import('./ui/pages/ProjectPage').then(m => ({ default: m.ProjectPage })));
 const ExportCenter = lazy(() => import('./ui/pages/ExportCenter').then(m => ({ default: m.ExportCenter })));
 const ImageLab = lazy(() => import('./ui/pages/ImageLab').then(m => ({ default: m.ImageLab })));
 const VoiceLab = lazy(() => import('./ui/pages/VoiceLab').then(m => ({ default: m.VoiceLab })));
@@ -105,6 +106,7 @@ function App() {
                       <Route path="spaces" element={<StorySpaceManagement />} />
                       <Route path="spaces/:id" element={<SpaceDetailPage />} />
 <Route path="assets" element={<AssetLibrary />} />
+<Route path="projects" element={<ProjectPage />} />
                       <Route path="export" element={<ExportCenter />} />
                       <Route path="labs/image" element={<ImageLab />} />
                       <Route path="labs/voice" element={<VoiceLab />} />
