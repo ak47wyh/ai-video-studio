@@ -694,7 +694,8 @@
       "done": "QC チェック完了",
       "issues": "{count} 件の問題を検出",
       "failed": "QC チェック失敗"
-    }
+    },
+    "versionCompare": "バージョン比較"
   },
   "agent": {
     "title": "AI Assistant",
@@ -1146,5 +1147,22 @@
     "copy": "適用",
     "previewTitle": "適用プレビュー",
     "deleteSuccess": "テンプレートを削除しました"
+  },
+  "versionCompare": {
+    "title": "同源バージョン比較",
+    "tree": "バージョンツリー（単一選択で A に設定）",
+    "root": "ルート",
+    "pickB": "比較対象 B",
+    "asB": "比較 B",
+    "versionA": "バージョン A",
+    "versionB": "バージョン B",
+    "subs": "字幕",
+    "cost": "コスト",
+    "duration": "尺",
+    "noSubs": "字幕なし",
+    "costNa": "コスト帰属不可",
+    "calls": "呼び出し",
+    "tokens": "トークン",
+    "close": "閉じる"
   }
 }

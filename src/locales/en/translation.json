@@ -766,7 +766,8 @@
       "done": "QC check finished",
       "issues": "{count} issue(s) found",
       "failed": "QC check failed"
-    }
+    },
+    "versionCompare": "Versions"
   },
   "agent": {
     "title": "AI Assistant",
@@ -1143,5 +1144,22 @@
     "copy": "Apply",
     "previewTitle": "Apply Preview",
     "deleteSuccess": "Template deleted"
+  },
+  "versionCompare": {
+    "title": "Version Compare",
+    "tree": "Version tree (select A)",
+    "root": "Root",
+    "pickB": "Compare against B",
+    "asB": "as B",
+    "versionA": "Version A",
+    "versionB": "Version B",
+    "subs": "Subtitles",
+    "cost": "Cost",
+    "duration": "Duration",
+    "noSubs": "No subtitles",
+    "costNa": "Cost not attributable",
+    "calls": "calls",
+    "tokens": "tokens",
+    "close": "Close"
   }
 }

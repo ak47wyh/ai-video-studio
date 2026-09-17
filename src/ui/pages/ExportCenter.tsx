@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Download, Trash2, Film, Filter, RefreshCw, FilmIcon, Scissors, Copy, Send, RotateCcw, ShieldCheck } from 'lucide-react';
+import { Download, Trash2, Film, Filter, RefreshCw, FilmIcon, Scissors, Copy, Send, RotateCcw, ShieldCheck, GitBranch } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { finalCutRepo, qcService } from '../../dependencies';
@@ -10,6 +10,7 @@ import { getErrorMessage } from '../utils/errorUtils';
 import { useObjectUrl } from '../hooks/useObjectUrl';
 import { PublishPanel } from '../components/PublishPanel';
 import { ReworkPanel } from '../components/ReworkPanel';
+import { VersionComparePanel } from '../components/VersionComparePanel';
 import { PostProductionPanel } from '../components/PostProductionPanel';
 import type { FinalCut } from '../../domain/entities/models';
 import type { QcReport, QcRecommendation } from '../../domain/ports/QcPorts';
@@ -62,6 +63,7 @@ export const ExportCenter: React.FC = () => {
   const [previewCutId, setPreviewCutId] = useState<string | null>(null);
 const [publishCut, setPublishCut] = useState<FinalCut | null>(null);
 const [reworkCut, setReworkCut] = useState<FinalCut | null>(null);
+const [compareCut, setCompareCut] = useState<FinalCut | null>(null);
   // P2-8 成片 QC：<cutId, report | 'running'>
   const [qcReports, setQcReports] = useState<Record<string, QcReport | 'running'>>({});
   // 每张卡片的导出预设选择（B4）
@@ -371,6 +373,14 @@ const [reworkCut, setReworkCut] = useState<FinalCut | null>(null);
                 <button
                   className="btn btn-secondary btn-xs"
                   style={{ padding: '0.3rem 0.5rem' }}
+                  onClick={() => setCompareCut(cut)}
+                  title={t('export.versionCompare', '版本对比')}
+                >
+                  <GitBranch size={14} />
+                </button>
+                <button
+                  className="btn btn-secondary btn-xs"
+                  style={{ padding: '0.3rem 0.5rem' }}
                   onClick={() => setPublishCut(cut)}
                   title={t('publish.title')}
                 >
@@ -392,6 +402,13 @@ const [reworkCut, setReworkCut] = useState<FinalCut | null>(null);
       {publishCut && (
         <PublishPanel finalCut={publishCut} storyTitle={getStoryTitle(publishCut.storyId)} onClose={() => setPublishCut(null)} />
       )}
+      {compareCut && (
+        <VersionComparePanel
+          cuts={filteredCuts.filter(c => c.storyId === compareCut.storyId)}
+          onClose={() => setCompareCut(null)}
+        />
+      )}
+
       {reworkCut && (
         <ReworkPanel cut={reworkCut} storyTitle={getStoryTitle(reworkCut.storyId)} onClose={() => setReworkCut(null)} onDone={() => {}} />
       )}

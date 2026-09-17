@@ -766,7 +766,8 @@
       "done": "QC 检测完成",
       "issues": "检测到 {count} 个问题",
       "failed": "QC 检测失败"
-    }
+    },
+    "versionCompare": "版本对比"
   },
   "agent": {
     "title": "AI 助手",
@@ -1143,5 +1144,22 @@
     "copy": "套用",
     "previewTitle": "套用预览",
     "deleteSuccess": "模板已删除"
+  },
+  "versionCompare": {
+    "title": "同源版本对比",
+    "tree": "版本树（单选设为 A）",
+    "root": "根版本",
+    "pickB": "对比方 B",
+    "asB": "对比方 B",
+    "versionA": "版本 A",
+    "versionB": "版本 B",
+    "subs": "字幕",
+    "cost": "成本",
+    "duration": "时长",
+    "noSubs": "无字幕",
+    "costNa": "成本不可归因",
+    "calls": "调用",
+    "tokens": "Token",
+    "close": "关闭"
   }
 }
