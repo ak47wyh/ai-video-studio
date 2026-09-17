@@ -522,7 +522,8 @@
       "regenerate": "Regenerate",
       "done": "QC check finished",
       "issues": "{count} issue(s) found",
-      "failed": "QC check failed"
+      "failed": "QC check failed",
+      "recheck": "Re-check"
     },
     "versionCompare": "Versions"
   },

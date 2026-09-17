@@ -4,6 +4,7 @@ import type {
   QcIssue,
   QcReport,
 } from '../ports/QcPorts';
+import type { QcReportSnapshot } from '../entities/models';
 import type { ILoggerPort } from '../ports/CrossCuttingPorts';
 
 export interface QcServiceDeps {
@@ -201,5 +202,16 @@ export class QcService {
       };
     }
     return null;
+  }
+
+  /** P2-8 持久化快照：QC 报告 → FinalCut.qcReport（徽标常驻） */
+  static toSnapshot(report: QcReport): QcReportSnapshot {
+    return {
+      passed: report.passed,
+      recommendation: report.recommendation,
+      issueCount: report.issues.length,
+      issues: report.issues.map(i => ({ check: i.check, severity: i.severity, message: i.message })),
+      checkedAt: report.meta.checkedAt,
+    };
   }
 }

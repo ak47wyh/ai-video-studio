@@ -765,7 +765,8 @@
       "regenerate": "建议重生成",
       "done": "QC 检测完成",
       "issues": "检测到 {count} 个问题",
-      "failed": "QC 检测失败"
+      "failed": "QC 检测失败",
+      "recheck": "重新检测"
     },
     "versionCompare": "版本对比"
   },

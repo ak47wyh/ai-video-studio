@@ -693,7 +693,8 @@
       "regenerate": "再生成推奨",
       "done": "QC チェック完了",
       "issues": "{count} 件の問題を検出",
-      "failed": "QC チェック失敗"
+      "failed": "QC チェック失敗",
+      "recheck": "再チェック"
     },
     "versionCompare": "バージョン比較"
   },

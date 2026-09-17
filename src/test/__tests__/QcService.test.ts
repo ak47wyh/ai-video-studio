@@ -171,3 +171,36 @@ describe('QcService.runQc 集成', () => {
     expect(report.issues.find(i => i.check === 'black_frames')?.severity).toBe('warning');
   });
 });
+
+describe('QcService.toSnapshot 持久化快照（P2-8）', () => {
+  it('报告映射为 FinalCut.qcReport 快照结构', () => {
+    const report = {
+      passed: false,
+      recommendation: 'regenerate' as const,
+      issues: [
+        { check: 'duration', severity: 'error' as const, message: '时长偏差 20%' },
+        { check: 'black_frames', severity: 'warning' as const, message: '黑帧 1.5s' },
+      ],
+      meta: { durationSec: 8, checkedAt: 1700000000000 },
+    };
+    const snap = QcService.toSnapshot(report);
+    expect(snap.passed).toBe(false);
+    expect(snap.recommendation).toBe('regenerate');
+    expect(snap.issueCount).toBe(2);
+    expect(snap.issues[0]).toEqual({ check: 'duration', severity: 'error', message: '时长偏差 20%' });
+    expect(snap.checkedAt).toBe(1700000000000);
+  });
+
+  it('全部通过时快照无问题项', () => {
+    const report = {
+      passed: true,
+      recommendation: 'ok' as const,
+      issues: [],
+      meta: { durationSec: 10, checkedAt: 100 },
+    };
+    const snap = QcService.toSnapshot(report);
+    expect(snap.passed).toBe(true);
+    expect(snap.issueCount).toBe(0);
+    expect(snap.issues).toHaveLength(0);
+  });
+});

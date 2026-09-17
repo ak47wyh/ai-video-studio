@@ -220,8 +220,23 @@ export interface FinalCut {
   sourceVersionId?: string;
   /** 同源版本号（根为 1，每次回改 +1） */
   version?: number;
+  /** P2-8 成片 QC 检测快照（徽标常驻，可重检覆盖） */
+  qcReport?: QcReportSnapshot;
 }
 
+
+/** P2-8 成片 QC 报告快照（持久化，徽标常驻，无需重复检测） */
+export interface QcReportSnapshot {
+  passed: boolean;
+  recommendation: 'ok' | 'review' | 'regenerate';
+  issueCount: number;
+  issues: Array<{
+    check: string;
+    severity: 'error' | 'warning' | 'info';
+    message: string;
+  }>;
+  checkedAt: number;
+}
 
 /** 成片生成配置快照（P0-3 回改回显用，仅持久化可复现字段） */
 export interface FinalCutPipelineOptions {
