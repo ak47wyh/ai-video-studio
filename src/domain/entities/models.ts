@@ -163,7 +163,8 @@ export type PipelineStatus =
   | 'generating_srt'
   | 'burning_subtitles'
   | 'complete'
-  | 'failed';
+  | 'failed'
+  | 'cancelled';
 
 export interface PipelineStep {
   name: PipelineStatus;
@@ -184,6 +185,10 @@ export interface PipelineTask {
   createdAt: number;
   completedAt?: number;
   error?: string;
+  /** P1-7 队列优先级（1-10，越大越先执行，默认 5） */
+  priority?: number;
+  /** P1-7 取消请求标志（任务级取消） */
+  cancelRequested?: boolean;
 }
 
 export interface FinalCut {

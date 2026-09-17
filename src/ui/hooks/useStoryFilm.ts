@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import type { VideoStyle } from '../../domain/entities/models';
 import type { PipelineStatus } from '../../domain/services/PipelineService';
-import { storyFilmService } from '../../dependencies';
+import { pipelineService, storyFilmService } from '../../dependencies';
 import { useToast } from '../contexts/ToastContext';
 import { useTranslation } from 'react-i18next';
 
@@ -93,7 +93,9 @@ export function useStoryFilm(): UseStoryFilmResult {
     cancelledRef.current = true;
     setStep('config');
     setProgress(null);
-  }, []);
+    // P1-7 任务级取消：触达 PipelineService（排队任务直接取消，执行中任务阶段间停止）
+    if (result?.pipelineTaskId) pipelineService.cancelTask(result.pipelineTaskId);
+  }, [result]);
 
   const resetFilm = useCallback(() => {
     cancelledRef.current = true;

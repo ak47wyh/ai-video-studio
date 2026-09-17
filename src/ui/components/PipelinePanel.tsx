@@ -22,6 +22,7 @@ const STAGE_LABELS: Record<PipelineStatus, string> = {
   burning_subtitles: '字幕烧录',
   complete: '完成',
   failed: '失败',
+  cancelled: '取消',
 };
 
 const getStageIcon = (status: 'pending' | 'running' | 'done' | 'failed') => {

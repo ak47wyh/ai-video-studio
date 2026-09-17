@@ -44,6 +44,10 @@ export interface PipelineOptions {
   onProgress?: (stage: PipelineStatus, percent: number, message: string) => void;
   /** 画面风格预设（AI 故事成片），追加到图片/视频 prompt 末尾 */
   videoStyle?: import('../entities/models').VideoStyle;
+  /** P1-7 队列优先级（1-10，越大越先执行，默认 5） */
+  priority?: number;
+  /** P1-7 阶段级失败自动重试策略（maxRetries 默认 0 = 不重试） */
+  retry?: { maxRetries?: number; backoffMs?: number };
 }
 
 interface PipelineDeps {
@@ -101,8 +105,27 @@ interface StageContext {
 }
 
 export class PipelineService {
+  /** P1-7 队列排序：priority 降序，同优先级按 createdAt 升序 */
+  static sortByPriority(tasks: PipelineTask[]): PipelineTask[] {
+    return [...tasks].sort((a, b) => (b.priority ?? 5) - (a.priority ?? 5) || a.createdAt - b.createdAt);
+  }
+
+  /** P1-7 重试判定：attempt 为第几次重试（从 1 起），超过 maxRetries 不再重试 */
+  static shouldRetry(attempt: number, maxRetries: number): boolean {
+    return maxRetries > 0 && attempt <= maxRetries;
+  }
+
+  /** P1-7 退避时间：backoffMs × 2^(attempt-1)，上限 30s */
+  static retryDelayMs(attempt: number, backoffMs: number): number {
+    if (backoffMs <= 0) return 0;
+    return Math.min(backoffMs * Math.pow(2, attempt - 1), 30000);
+  }
   private tasks: Map<string, PipelineTask> = new Map();
   private subscribers: Map<string, Set<(task: PipelineTask) => void>> = new Map();
+  // ===== P1-7 批量流水线：优先级队列 + 串行调度 =====
+  private pendingQueue: PipelineTask[] = [];
+  private queueRunners = new Map<string, () => Promise<void>>();
+  private running = false;
   private videoPollers: Map<string, ReturnType<typeof setInterval>> = new Map();
   private pendingVideoTasks: Map<string, Set<string>> = new Map(); // pipelineTaskId → externalTaskIds
 
@@ -359,21 +382,74 @@ export class PipelineService {
     this.logger.error('pipeline failed', new Error(error), { service: 'PipelineService', method: 'markFailed', taskId });
   }
 
+  /** P1-7 串行调度：按优先级出队执行，当前任务完成后自动执行下一个 */
+  private async maybeRunNext(): Promise<void> {
+    if (this.running) return;
+    if (this.pendingQueue.length === 0) return;
+    this.running = true;
+    try {
+      while (this.pendingQueue.length > 0) {
+        this.pendingQueue = PipelineService.sortByPriority(this.pendingQueue);
+        const task = this.pendingQueue.shift()!;
+        if (task.cancelRequested) {
+          this.markCancelled(task.id, '用户取消');
+          continue;
+        }
+        const runner = this.queueRunners.get(task.id);
+        this.queueRunners.delete(task.id);
+        if (runner) {
+          try {
+            await runner();
+          } catch {
+            // runner 内部已 markFailed/markCancelled，此处仅防止调度中断
+          }
+        }
+      }
+    } finally {
+      this.running = false;
+    }
+  }
+
+  /** P1-7 任务级取消：排队任务直接取消；执行中任务标记取消（阶段间检查停止） */
+  cancelTask(taskId: string, reason = '用户取消'): void {
+    const task = this.tasks.get(taskId);
+    if (!task) return;
+    if (task.status === 'complete' || task.status === 'failed' || task.status === 'cancelled') return;
+    task.cancelRequested = true;
+    // 排队中（未开始执行）：直接从队列移除并标记取消
+    const idx = this.pendingQueue.findIndex(q => q.id === taskId);
+    if (idx >= 0 && task.status === 'idle') {
+      this.pendingQueue.splice(idx, 1);
+      this.markCancelled(taskId, reason);
+      return;
+    }
+    this.notify(task);
+  }
+
+  /** P1-7 标记任务取消 */
+  markCancelled(taskId: string, reason: string): void {
+    const task = this.tasks.get(taskId);
+    if (!task) return;
+    task.status = 'cancelled';
+    task.error = reason;
+    task.currentStep = `Cancelled: ${reason}`;
+    task.completedAt = Date.now();
+    const runningStep = task.steps.find(s => s.status === 'running');
+    if (runningStep) {
+      runningStep.status = 'failed';
+      runningStep.error = reason;
+      runningStep.completedAt = Date.now();
+    }
+    this.notify(task);
+    this.cleanupPollers(taskId);
+    this.logger.warn('pipeline cancelled', { service: 'PipelineService', method: 'markCancelled', taskId, reason });
+  }
+
   startStage(taskId: string, stage: PipelineStatus, currentStep: string, progress = 0): boolean {
     const task = this.tasks.get(taskId);
     if (!task) return false;
     this.setStage(task, stage, currentStep, progress);
     return true;
-  }
-
-  cancelTask(taskId: string): void {
-    const task = this.tasks.get(taskId);
-    if (!task) return;
-    task.status = 'failed';
-    task.error = 'Cancelled by user';
-    task.completedAt = Date.now();
-    this.notify(task);
-    this.cleanupPollers(taskId);
   }
 
   private cleanupPollers(taskId: string): void {
@@ -406,15 +482,23 @@ export class PipelineService {
    */
   async runFullPipeline(storyId: string, options: PipelineOptions = {}): Promise<PipelineTask> {
     const task = this.createTask(storyId);
-    try {
-      const segments = await this.prepareSegments(task, storyId, options);
-      await this.runStages(task, segments, options, 0);
-      return this.tasks.get(task.id)!;
-    } catch (e: unknown) {
-      const errMsg = e instanceof Error ? e.message : String(e);
-      this.markFailed(task.id, errMsg);
-      throw e;
-    }
+    if (options.priority !== undefined) task.priority = options.priority;
+    this.pendingQueue.push(task);
+    this.queueRunners.set(task.id, async () => {
+      try {
+        const segments = await this.prepareSegments(task, storyId, options);
+        await this.runStages(task, segments, options, 0);
+      } catch (e: unknown) {
+        if (task.cancelRequested) {
+          this.markCancelled(task.id, '用户取消');
+          return;
+        }
+        const errMsg = e instanceof Error ? e.message : String(e);
+        this.markFailed(task.id, errMsg);
+      }
+    });
+    void this.maybeRunNext();
+    return task;
   }
 
   /**
@@ -564,7 +648,29 @@ export class PipelineService {
       (c) => this.runSubtitleStages(c),
     ];
     for (let i = startIndex; i < stages.length; i++) {
-      await stages[i](ctx);
+      if (task.cancelRequested) {
+        this.markCancelled(task.id, '用户取消');
+        return;
+      }
+      // P1-7 阶段级失败自动重试（可配置次数/退避）
+      let attempt = 0;
+      for (;;) {
+        try {
+          await stages[i](ctx);
+          break;
+        } catch (e) {
+          if (task.cancelRequested) {
+            this.markCancelled(task.id, '用户取消');
+            return;
+          }
+          attempt++;
+          const maxRetries = options.retry?.maxRetries ?? 0;
+          if (!PipelineService.shouldRetry(attempt, maxRetries)) throw e;
+          const backoff = PipelineService.retryDelayMs(attempt, options.retry?.backoffMs ?? 0);
+          emitProgress(task.status, task.progress, `阶段重试 ${attempt}/${maxRetries}，${backoff}ms 后继续`);
+          if (backoff > 0) await new Promise(r => setTimeout(r, backoff));
+        }
+      }
     }
     await this.finishTask(ctx);
   }
