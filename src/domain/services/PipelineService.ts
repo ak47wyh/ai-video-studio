@@ -122,6 +122,8 @@ export class PipelineService {
   }
   private tasks: Map<string, PipelineTask> = new Map();
   private subscribers: Map<string, Set<(task: PipelineTask) => void>> = new Map();
+  /** P3-1 队列看板全局订阅：任意任务变更时回调（含新增/删除） */
+  private allSubscribers: Set<(task: PipelineTask) => void> = new Set();
   // ===== P1-7 批量流水线：优先级队列 + 串行调度 =====
   private pendingQueue: PipelineTask[] = [];
   private queueRunners = new Map<string, () => Promise<void>>();
@@ -179,6 +181,14 @@ export class PipelineService {
     };
   }
 
+  /** P3-1 全局订阅：任务创建/更新/终态均回调，返回取消函数 */
+  subscribeAll(callback: (task: PipelineTask) => void): () => void {
+    if (!this.allSubscribers.has(callback)) this.allSubscribers.add(callback);
+    return () => {
+      this.allSubscribers.delete(callback);
+    };
+  }
+
   getTask(taskId: string): PipelineTask | null {
     return this.tasks.get(taskId) ?? null;
   }
@@ -194,6 +204,7 @@ export class PipelineService {
     };
     this.tasks.set(task.id, deepCopy);
     this.subscribers.get(task.id)?.forEach(cb => cb({ ...deepCopy, steps: deepCopy.steps.map(s => ({ ...s })) }));
+    this.allSubscribers.forEach(cb => cb({ ...deepCopy, steps: deepCopy.steps.map(s => ({ ...s })) }));
     this.persistTask(deepCopy);
   }
 
@@ -408,6 +419,17 @@ export class PipelineService {
     } finally {
       this.running = false;
     }
+  }
+
+  /** P3-1 队列优先级调整（1-10，越大越先执行）；排队任务立即重排，终态任务忽略 */
+  updatePriority(taskId: string, priority: number): void {
+    const task = this.tasks.get(taskId);
+    if (!task || task.status === 'complete' || task.status === 'failed' || task.status === 'cancelled') return;
+    task.priority = Math.max(1, Math.min(10, Math.round(priority)));
+    const idx = this.pendingQueue.findIndex(q => q.id === taskId);
+    if (idx >= 0) this.pendingQueue = PipelineService.sortByPriority(this.pendingQueue);
+    this.notify(task);
+    this.logger.info('pipeline priority updated', { service: 'PipelineService', method: 'updatePriority', taskId, priority: task.priority });
   }
 
   /** P1-7 任务级取消：排队任务直接取消；执行中任务标记取消（阶段间检查停止） */

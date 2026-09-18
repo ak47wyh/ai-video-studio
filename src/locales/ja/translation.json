@@ -57,7 +57,8 @@
     "activePlatformBrief": "現在のアクティブプラットフォーム：{{name}}（{{brand}}）",
     "assetLibrary": "素材ライブラリ",
     "projects": "プロジェクト",
-    "templates": "テンプレート"
+    "templates": "テンプレート",
+    "taskQueue": "タスクキュー"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -1172,5 +1173,53 @@
     "loading": "バージョン読み込み中…",
     "empty": "このストーリーには完成版がありません",
     "emptyHint": "エクスポートセンターで完成版を生成・リワークしてから比較してください"
+  },
+  "queue": {
+    "title": "タスクキュー",
+    "running": "実行中",
+    "queued": "待機中",
+    "done": "終了",
+    "batchAdd": "一括生成",
+    "batchTitle": "ストーリーを選択して一括生成",
+    "batchPriority": "優先度",
+    "batchHint": "優先度順に直列実行（同優先度は先着順）",
+    "submitting": "送信中…",
+    "submitN": "{{count}} 件送信",
+    "priority": "優先度（大きいほど先に実行）",
+    "cancel": "キャンセル",
+    "retry": "リトライ",
+    "retryFailed": "リトライ失敗",
+    "taskCancelled": "タスクをキャンセル中",
+    "taskRetried": "再エンキューしました",
+    "batchSubmitted": "{{count}} 件のタスクを送信しました",
+    "batchFailed": "一括送信に失敗",
+    "emptyActive": "実行中のタスクはありません",
+    "recentDone": "最近の完了・失敗・キャンセル",
+    "noStories": "ストーリーがありません。ワークベンチで作成してください",
+    "close": "閉じる",
+    "status": {
+      "idle": "待機中",
+      "splitting": "ストーリー分割",
+      "generating_images": "画像生成中",
+      "generating_audio": "音声生成中",
+      "generating_bgm": "音楽生成中",
+      "generating_videos": "動画生成中",
+      "post_processing": "後処理中",
+      "generating_srt": "字幕生成中",
+      "burning_subtitles": "字幕焼き込み中",
+      "complete": "完了",
+      "failed": "失敗",
+      "cancelled": "キャンセル済み"
+    },
+    "stage": {
+      "splitting": "ストーリー分割",
+      "generating_images": "画像生成中",
+      "generating_audio": "音声生成中",
+      "generating_bgm": "音楽生成中",
+      "generating_videos": "動画生成中",
+      "post_processing": "後処理中",
+      "generating_srt": "字幕生成中",
+      "burning_subtitles": "字幕焼き込み中"
+    }
   }
 }

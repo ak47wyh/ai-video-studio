@@ -25,7 +25,8 @@
     "languageSwitcherTooltip": "Cambia lingua",
     "assetLibrary": "Asset Library",
     "projects": "Projects",
-    "templates": "Templates"
+    "templates": "Templates",
+    "taskQueue": "Task Queue"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -858,5 +859,53 @@
     "loading": "Loading versions…",
     "empty": "No final cuts for this story yet",
     "emptyHint": "Return to Export Center and generate or rework a final cut first"
+  },
+  "queue": {
+    "title": "Task Queue",
+    "running": "Running",
+    "queued": "Queued",
+    "done": "Done",
+    "batchAdd": "Batch Generate",
+    "batchTitle": "Select stories to generate",
+    "batchPriority": "Priority",
+    "batchHint": "Queue runs serially by priority; same priority is FIFO",
+    "submitting": "Submitting…",
+    "submitN": "Submit {{count}}",
+    "priority": "Priority (higher runs first)",
+    "cancel": "Cancel",
+    "retry": "Retry",
+    "retryFailed": "Retry failed",
+    "taskCancelled": "Cancelling task",
+    "taskRetried": "Re-queued",
+    "batchSubmitted": "{{count}} tasks submitted",
+    "batchFailed": "Batch submit failed",
+    "emptyActive": "No active tasks",
+    "recentDone": "Recently completed / failed / cancelled",
+    "noStories": "No stories yet. Create one in the workbench first.",
+    "close": "Close",
+    "status": {
+      "idle": "Queued",
+      "splitting": "Splitting",
+      "generating_images": "Generating images",
+      "generating_audio": "Generating audio",
+      "generating_bgm": "Generating music",
+      "generating_videos": "Generating videos",
+      "post_processing": "Post-processing",
+      "generating_srt": "Generating subtitles",
+      "burning_subtitles": "Burning subtitles",
+      "complete": "Completed",
+      "failed": "Failed",
+      "cancelled": "Cancelled"
+    },
+    "stage": {
+      "splitting": "Splitting",
+      "generating_images": "Generating images",
+      "generating_audio": "Generating audio",
+      "generating_bgm": "Generating music",
+      "generating_videos": "Generating videos",
+      "post_processing": "Post-processing",
+      "generating_srt": "Generating subtitles",
+      "burning_subtitles": "Burning subtitles"
+    }
   }
 }

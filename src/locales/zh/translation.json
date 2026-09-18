@@ -57,7 +57,8 @@
     "languageSwitcherTooltip": "切换语言",
     "assetLibrary": "素材库",
     "projects": "项目",
-    "templates": "模板"
+    "templates": "模板",
+    "taskQueue": "任务队列"
   },
   "dashboard": {
     "title": "控制台",
@@ -1169,5 +1170,53 @@
     "loading": "加载版本中…",
     "empty": "该故事暂无成片版本",
     "emptyHint": "回到导出中心，为故事生成或回改成片后再来对比"
+  },
+  "queue": {
+    "title": "任务队列",
+    "running": "运行中",
+    "queued": "排队",
+    "done": "已结束",
+    "batchAdd": "批量生成",
+    "batchTitle": "选择故事批量生成",
+    "batchPriority": "提交优先级",
+    "batchHint": "队列按优先级串行执行，同优先级先到先做",
+    "submitting": "提交中…",
+    "submitN": "提交 {{count}} 个",
+    "priority": "优先级（越大越先执行）",
+    "cancel": "取消",
+    "retry": "重试",
+    "retryFailed": "重试失败",
+    "taskCancelled": "任务取消中",
+    "taskRetried": "已重新入队",
+    "batchSubmitted": "已提交 {{count}} 个任务",
+    "batchFailed": "批量提交失败",
+    "emptyActive": "暂无进行中的任务",
+    "recentDone": "最近完成 / 失败 / 取消",
+    "noStories": "暂无故事，请先在创作工作台创建",
+    "close": "关闭",
+    "status": {
+      "idle": "排队中",
+      "splitting": "故事拆分",
+      "generating_images": "生成画面",
+      "generating_audio": "生成配音",
+      "generating_bgm": "生成音乐",
+      "generating_videos": "生成视频",
+      "post_processing": "后期处理",
+      "generating_srt": "生成字幕",
+      "burning_subtitles": "压制字幕",
+      "complete": "已完成",
+      "failed": "失败",
+      "cancelled": "已取消"
+    },
+    "stage": {
+      "splitting": "故事拆分",
+      "generating_images": "生成画面",
+      "generating_audio": "生成配音",
+      "generating_bgm": "生成音乐",
+      "generating_videos": "生成视频",
+      "post_processing": "后期处理",
+      "generating_srt": "生成字幕",
+      "burning_subtitles": "压制字幕"
+    }
   }
 }
