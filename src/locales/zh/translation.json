@@ -1163,6 +1163,11 @@
     "costNa": "成本不可归因",
     "calls": "调用",
     "tokens": "Token",
-    "close": "关闭"
+    "close": "关闭",
+    "pageTitle": "同源版本对比",
+    "back": "返回",
+    "loading": "加载版本中…",
+    "empty": "该故事暂无成片版本",
+    "emptyHint": "回到导出中心，为故事生成或回改成片后再来对比"
   }
 }

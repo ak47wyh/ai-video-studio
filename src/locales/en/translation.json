@@ -1163,6 +1163,11 @@
     "costNa": "Cost not attributable",
     "calls": "calls",
     "tokens": "tokens",
-    "close": "Close"
+    "close": "Close",
+    "pageTitle": "Version Compare",
+    "back": "Back",
+    "loading": "Loading versions…",
+    "empty": "No final cuts for this story yet",
+    "emptyHint": "Return to Export Center and generate or rework a final cut first"
   }
 }
