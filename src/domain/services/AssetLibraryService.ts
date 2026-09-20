@@ -3,6 +3,8 @@ import type { IFileStoragePort, IGeneratedFileRepository } from '../ports/FileSt
 import type { SavedImage, SavedVoice, SavedPrompt, SavedVideo, SavedBgm, SavedImageSource, SavedVoiceSource, PromptCategory, SavedPromptSource, SavedVideoSource, SavedBgmSource, GeneratedFile, GeneratedFileType } from '../entities/models';
 import type { IHttpFetchPort } from '../ports/CrossCuttingPorts';
 
+export type AssetKind = 'image' | 'voice' | 'prompt' | 'video' | 'bgm';
+
 function generateId(): string {
   return `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 }
@@ -586,6 +588,35 @@ this.bgmRepo = bgmRepo;
 
   async deletePrompt(id: string): Promise<void> {
     await this.promptRepo.delete(id);
+  }
+
+  /** P3-5 统一资产中心：重命名资产（名称必填，trim 后生效） */
+  async renameAsset(kind: AssetKind, id: string, name: string): Promise<void> {
+    const n = String(name ?? "").trim();
+    if (!n) throw new Error("Asset name required");
+    const repo = this.repoFor(kind);
+    const item = await repo.getById(id);
+    if (!item) throw new Error("Asset not found: " + id);
+    await repo.save({ ...item, name: n });
+  }
+
+  /** P3-5 统一资产中心：归档/取消归档（archived 落库） */
+  async setAssetArchived(kind: AssetKind, id: string, archived: boolean): Promise<void> {
+    const repo = this.repoFor(kind);
+    const item = await repo.getById(id);
+    if (!item) throw new Error("Asset not found: " + id);
+    await repo.save({ ...item, archived: archived === true });
+  }
+
+  private repoFor(kind: AssetKind): { getById(id: string): Promise<{ id: string; name?: string; archived?: boolean } | undefined>; save(item: { id: string; name?: string; archived?: boolean }): Promise<void> } {
+    switch (kind) {
+      case "image": return this.imageRepo;
+      case "voice": return this.voiceRepo;
+      case "prompt": return this.promptRepo;
+      case "video": return this.videoRepo;
+      case "bgm": return this.bgmRepo;
+      default: throw new Error("Unknown asset kind: " + kind);
+    }
   }
 
   // ===== 文件存储管理 =====

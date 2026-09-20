@@ -213,6 +213,8 @@ export interface FinalCut {
   timelineId?: string;
   /** 来源平台（记录成片由哪个 AI 平台生成，便于成本统计） */
   sourcePlatform?: string;
+  /** P3-5 归档（资产中心统一管理） */
+  archived?: boolean;
   // ===== P0-3 成片回改闭环 =====
   /** 生成配置快照（回改表单回显用） */
   pipelineOptions?: FinalCutPipelineOptions;
@@ -306,6 +308,8 @@ export interface SavedBgm {
   sourceType: SavedBgmSource;
   sourceId?: string;
   createdAt: number;
+  /** P3-5 归档（资产中心统一管理） */
+  archived?: boolean;
 }
 
 export interface SavedImage {
@@ -321,6 +325,8 @@ export interface SavedImage {
   sourceType: SavedImageSource;
   sourceId?: string;
   createdAt: number;
+  /** P3-5 归档（资产中心统一管理） */
+  archived?: boolean;
 }
 
 export interface SavedVoice {
@@ -336,6 +342,8 @@ export interface SavedVoice {
   sourceType: SavedVoiceSource;
   sourceId?: string;
   createdAt: number;
+  /** P3-5 归档（资产中心统一管理） */
+  archived?: boolean;
 }
 
 export interface SavedPrompt {
@@ -347,6 +355,8 @@ export interface SavedPrompt {
   tags: string[];
   sourceType: SavedPromptSource;
   createdAt: number;
+  /** P3-5 归档（资产中心统一管理） */
+  archived?: boolean;
 }
 
 /**
@@ -372,6 +382,8 @@ export interface SavedVideo {
   sourceType: SavedVideoSource;
   sourceId?: string;
   createdAt: number;
+  /** P3-5 归档（资产中心统一管理） */
+  archived?: boolean;
 }
 
 // ==========================================

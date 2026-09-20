@@ -148,6 +148,9 @@ export class FinalCutRepositoryAdapter implements IFinalCutRepository {
     const matched = await db.finalCuts.where('storyId').anyOf(storyIds).toArray();
     return matched.sort((a, b) => b.createdAt - a.createdAt);
   }
+  async listAll(): Promise<FinalCut[]> {
+    return db.finalCuts.toArray();
+  }
   async delete(id: string): Promise<void> {
     await db.finalCuts.delete(id);
   }

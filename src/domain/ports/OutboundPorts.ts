@@ -55,6 +55,8 @@ export interface IFinalCutRepository {
   findById(id: string): Promise<FinalCut | undefined>;
   findByStoryIds(storyIds: string[]): Promise<FinalCut[]>;
   delete(id: string): Promise<void>;
+  /** P3-5 资产中心全量列表（可选能力，向后兼容） */
+  listAll?: () => Promise<FinalCut[]>;
 }
 
 // --- Video Generation ---
