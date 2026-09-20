@@ -9,6 +9,7 @@ import {
   FolderKanban,
   LayoutTemplate,
   ListChecks,
+  ShieldCheck,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAllSpaces } from '../hooks/useSpaceScopedQuery';
@@ -123,6 +124,7 @@ export const MainLayout: React.FC = () => {
         { to: '/editor', icon: <Scissors size={18} />, label: t('nav.editor', '视频剪辑') },
         { to: '/export', icon: <Download size={18} />, label: t('nav.export', '导出中心') },
         { to: '/queue', icon: <ListChecks size={18} />, label: t('nav.taskQueue', '任务队列') },
+        { to: '/compliance', icon: <ShieldCheck size={18} />, label: t('nav.compliance', '合规中心') },
 { to: '/templates', icon: <LayoutTemplate size={18} />, label: t('nav.templates', '模板') },
       ],
     },

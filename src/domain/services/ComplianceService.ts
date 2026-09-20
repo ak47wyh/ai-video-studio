@@ -167,6 +167,19 @@ export class ComplianceService {
     return wordList.filter(w => w && lower.includes(w.toLowerCase()));
   }
 
+  /** P3-2 词表规范化：trim + 去空 + 去重（命中预览与导入共用，保证单一口径） */
+  static normalizeWords(raw: string[]): string[] {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const r of raw) {
+      const w = String(r ?? '').trim();
+      if (!w || seen.has(w)) continue;
+      seen.add(w);
+      out.push(w);
+    }
+    return out;
+  }
+
   /** 构建 AI 生成内容声明元数据 */
   buildAiMetadata(sourceVersion?: number): AiMetadata {
     return {

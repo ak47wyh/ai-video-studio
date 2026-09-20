@@ -1,3 +1,13 @@
+import type { SensitiveWordEntry } from '../entities/models';
+
+/** P3-2 敏感词仓库端口：持久化 + 按平台查询 */
+export interface ISensitiveWordRepository {
+  listByPlatform(platform: SensitiveWordEntry['platform']): Promise<SensitiveWordEntry[]>;
+  listEnabledByPlatform(platform: SensitiveWordEntry['platform']): Promise<SensitiveWordEntry[]>;
+  put(entry: SensitiveWordEntry): Promise<void>;
+  delete(id: string): Promise<void>;
+}
+
 // ===== P2-9 内容合规与标识端口 =====
 
 /** AI 生成内容声明元数据 */

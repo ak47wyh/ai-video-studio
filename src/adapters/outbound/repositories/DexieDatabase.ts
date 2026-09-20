@@ -277,6 +277,11 @@ this.version(13).stores({
       timelines: 'id, storyId, createdAt, updatedAt',
       generatedFiles: 'id, spaceId, fileType, sourceEntityType, sourceEntityId, storagePath, createdAt, lastAccessedAt, compressedAt'
     });
+
+// Version 18: Add sensitiveWords table (P3-2 合规治理：敏感词运营配置，按平台分离)
+this.version(18).stores({
+      sensitiveWords: 'id, platform, enabled, createdAt'
+    });
   }
 }
 

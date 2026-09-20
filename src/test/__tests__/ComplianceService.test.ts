@@ -128,6 +128,60 @@ describe('ComplianceService AI 生成标识（P2-9）', () => {
 });
 
 describe('ComplianceService 平台规格表', () => {
+
+describe('ComplianceService 词表规范化（P3-2）', () => {
+  it('trim + 去空', () => {
+    expect(ComplianceService.normalizeWords([' 甲 ', '', '  ', '乙'])).toEqual(['甲', '乙']);
+  });
+
+  it('去重保留首现', () => {
+    expect(ComplianceService.normalizeWords(['甲', '甲', '乙', '甲'])).toEqual(['甲', '乙']);
+  });
+
+  it('空输入返回空数组', () => {
+    expect(ComplianceService.normalizeWords([])).toEqual([]);
+    expect(ComplianceService.normalizeWords(['', '  '])).toEqual([]);
+  });
+
+  it('非字符串容错', () => {
+    expect(ComplianceService.normalizeWords([null as unknown as string, undefined as unknown as string, '甲'])).toEqual(['甲']);
+  });
+});
+
+describe('ComplianceService 发布预检命中敏感词（P3-2 联动）', () => {
+  it('命中敏感词 → error 阻止发布且 message 含命中词条', () => {
+    const service = makeService();
+    const r = service.preflight({
+      durationSec: 60,
+      text: '今日特惠 扫码咨询',
+      sensitiveWords: ['扫码', '特惠'],
+    }, 'douyin');
+    expect(r.passed).toBe(false);
+    const rule = r.rules.find(x => x.id === 'sensitive_words');
+    expect(rule?.severity).toBe('error');
+    expect(rule?.passed).toBe(false);
+    expect(rule?.message).toContain('扫码');
+    expect(rule?.message).toContain('特惠');
+  });
+
+  it('未命中词表通过；停用词不参与（模拟 enabled 过滤后注入）', () => {
+    const service = makeService();
+    const clean = service.preflight({
+      durationSec: 60,
+      text: '正常内容',
+      sensitiveWords: ['禁用词'],
+    }, 'bilibili');
+    expect(clean.rules.find(x => x.id === 'sensitive_words')?.passed).toBe(true);
+
+    const disabledOnly = service.preflight({
+      durationSec: 60,
+      text: '曾经命中的词',
+      sensitiveWords: [],
+    }, 'bilibili');
+    expect(disabledOnly.rules.find(x => x.id === 'sensitive_words')?.passed).toBe(true);
+  });
+});
+
   it('三平台规格齐全且时长上限合理', () => {
     expect(PLATFORM_SPECS.douyin.maxDurationSec).toBe(900);
     expect(PLATFORM_SPECS.bilibili.maxDurationSec).toBe(14400);

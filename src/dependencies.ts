@@ -131,6 +131,7 @@ export const segmentRepo = new StorySegmentRepositoryAdapter();
 export const backgroundRepo = new BackgroundRepositoryAdapter();
 export const videoTaskRepo = new VideoTaskRepositoryAdapter();
 export const finalCutRepo = new FinalCutRepositoryAdapter();
+export const sensitiveWordRepo = new DexieSensitiveWordRepository();
 export const snapshotRepo = new SnapshotRepositoryAdapter();
 export const timelineRepo = new TimelineRepositoryAdapter();
 // M3.1: Pipeline 任务仓储（持久化到 IndexedDB）
@@ -215,6 +216,7 @@ import type { ILogSinkPort } from './domain/ports/LoggingPorts';
 import type { ISpaceQueryPort } from './domain/ports/SpaceQueryPort';
 import type { IPdfRenderPort } from './domain/ports/PdfRenderPort';
 import { spaceQueryAdapter } from './adapters/outbound/repositories/DexieSpaceQueryAdapter';
+import { DexieSensitiveWordRepository } from './adapters/outbound/repositories/DexieSensitiveWordRepository';
 import { pdfJsRenderAdapter } from './adapters/outbound/api/inpaint/PdfJsRenderAdapter';
 
 /** 创建带 service 上下文的子 logger，供 UI utils/hooks 便捷使用 */

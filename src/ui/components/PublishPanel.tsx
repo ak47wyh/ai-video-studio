@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Send, X, Trash2, RotateCcw } from 'lucide-react';
-import { publishService } from '../../dependencies';
+import { publishService, sensitiveWordRepo } from '../../dependencies';
 import type { FinalCut, PublishTask, PublishPlatform } from '../../domain/entities/models';
 import { complianceService } from '../../dependencies';
+
 import type { PreflightResult } from '../../domain/ports/CompliancePorts';
 
 const PLATFORMS: Array<{ id: PublishPlatform; labelKey: string }> = [
@@ -23,6 +24,14 @@ export const PublishPanel: React.FC<{ finalCut: FinalCut; storyTitle: string; on
   const [title, setTitle] = useState('');
   const [tags, setTags] = useState('');
   const [busy, setBusy] = useState(false);
+  const [platformWords, setPlatformWords] = useState<string[]>([]);
+  useEffect(() => {
+    let alive = true;
+    sensitiveWordRepo.listEnabledByPlatform(platform)
+      .then(list => { if (alive) setPlatformWords(list.map(e => e.word)); })
+      .catch(() => { if (alive) setPlatformWords([]); });
+    return () => { alive = false; };
+  }, [platform]);
 
   const refresh = useCallback(async () => {
     const list = await publishService.listTasks({ finalCutId: finalCut.id });
@@ -44,10 +53,10 @@ export const PublishPanel: React.FC<{ finalCut: FinalCut; storyTitle: string; on
       resolution: finalCut.pipelineOptions?.videoResolution,
       hasSubtitles: finalCut.hasSubtitles,
       text: [title, tags].join(' '),
-      sensitiveWords: [], // 敏感词表可配置（默认空）
+      sensitiveWords: platformWords, // P3-2 合规治理中心配置的生效词表
       aiMetadataWritten: false,
     }, platform);
-  }, [platform, title, tags, finalCut]);
+  }, [platform, title, tags, finalCut, platformWords]);
 
   // AI 生成内容声明（写入导出元数据）
   const aiMeta = useMemo(() => {

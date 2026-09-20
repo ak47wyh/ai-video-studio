@@ -225,6 +225,20 @@ export interface FinalCut {
 }
 
 
+/** P3-2 敏感词条目（合规治理中心配置，按平台分离） */
+export interface SensitiveWordEntry {
+  id: string;
+  /** 词条文本（已规范化：trim + 小写） */
+  word: string;
+  /** 平台类别：douyin | bilibili | generic */
+  platform: 'douyin' | 'bilibili' | 'generic';
+  /** 是否生效（关闭后预检跳过该词） */
+  enabled: boolean;
+  /** 备注（可选） */
+  note?: string;
+  createdAt: number;
+}
+
 /** P2-8 成片 QC 报告快照（持久化，徽标常驻，无需重复检测） */
 export interface QcReportSnapshot {
   passed: boolean;

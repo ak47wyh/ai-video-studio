@@ -58,7 +58,8 @@
     "assetLibrary": "素材库",
     "projects": "项目",
     "templates": "模板",
-    "taskQueue": "任务队列"
+    "taskQueue": "任务队列",
+    "compliance": "合规中心"
   },
   "dashboard": {
     "title": "控制台",
@@ -1218,5 +1219,34 @@
       "generating_srt": "生成字幕",
       "burning_subtitles": "压制字幕"
     }
+  },
+  "compliance": {
+    "title": "合规治理中心",
+    "total": "词条",
+    "enabled": "生效",
+    "platform": {
+      "douyin": "抖音",
+      "bilibili": "B站",
+      "generic": "通用"
+    },
+    "addPlaceholder": "输入敏感词后回车添加",
+    "add": "添加",
+    "import": "导入",
+    "export": "导出",
+    "importHint": "每行/逗号分隔一个词，自动去重并规范化",
+    "close": "关闭",
+    "doImport": "导入",
+    "previewHint": "命中预览：粘贴标题/简介文本，实时显示命中词条",
+    "previewPlaceholder": "输入待发布文案…",
+    "clean": "未命中敏感词",
+    "hit": "命中",
+    "empty": "该平台暂无词条，添加后发布预检将实时生效",
+    "toggle": "启用/停用",
+    "on": "生效",
+    "off": "停用",
+    "delete": "删除",
+    "duplicate": "该词已存在",
+    "imported": "已导入 {{count}} 个词条",
+    "footnote": "生效词条将自动注入发布预检：命中敏感词的成片发布按钮保持禁用并显示命中词条"
   }
 }

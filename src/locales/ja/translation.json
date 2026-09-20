@@ -58,7 +58,8 @@
     "assetLibrary": "素材ライブラリ",
     "projects": "プロジェクト",
     "templates": "テンプレート",
-    "taskQueue": "タスクキュー"
+    "taskQueue": "タスクキュー",
+    "compliance": "コンプライアンス"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -1221,5 +1222,34 @@
       "generating_srt": "字幕生成中",
       "burning_subtitles": "字幕焼き込み中"
     }
+  },
+  "compliance": {
+    "title": "コンプライアンス管理センター",
+    "total": "語句",
+    "enabled": "有効",
+    "platform": {
+      "douyin": "抖音",
+      "bilibili": "B站",
+      "generic": "汎用"
+    },
+    "addPlaceholder": "敏感語を入力して Enter",
+    "add": "追加",
+    "import": "インポート",
+    "export": "エクスポート",
+    "importHint": "1行/カンマ区切り、自動で正規化・重複排除",
+    "close": "閉じる",
+    "doImport": "インポート",
+    "previewHint": "タイトル/概要テキストを貼り付けてヒットを確認",
+    "previewPlaceholder": "公開予定の文面を入力…",
+    "clean": "敏感語にヒットなし",
+    "hit": "ヒット",
+    "empty": "このプラットフォームの語句はまだありません。追加するとプレフライトに即反映",
+    "toggle": "有効/無効",
+    "on": "有効",
+    "off": "無効",
+    "delete": "削除",
+    "duplicate": "この語句は既に存在します",
+    "imported": "{{count}} 語句をインポートしました",
+    "footnote": "有効な語句は公開プレフライトに注入されます：ヒットすると公開ボタンは無効になり、該当語句が表示されます"
   }
 }

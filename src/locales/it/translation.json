@@ -26,7 +26,8 @@
     "assetLibrary": "Asset Library",
     "projects": "Projects",
     "templates": "Templates",
-    "taskQueue": "Task Queue"
+    "taskQueue": "Task Queue",
+    "compliance": "Conformità"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -907,5 +908,34 @@
       "generating_srt": "Generating subtitles",
       "burning_subtitles": "Burning subtitles"
     }
+  },
+  "compliance": {
+    "title": "Compliance Center",
+    "total": "words",
+    "enabled": "active",
+    "platform": {
+      "douyin": "Douyin",
+      "bilibili": "Bilibili",
+      "generic": "Generic"
+    },
+    "addPlaceholder": "Type a word and press Enter",
+    "add": "Add",
+    "import": "Import",
+    "export": "Export",
+    "importHint": "One word per line / comma separated; auto-deduplicated",
+    "close": "Close",
+    "doImport": "Import",
+    "previewHint": "Paste title/description text to preview hits",
+    "previewPlaceholder": "Type text to check…",
+    "clean": "No sensitive words hit",
+    "hit": "Hit",
+    "empty": "No words yet — preflight picks up changes immediately",
+    "toggle": "Toggle",
+    "on": "Active",
+    "off": "Disabled",
+    "delete": "Delete",
+    "duplicate": "Word already exists",
+    "imported": "Imported {{count}} words",
+    "footnote": "Enabled words are injected into publish preflight: hits keep the publish button disabled and show matched words"
   }
 }
