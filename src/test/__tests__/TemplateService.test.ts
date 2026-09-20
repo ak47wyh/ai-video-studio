@@ -96,4 +96,53 @@ describe('TemplateService — 创作模板（P1-6）', () => {
     expect(r.template).toContain('{title}');
     expect(r.variables).toEqual(['title']);
   });
+describe('TemplateService 变量与套用（P3-4）', () => {
+  it('提取占位符：递归扫描 + 声明合并 + 去重', () => {
+    const v = TemplateService.extractVariables({
+      template: '为视频 {title} 生成标题，主角 {hero}（主角 {hero}）',
+      variables: ['hero', 'extra'],
+    });
+    expect(v.sort()).toEqual(['extra', 'hero', 'title']);
+  });
+
+  it('嵌套结构也能提取（字段在对象层层等内）', () => {
+    const v = TemplateService.extractVariables({
+      beats: [
+        { name: '开端', description: '主角 {name} 出发' },
+        { name: '结局', description: '{name} 达成目标 {goal}' },
+      ],
+    });
+    expect(v.sort()).toEqual(['goal', 'name']);
+  });
+
+  it('替换变量：提供值生效，未提供替换为空串，不动原对象', () => {
+    const src = { template: '《{title}》的主角是 {hero}', meta: { n: 1 } };
+    const out = TemplateService.applyContent(src, { title: '风云' });
+    expect(out.template).toBe('《风云》的主角是 ');
+    expect(out.meta).toEqual({ n: 1 });
+    expect(src.template).toBe('《{title}》的主角是 {hero}');
+  });
+
+  it('分镜模板生成草稿文本：编号节拍行', () => {
+    const tpl = { kind: 'story_structure' } as ContentTemplate;
+    const draft = TemplateService.buildStoryDraft(tpl, { beats: [{ name: '开端', description: '建立世界观' }, { name: '结局', description: '目标达成' }] });
+    expect(draft).toContain('1. 开端：建立世界观');
+    expect(draft).toContain('2. 结局：目标达成');
+  });
+
+  it('提示词模板生成草稿：返回 template 文本', () => {
+    const tpl = { kind: 'prompt' } as ContentTemplate;
+    const draft = TemplateService.buildStoryDraft(tpl, { template: '为视频生成标题' });
+    expect(draft).toBe('为视频生成标题');
+  });
+
+  it('风格模板生成草稿：键值行；导出模板生成草稿：参数组合', () => {
+    const styleDraft = TemplateService.buildStoryDraft({ kind: 'style' } as ContentTemplate, { videoStyle: 'cinematic', bgmPreference: '史诗管弦' });
+    expect(styleDraft).toContain('画面风格：cinematic');
+    const exportDraft = TemplateService.buildStoryDraft({ kind: 'export' } as ContentTemplate, { presetKey: 'douyin', videoResolution: '1080P', includeSubtitles: true });
+    expect(exportDraft).toContain('导出预设：douyin');
+    expect(exportDraft).toContain('1080P');
+    expect(exportDraft).toContain('含字幕');
+  });
+});
 });

@@ -1154,7 +1154,18 @@
     "empty": "No templates of this type",
     "copy": "Apply",
     "previewTitle": "Apply Preview",
-    "deleteSuccess": "Template deleted"
+    "deleteSuccess": "Template deleted",
+    "apply": "Apply",
+    "applyTitle": "Apply to story",
+    "targetStory": "Target story",
+    "doApply": "Confirm apply",
+    "applySuccess": "Applied to story: ",
+    "applied": "Applied",
+    "undo": "Undo",
+    "undoSuccess": "Original content restored",
+    "copyHint": "Copy to clipboard",
+    "cancel": "Cancel",
+    "close": "Close"
   },
   "versionCompare": {
     "title": "Version Compare",

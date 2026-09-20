@@ -189,4 +189,70 @@ export class TemplateService {
     }
     return { ...tpl.content };
   }
+
+  /** P3-4 提取内容中的变量占位符 {var}（递归扫描字符串，去重；与 prompt.variables 声明合并） */
+  static extractVariables(content: Record<string, unknown>): string[] {
+    const vars = new Set<string>();
+    const walk = (node: unknown): void => {
+      if (typeof node === "string") {
+        const re = /\{([A-Za-z_][A-Za-z0-9_]*)\}/g;
+        let m: RegExpExecArray | null;
+        while ((m = re.exec(node)) !== null) vars.add(m[1]);
+      } else if (Array.isArray(node)) {
+        for (const item of node) walk(item);
+      } else if (node && typeof node === "object") {
+        for (const v of Object.values(node)) walk(v);
+      }
+    };
+    walk(content);
+    const declared = content.variables;
+    if (Array.isArray(declared)) {
+      for (const v of declared) if (typeof v === "string") vars.add(v);
+    }
+    return [...vars];
+  }
+
+  /** P3-4 替换变量占位符 {var} → 值（未提供的变量替换为空串；递归处理嵌套结构） */
+  static applyContent(content: Record<string, unknown>, variables: Record<string, string>): Record<string, unknown> {
+    const replace = (node: unknown): unknown => {
+      if (typeof node === "string") {
+        return node.replace(/\{([A-Za-z_][A-Za-z0-9_]*)\}/g, (_m: string, name: string) => variables[name] ?? "");
+      }
+      if (Array.isArray(node)) return node.map(replace);
+      if (node && typeof node === "object") {
+        const out: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(node)) out[k] = replace(v);
+        return out;
+      }
+      return node;
+    };
+    return replace(content) as Record<string, unknown>;
+  }
+
+  /** P3-4 生成套用到工作台的创作草稿文本（分镜/提示词/风格/导出四类统一为可编辑文本） */
+  static buildStoryDraft(tpl: ContentTemplate, content: Record<string, unknown>): string {
+    if (tpl.kind === "story_structure") {
+      const beats = content.beats as Array<{ name: string; description: string }>;
+      if (!Array.isArray(beats)) return "";
+      return beats.map((b, i) => (i + 1) + ". " + b.name + "：" + b.description).join("\n");
+    }
+    if (tpl.kind === "prompt") {
+      return String(content.template ?? "");
+    }
+    if (tpl.kind === "style") {
+      const lines: string[] = [];
+      if (content.videoStyle) lines.push("画面风格：" + String(content.videoStyle));
+      if (content.bgmPreference) lines.push("BGM 偏好：" + String(content.bgmPreference));
+      if (content.cameraMotion) lines.push("运镜方式：" + String(content.cameraMotion));
+      return lines.join("\n");
+    }
+    if (tpl.kind === "export") {
+      const parts: string[] = [];
+      if (content.presetKey) parts.push("导出预设：" + String(content.presetKey));
+      if (content.videoResolution) parts.push(String(content.videoResolution));
+      if (content.includeSubtitles === true) parts.push("含字幕");
+      return parts.join(" · ");
+    }
+    return JSON.stringify(content, null, 2);
+  }
 }

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { LayoutTemplate, Plus, Trash2, Copy, Check, RefreshCw, Sparkles } from 'lucide-react';
+import { LayoutTemplate, Plus, Trash2, Copy, Check, RefreshCw, Sparkles, Wand2, Undo2, X } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 import { AsyncState } from '../components/AsyncState';
-import { templateService } from '../../dependencies';
-import type { ContentTemplate, TemplateKind, VideoStyle } from '../../domain/entities/models';
+import { templateService, storyRepo } from '../../dependencies';
+import { TemplateService } from '../../domain/services/TemplateService';
+import type { ContentTemplate, TemplateKind, VideoStyle, Story } from '../../domain/entities/models';
 
 const KINDS: Array<{ id: TemplateKind; label: string }> = [
   { id: 'story_structure', label: '分镜结构' },
@@ -26,6 +27,10 @@ export const TemplatePage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<ContentTemplate | null>(null);
   const [copied, setCopied] = useState(false);
+  const [applyTpl, setApplyTpl] = useState<ContentTemplate | null>(null);
+  const [applyStoryId, setApplyStoryId] = useState('');
+  const [stories, setStories] = useState<Story[]>([]);
+  const [undoBackup, setUndoBackup] = useState<{ storyId: string; title: string; before: string } | null>(null);
 
   // 新建表单
   const [creating, setCreating] = useState(false);
@@ -40,6 +45,13 @@ export const TemplatePage: React.FC = () => {
   const [expPreset, setExpPreset] = useState<'generic' | 'douyin' | 'bilibili'>('generic');
   const [expRes, setExpRes] = useState('1080P');
   const [expSubs, setExpSubs] = useState(true);
+
+  useEffect(() => {
+    storyRepo.findAll().then(list => {
+      setStories(list);
+      if (list.length > 0) setApplyStoryId(prev => prev || list[0].id);
+    }).catch(() => {});
+  }, []);
 
   const refresh = async (k: TemplateKind = kind) => {
     const list = await templateService.listTemplates(k);
@@ -109,6 +121,38 @@ export const TemplatePage: React.FC = () => {
     } catch (e) {
       toast.showToast('error', e instanceof Error ? e.message : String(e));
     }
+  };
+
+  const handleConfirmApply = async (tpl: ContentTemplate, storyId: string, vars: Record<string, string>) => {
+    if (!storyId) return;
+    try {
+      const story = await storyRepo.findById(storyId);
+      if (!story) throw new Error('Story not found');
+      const resolved = templateService.resolve(tpl);
+      const applied = TemplateService.applyContent(resolved, vars);
+      const draft = TemplateService.buildStoryDraft(tpl, applied);
+      if (!draft.trim()) throw new Error('Empty draft');
+      setUndoBackup({ storyId: story.id, title: story.title, before: story.originalText });
+      await storyRepo.save({ ...story, originalText: draft });
+      toast.showToast('success', t('template.applySuccess', '已套用到故事：') + story.title);
+      setApplyTpl(null);
+    } catch (e) {
+      toast.showToast('error', e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const handleUndoApply = async () => {
+    if (!undoBackup) return;
+    try {
+      const story = await storyRepo.findById(undoBackup.storyId);
+      if (story) {
+        await storyRepo.save({ ...story, originalText: undoBackup.before });
+        toast.showToast('success', t('template.undoSuccess', '已恢复原内容'));
+      }
+    } catch (e) {
+      toast.showToast('error', e instanceof Error ? e.message : String(e));
+    }
+    setUndoBackup(null);
   };
 
   const copyResolved = async (tpl: ContentTemplate) => {
@@ -231,8 +275,11 @@ export const TemplatePage: React.FC = () => {
                 {renderContentSummary(tpl)}
               </div>
               <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.5rem' }}>
-                <button className="btn btn-ghost btn-xs" style={{ flex: 1 }} onClick={e => { e.stopPropagation(); copyResolved(tpl); }}>
-                  {copied ? <Check size={12} /> : <Copy size={12} />} {t('template.copy', '套用')}
+                <button className="btn btn-primary btn-xs" style={{ flex: 1 }} onClick={e => { e.stopPropagation(); setApplyTpl(tpl); }}>
+                  <Wand2 size={12} /> {t('template.apply', '套用')}
+                </button>
+                <button className="btn btn-ghost btn-xs" onClick={e => { e.stopPropagation(); copyResolved(tpl); }} title={t('template.copyHint', '复制到剪贴板')}>
+                  {copied ? <Check size={12} /> : <Copy size={12} />}
                 </button>
                 {!tpl.builtin && (
                   <button className="btn btn-ghost btn-xs" style={{ color: 'var(--color-danger)' }} onClick={e => { e.stopPropagation(); deleteTemplate(tpl); }}>
@@ -243,6 +290,28 @@ export const TemplatePage: React.FC = () => {
             </div>
           ))}
         </div>
+      )}
+
+      {undoBackup && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1rem', padding: '0.5rem 0.75rem', background: 'rgba(250,173,20,0.12)', border: '1px solid rgba(250,173,20,0.35)', borderRadius: 10, fontSize: '0.8rem', flexWrap: 'wrap' }}>
+          <Undo2 size={14} style={{ color: 'var(--color-warning)' }} />
+          <span style={{ flex: 1, minWidth: 160 }}>{t('template.applied', '已套用')}：{undoBackup.title}</span>
+          <button className="btn btn-secondary btn-sm" onClick={() => void handleUndoApply()}>
+            {t('template.undo', '撤销')}
+          </button>
+        </div>
+      )}
+
+      {applyTpl && (
+        <TemplateApplyModal
+          key={applyTpl.id}
+          tpl={applyTpl}
+          stories={stories}
+          selectedStoryId={applyStoryId}
+          onStoryChange={setApplyStoryId}
+          onConfirm={(tpl2, storyId, vars) => void handleConfirmApply(tpl2, storyId, vars)}
+          onClose={() => setApplyTpl(null)}
+        />
       )}
 
       {selected && (
@@ -265,6 +334,79 @@ export const TemplatePage: React.FC = () => {
           </pre>
         </div>
       )}
+    </div>
+  );
+};
+
+
+/** P3-4 套用弹窗：目标故事 + 变量填写（惰性初始化，切模板自动重置）+ 实时草稿预览 */
+const TemplateApplyModal: React.FC<{
+  tpl: ContentTemplate;
+  stories: Story[];
+  selectedStoryId: string;
+  onStoryChange: (id: string) => void;
+  onConfirm: (tpl: ContentTemplate, storyId: string, vars: Record<string, string>) => void;
+  onClose: () => void;
+}> = ({ tpl, stories, selectedStoryId, onStoryChange, onConfirm, onClose }) => {
+  const { t } = useTranslation();
+  const [vars, setVars] = useState<Record<string, string>>(() => {
+    try {
+      const init: Record<string, string> = {};
+      for (const v of TemplateService.extractVariables(tpl.content)) init[v] = "";
+      return init;
+    } catch {
+      return {};
+    }
+  });
+
+  let draft = "";
+  let draftError = "";
+  try {
+    const r = TemplateService.applyContent(templateService.resolve(tpl), vars);
+    draft = TemplateService.buildStoryDraft(tpl, r);
+  } catch (e) {
+    draftError = e instanceof Error ? e.message : String(e);
+  }
+
+  return (
+    <div style={{ marginTop: "1rem" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: "0.6rem", flexWrap: "wrap" }}>
+        <h3 style={{ margin: 0, fontSize: "0.95rem" }}>{t("template.applyTitle", "套用到故事")}：{tpl.name}</h3>
+        <button className="btn btn-ghost btn-xs" style={{ marginLeft: "auto" }} onClick={onClose}>
+          <X size={13} /> {t("template.close", "关闭")}
+        </button>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginBottom: "0.5rem" }}>
+        <label style={{ fontSize: "0.78rem", color: "var(--text-secondary)" }}>
+          {t("template.targetStory", "目标故事")}
+          <select className="form-input" style={{ width: "100%", marginTop: "0.2rem" }} value={selectedStoryId} onChange={e => onStoryChange(e.target.value)}>
+            {stories.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
+          </select>
+        </label>
+        {Object.keys(vars).length > 0 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+            {Object.keys(vars).map(v => (
+              <label key={v} style={{ fontSize: "0.78rem", color: "var(--text-secondary)" }}>
+                {"{" + v + "}"}
+                <input className="form-input" style={{ width: "100%", marginTop: "0.2rem" }} value={vars[v] ?? ""} onChange={e => setVars(prev => ({ ...prev, [v]: e.target.value }))} placeholder={v} />
+              </label>
+            ))}
+          </div>
+        )}
+      </div>
+      {draftError ? (
+        <div style={{ fontSize: "0.75rem", color: "var(--color-danger)" }}>{draftError}</div>
+      ) : (
+        <pre style={{ fontSize: "0.75rem", color: "var(--text-secondary)", whiteSpace: "pre-wrap", margin: 0, maxHeight: 180, overflowY: "auto", background: "rgba(0,0,0,0.02)", padding: "0.5rem", borderRadius: 8 }}>
+          {draft}
+        </pre>
+      )}
+      <div style={{ display: "flex", gap: "0.4rem", marginTop: "0.6rem", justifyContent: "flex-end" }}>
+        <button className="btn btn-secondary btn-sm" onClick={onClose}>{t("template.cancel", "取消")}</button>
+        <button className="btn btn-primary btn-sm" onClick={() => onConfirm(tpl, selectedStoryId, vars)} disabled={!selectedStoryId}>
+          <Wand2 size={13} /> {t("template.doApply", "确认套用")}
+        </button>
+      </div>
     </div>
   );
 };

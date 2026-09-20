@@ -1154,7 +1154,18 @@
     "empty": "暂无该类型模板",
     "copy": "套用",
     "previewTitle": "套用预览",
-    "deleteSuccess": "模板已删除"
+    "deleteSuccess": "模板已删除",
+    "apply": "套用",
+    "applyTitle": "套用到故事",
+    "targetStory": "目标故事",
+    "doApply": "确认套用",
+    "applySuccess": "已套用到故事：",
+    "applied": "已套用",
+    "undo": "撤销",
+    "undoSuccess": "已恢复原内容",
+    "copyHint": "复制到剪贴板",
+    "cancel": "取消",
+    "close": "关闭"
   },
   "versionCompare": {
     "title": "同源版本对比",

@@ -1157,7 +1157,18 @@
     "empty": "この種類のテンプレートはありません",
     "copy": "適用",
     "previewTitle": "適用プレビュー",
-    "deleteSuccess": "テンプレートを削除しました"
+    "deleteSuccess": "テンプレートを削除しました",
+    "apply": "適用",
+    "applyTitle": "ストーリーに適用",
+    "targetStory": "対象ストーリー",
+    "doApply": "適用する",
+    "applySuccess": "ストーリーに適用しました：",
+    "applied": "適用済み",
+    "undo": "元に戻す",
+    "undoSuccess": "元の内容を復元しました",
+    "copyHint": "クリップボードにコピー",
+    "cancel": "キャンセル",
+    "close": "閉じる"
   },
   "versionCompare": {
     "title": "同源バージョン比較",
