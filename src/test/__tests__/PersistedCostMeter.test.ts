@@ -124,3 +124,28 @@ describe('PersistedCostMeter — 备份恢复与预算（B3）', () => {
     expect(meter.getBudgetExceeded()).toBe(false);
   });
 });
+
+describe('PersistedCostMeter — 告警阈值（P3-3）', () => {
+  it('默认阈值为 80', () => {
+    const meter = new PersistedCostMeter();
+    expect(meter.getBudgetThresholdPct()).toBe(80);
+  });
+
+  it('钳制 1-100 并持久化（新实例可读回）', () => {
+    const a = new PersistedCostMeter();
+    a.setBudgetThresholdPct(120);
+    expect(a.getBudgetThresholdPct()).toBe(100);
+    a.setBudgetThresholdPct(0);
+    expect(a.getBudgetThresholdPct()).toBe(1);
+    a.setBudgetThresholdPct(65);
+    expect(a.getBudgetThresholdPct()).toBe(65);
+    const b = new PersistedCostMeter();
+    expect(b.getBudgetThresholdPct()).toBe(65);
+  });
+
+  it('非法值回退 80', () => {
+    const meter = new PersistedCostMeter();
+    meter.setBudgetThresholdPct(Number.NaN);
+    expect(meter.getBudgetThresholdPct()).toBe(80);
+  });
+});

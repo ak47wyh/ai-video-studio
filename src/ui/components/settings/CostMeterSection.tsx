@@ -39,17 +39,25 @@ export const CostMeterSection: React.FC = () => {
   const [records, setRecords] = useState<CostRecord[]>(() => costMeter.getRecords(undefined, 20));
   const [budget, setBudget] = useState<string>(() => meter.getBudget()?.toString() ?? '');
   const [budgetExceeded, setBudgetExceeded] = useState<boolean>(() => meter.getBudgetExceeded());
+  const [threshold, setThreshold] = useState<string>(() => String(meter.getBudgetThresholdPct()));
 
   const refresh = useCallback(() => {
     setSummary(costMeter.getSummary());
     setRecords(costMeter.getRecords(undefined, 20));
     setBudget(meter.getBudget()?.toString() ?? '');
     setBudgetExceeded(meter.getBudgetExceeded());
+    setThreshold(String(meter.getBudgetThresholdPct()));
   }, [meter]);
 
   const handleBudgetSave = () => {
     const n = Number(budget);
     meter.setBudget(Number.isFinite(n) && n > 0 ? n : undefined);
+    refresh();
+  };
+
+  const handleThresholdSave = () => {
+    const n = Number(threshold);
+    meter.setBudgetThresholdPct(Number.isFinite(n) && n > 0 ? n : 80);
     refresh();
   };
 
@@ -112,6 +120,26 @@ export const CostMeterSection: React.FC = () => {
         />
         <button className="btn btn-secondary" onClick={handleBudgetSave} style={{ fontSize: '0.8rem', padding: '0.3rem 0.7rem' }}>
           {t('settings.costMeter.budgetSave', '保存')}
+        </button>
+        <span style={{ width: 12 }} />
+        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+          {t('settings.costMeter.thresholdLabel', '告警阈值 %')}
+        </label>
+        <input
+          type="number"
+          min={1}
+          max={100}
+          value={threshold}
+          onChange={e => setThreshold(e.target.value)}
+          placeholder="80"
+          style={{
+            width: '64px', fontSize: '0.8rem', padding: '0.3rem 0.5rem',
+            borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)',
+            background: 'var(--bg-color)', color: 'var(--text-primary)',
+          }}
+        />
+        <button className="btn btn-secondary" onClick={handleThresholdSave} style={{ fontSize: '0.8rem', padding: '0.3rem 0.7rem' }}>
+          {t('settings.costMeter.thresholdSave', '保存')}
         </button>
         {budgetExceeded && (
           <span style={{ fontSize: '0.8rem', color: '#f87171', fontWeight: 600 }}>

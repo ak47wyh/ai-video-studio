@@ -329,6 +329,8 @@ export interface ICostMeter {
   restore?(records: CostRecord[]): void;
   /** 设置月度 Token 预算（undefined 表示清除预算；可选实现） */
   setBudget?(tokens: number | undefined): void;
+  setBudgetThresholdPct?(pct: number): void;
+  getBudgetThresholdPct?(): number;
   /** 当前预算（未设置返回 undefined；可选实现） */
   getBudget?(): number | undefined;
   /** 是否已超出预算（未设置预算返回 false；可选实现） */

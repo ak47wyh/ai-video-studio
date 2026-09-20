@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { BarChart3, RefreshCw, AlertTriangle, Gauge } from 'lucide-react';
+import { BarChart3, RefreshCw, AlertTriangle, Gauge, Download } from 'lucide-react';
 import { costAnalytics } from '../../dependencies';
+import { CostAnalyticsService } from '../../domain/services/CostAnalyticsService';
 
 /**
  * P0-2 成本与产出报表面板（Dashboard 区块）。
@@ -22,6 +23,17 @@ export const UsageReportPanel: React.FC = () => {
   const maxPlatformTokens = Math.max(1, ...report.byPlatform.map(p => p.tokens));
   const maxTrendCalls = Math.max(1, ...report.dailyTrend.map(d => d.calls));
 
+  const handleExportCsv = () => {
+    const csv = CostAnalyticsService.buildUsageReportCsv(report);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `usage-report-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="dashboard-card" style={{ cursor: 'default' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
@@ -29,6 +41,11 @@ export const UsageReportPanel: React.FC = () => {
           <BarChart3 size={16} style={{ color: 'var(--primary-color)', verticalAlign: '-2px', marginRight: '0.25rem' }} />
           {t('dashboard.usageTitle', '用量与预算')}
         </h3>
+        <div style={{ display: 'flex', gap: '0.4rem' }}>
+          <button className="btn btn-ghost" onClick={handleExportCsv} style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            <Download size={12} />
+            {t('dashboard.exportCsv', '导出 CSV')}
+          </button>
         <button
           className="btn btn-ghost"
           style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
@@ -37,6 +54,7 @@ export const UsageReportPanel: React.FC = () => {
         >
           <RefreshCw size={12} /> {t('dashboard.refresh', '刷新')}
         </button>
+        </div>
       </div>
 
       {/* 预算告警 */}
@@ -81,11 +99,17 @@ export const UsageReportPanel: React.FC = () => {
                 height: '100%',
                 width: `${budget.usageRatio * 100}%`,
                 borderRadius: 4,
-                background: budget.exceeded ? 'var(--color-danger)' : 'var(--color-success)',
+                background: budget.exceeded ? 'var(--color-danger)' : budget.nearLimit ? 'var(--color-warning)' : 'var(--color-success)',
                 transition: 'width 0.3s',
               }}
             />
           </div>
+        </div>
+      )}
+      {budget.budgetTokens !== undefined && budget.budgetTokens > 0 && !budget.exceeded && budget.nearLimit && (
+        <div style={{ marginBottom: '0.75rem', fontSize: '0.78rem', color: 'var(--color-warning)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+          <AlertTriangle size={13} />
+          {t('dashboard.budgetNearLimit', '已接近预算阈值，请关注用量')}
         </div>
       )}
 

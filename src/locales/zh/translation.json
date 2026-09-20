@@ -94,7 +94,9 @@
     "budgetExceeded": "本月 Token 预算已超出",
     "byPlatform": "平台用量",
     "dailyTrend": "近 7 日调用趋势",
-    "noUsageData": "暂无用量记录，完成一次生成后自动统计"
+    "noUsageData": "暂无用量记录，完成一次生成后自动统计",
+    "exportCsv": "导出 CSV",
+    "budgetNearLimit": "已接近预算阈值，请关注用量"
   },
   "character": {
     "title": "角色管理",
@@ -528,7 +530,11 @@
     "volcVoiceModelDitRestore": "DiT 还原版(还原口音/语速)",
     "volcVoiceModelMega": "MEGA 效果(早期,不推荐)",
     "volcSeedTtsEnabledLabel": "启用豆包语音合成 2.0(实验性)",
-    "volcSeedTtsEnabledHint": "需在火山引擎控制台开通 doubao-seed-tts-2.0 模型,不支持 Auto 切换。启用后音色与配音菜单将显示该模型选项。"
+    "volcSeedTtsEnabledHint": "需在火山引擎控制台开通 doubao-seed-tts-2.0 模型,不支持 Auto 切换。启用后音色与配音菜单将显示该模型选项。",
+    "costMeter": {
+      "thresholdLabel": "告警阈值 %",
+      "thresholdSave": "保存"
+    }
   },
   "models": {
     "title": "可用模型",

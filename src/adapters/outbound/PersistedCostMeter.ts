@@ -15,6 +15,7 @@ import type { ICostMeter, CostRecord, CostSummary } from '../../domain/ports/Cro
 const MAX_RECORDS = 1000;
 const RECORDS_KEY = 'ai-video-studio:costMeter:records:v1';
 const BUDGET_KEY = 'ai-video-studio:costMeter:budget:v1';
+const THRESHOLD_KEY = 'ai-video-studio:costMeter:threshold:v1';
 
 function safeStorage(): Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> | null {
   try {
@@ -41,6 +42,7 @@ export class PersistedCostMeter implements ICostMeter {
   private records: CostRecord[] = [];
   private counter = 0;
   private budgetTokens: number | undefined;
+  private thresholdPct = 80;
 
   constructor() {
     this.loadPersisted();
@@ -160,6 +162,23 @@ export class PersistedCostMeter implements ICostMeter {
     return this.getSummary().totalTokens >= this.budgetTokens;
   }
 
+  /** P3-3 设置告警阈值百分比（1-100，默认 80），持久化 */
+  setBudgetThresholdPct(pct: number): void {
+    const clamped = Number.isFinite(pct) ? Math.min(100, Math.max(1, Math.round(pct))) : 80;
+    this.thresholdPct = clamped;
+    const storage = safeStorage();
+    if (!storage) return;
+    try {
+      storage.setItem(THRESHOLD_KEY, String(clamped));
+    } catch {
+      // 存储不可用时静默降级
+    }
+  }
+
+  getBudgetThresholdPct(): number {
+    return this.thresholdPct;
+  }
+
   // ---------- 持久化 ----------
 
   private loadPersisted(): void {
@@ -177,6 +196,11 @@ export class PersistedCostMeter implements ICostMeter {
       if (budgetRaw) {
         const n = Number(budgetRaw);
         if (Number.isFinite(n) && n > 0) this.budgetTokens = n;
+      }
+      const thresholdRaw = storage.getItem(THRESHOLD_KEY);
+      if (thresholdRaw) {
+        const t = Number(thresholdRaw);
+        if (Number.isFinite(t) && t >= 1 && t <= 100) this.thresholdPct = t;
       }
     } catch {
       // 数据损坏时从空记录开始（不阻断启动）

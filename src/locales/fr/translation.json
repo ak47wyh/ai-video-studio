@@ -62,7 +62,9 @@
     "budgetExceeded": "Monthly token budget exceeded",
     "byPlatform": "Usage by Platform",
     "dailyTrend": "Last 7 Days Trend",
-    "noUsageData": "No usage records yet. Stats appear after your first generation."
+    "noUsageData": "No usage records yet. Stats appear after your first generation.",
+    "exportCsv": "Export CSV",
+    "budgetNearLimit": "Close to budget threshold, keep an eye on usage"
   },
   "character": {
     "title": "Character Management",
@@ -372,7 +374,11 @@
     "volcArkModeSwitchedToast": "Switched to {{mode}} mode, Base URL updated automatically",
     "volcTextProtocolTitle": "Text Generation Protocol Preference",
     "volcTextProtocolHint": "Only affects text generation; Video/Image always use OpenAI protocol",
-    "volcValidateHint": "Please validate OpenAI and Anthropic configurations separately"
+    "volcValidateHint": "Please validate OpenAI and Anthropic configurations separately",
+    "costMeter": {
+      "thresholdLabel": "Alert threshold %",
+      "thresholdSave": "Save"
+    }
   },
   "models": {
     "title": "Available Models",

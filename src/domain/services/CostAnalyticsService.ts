@@ -20,7 +20,12 @@ export interface BudgetView {
   exceeded: boolean;
   /** 使用率 0-1（未设置预算为 0） */
   usageRatio: number;
+  /** P3-3 告警阈值百分比（默认 80，用于临近预警） */
+  thresholdPct: number;
+  /** 是否临近阈值（未超出但已达阈值） */
+  nearLimit: boolean;
 }
+
 
 /**
  * 每日趋势点。
@@ -113,6 +118,8 @@ export class CostAnalyticsService {
     const budgetTokens = this.costMeter.getBudget?.();
     const exceeded = this.costMeter.getBudgetExceeded?.() ?? false;
     const usageRatio = budgetTokens && budgetTokens > 0 ? Math.min(1, totalTokens / budgetTokens) : 0;
+    const thresholdPct = this.costMeter.getBudgetThresholdPct?.() ?? 80;
+    const nearLimit = budgetTokens !== undefined && budgetTokens > 0 && !exceeded && usageRatio >= thresholdPct / 100;
 
     return {
       totalCalls,
@@ -127,6 +134,8 @@ export class CostAnalyticsService {
         .sort((a, b) => b.tokens - a.tokens || b.calls - a.calls),
       dailyTrend,
       budget: {
+        thresholdPct,
+        nearLimit,
         budgetTokens,
         usedTokens: totalTokens,
         exceeded,
@@ -144,5 +153,25 @@ export class CostAnalyticsService {
     cur.calls += 1;
     cur.tokens += tokens;
     map.set(key, cur);
+  }
+  /** P3-3 成本报表导出 CSV（与面板同源：getUsageReport 单一数据源） */
+  static buildUsageReportCsv(report: UsageReport): string {
+    const esc = (v: string | number): string => String(v).replace(/,/g, '，');
+    const lines: string[] = [];
+    lines.push('类型,名称,调用次数,Token 用量');
+    lines.push('汇总,全部,' + report.totalCalls + ',' + report.totalTokens);
+    lines.push('');
+    lines.push('按平台,,,');
+    for (const pl of report.byPlatform) lines.push('平台,' + esc(pl.platform) + ',' + pl.calls + ',' + pl.tokens);
+    lines.push('');
+    lines.push('按调用类型,,,');
+    for (const ct of report.byCallType) lines.push('类型,' + esc(ct.callType) + ',' + ct.calls + ',' + ct.tokens);
+    lines.push('');
+    lines.push('近日趋势,,,');
+    for (const d of report.dailyTrend) lines.push('日期,' + d.date + ',' + d.calls + ',' + d.tokens);
+    lines.push('');
+    lines.push('预算,' + (report.budget.budgetTokens ?? '未设置') + ',' + report.budget.usedTokens + ',已用');
+    lines.push('告警,阈值' + report.budget.thresholdPct + '%,' + (report.budget.nearLimit ? '临近' : '正常') + ',' + (report.budget.exceeded ? '已超出' : '未超出'));
+    return lines.join('\r\n');
   }
 }

@@ -97,7 +97,9 @@
     "last7Days": "直近7日間の推移",
     "noData": "レポートデータはまだありません",
     "dailyTrend": "日次トレンド",
-    "noUsageData": "利用データがありません"
+    "noUsageData": "利用データがありません",
+    "exportCsv": "CSV エクスポート",
+    "budgetNearLimit": "予算しきい値に近づいています"
   },
   "character": {
     "title": "Character Management",
@@ -531,7 +533,11 @@
     "capText": "テキスト",
     "capVoice": "音声",
     "capMusic": "音楽",
-    "capModel": "モデル"
+    "capModel": "モデル",
+    "costMeter": {
+      "thresholdLabel": "警告しきい値 %",
+      "thresholdSave": "保存"
+    }
   },
   "models": {
     "title": "Available Models",
