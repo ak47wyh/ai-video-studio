@@ -585,6 +585,19 @@ export type PublishPlatform = 'douyin' | 'bilibili' | 'generic';
 export type PublishStatus = 'draft' | 'ready' | 'exported' | 'published' | 'failed';
 
 export type FinalCutLifecycle = 'draft' | 'ready' | 'published' | 'archived';
+export interface PublishStats {
+  /** 播放量 */
+  views: number;
+  /** 点赞数 */
+  likes: number;
+  /** 评论数 */
+  comments: number;
+  /** 转发/分享数 */
+  shares: number;
+  /** 数据采集时间（本地手动回传） */
+  collectedAt: number;
+}
+
 
 /** 发布任务（成片 → 平台发布配置 + 状态追踪） */
 export interface PublishTask {
@@ -610,5 +623,7 @@ export interface PublishTask {
   createdAt: number;
   /** P3-7 排期发布时间（未设置 = 即时） */
   scheduledAt?: number;
+  /** P3-8 发布后表现数据回传（半自动，平台真实 API 待 P3-9 决策） */
+  stats?: PublishStats;
   updatedAt: number;
 }

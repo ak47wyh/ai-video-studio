@@ -1140,7 +1140,22 @@
     "statusReady": "待发布",
     "statusExported": "已导出",
     "statusPublished": "已发布",
-    "statusFailed": "失败"
+    "statusFailed": "失败",
+    "statViews": "播放",
+    "statLikes": "点赞",
+    "statComments": "评论",
+    "statShares": "转发",
+    "engagement": "互动率",
+    "statsEntry": "回传数据",
+    "statsSave": "保存回传",
+    "statsSaved": "表现数据已回传",
+    "roiTitle": "版本 ROI（发布表现 vs 生成成本）",
+    "roiHint": "口径：互动 = 点赞+评论+转发；成本为生成该版本成片的 Token 用量（不估算金额）；数据为手动回传。",
+    "roiEmpty": "暂无已发布且已回传数据的版本 — 发布并回传后自动出现",
+    "roiVersion": "版本",
+    "roiTokens": "Token 成本",
+    "roiPerEngagement": "Token/互动",
+    "roiNoVersion": "未标版本"
   },
   "rework": {
     "title": "成片回改",

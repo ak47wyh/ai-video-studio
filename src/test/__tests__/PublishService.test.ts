@@ -157,9 +157,42 @@ describe('PublishService — P3-7 排期与发布回执', () => {
     await svc.advance(task.id, 'exported');
     const published = await svc.advance(task.id, 'published');
     const cut = cutStore.get('fc-1');
-    expect(cut).toBeDefined();
+    if (!cut) throw new Error('cut not saved');
     expect(cut.lifecycle).toBe('published');
     expect(cut.publishedAt).toBe(published.updatedAt);
     expect(cut.publishChannel).toBe('bilibili');
+  });
+});
+
+
+describe('PublishService — P3-8 数据回传', () => {
+  it('updateStats 仅 published 任务可写并落库（含 collectedAt）', async () => {
+    const { repo } = makeRepo();
+    const svc = new PublishService(repo);
+    const task = await svc.createTask({ finalCutId: 'fc-1', platform: 'douyin', title: 't' });
+    await svc.advance(task.id, 'ready');
+    await svc.advance(task.id, 'exported');
+    await svc.advance(task.id, 'published');
+    const updated = await svc.updateStats(task.id, { views: 1000, likes: 50, comments: 10, shares: 5 });
+    expect(updated.stats?.views).toBe(1000);
+    expect(updated.stats?.likes).toBe(50);
+    expect(updated.stats?.collectedAt).toBeGreaterThan(0);
+  });
+
+  it('updateStats 拒绝未发布任务与非法数字', async () => {
+    const { repo } = makeRepo();
+    const svc = new PublishService(repo);
+    const task = await svc.createTask({ finalCutId: 'fc-1', platform: 'douyin', title: 't' });
+    await expect(svc.updateStats(task.id, { views: 1, likes: 0, comments: 0, shares: 0 })).rejects.toThrow('published');
+    await svc.advance(task.id, 'ready');
+    await svc.advance(task.id, 'exported');
+    await svc.advance(task.id, 'published');
+    await expect(svc.updateStats(task.id, { views: -1, likes: 0, comments: 0, shares: 0 })).rejects.toThrow('non-negative');
+  });
+
+  it('updateStats 未知任务抛错', async () => {
+    const { repo } = makeRepo();
+    const svc = new PublishService(repo);
+    await expect(svc.updateStats('nope', { views: 1, likes: 0, comments: 0, shares: 0 })).rejects.toThrow('not found');
   });
 });

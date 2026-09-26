@@ -1,4 +1,4 @@
-import type { PublishTask, PublishPlatform, PublishStatus } from '../entities/models';
+import type { PublishTask, PublishPlatform, PublishStatus, PublishStats } from '../entities/models';
 import type { IPublishTaskRepository } from '../ports/PublishPorts';
 import type { IFinalCutRepository } from '../ports/OutboundPorts';
 
@@ -101,6 +101,22 @@ export class PublishService {
   async deleteTask(taskId: string): Promise<void> {
     await this.repo.delete(taskId);
   }
+  /** P3-8 发布数据回传：仅 published 任务可写（半自动录入，不伪造真实 API） */
+  async updateStats(taskId: string, stats: Omit<PublishStats, 'collectedAt'>): Promise<PublishTask> {
+    const task = await this.repo.getById(taskId);
+    if (!task) throw new Error(`Publish task not found: ${taskId}`);
+    if (task.status !== 'published') {
+      throw new Error('Stats can only be recorded for published tasks');
+    }
+    const numbers = [stats.views, stats.likes, stats.comments, stats.shares];
+    if (numbers.some(n => !Number.isFinite(n) || n < 0)) {
+      throw new Error('Stats must be non-negative numbers');
+    }
+    const next: PublishTask = { ...task, stats: { ...stats, collectedAt: Date.now() }, updatedAt: Date.now() };
+    await this.repo.save(next);
+    return next;
+  }
+
   /** P3-7 排期：设定未来发布时间（<= 当前时间拒绝；终态任务拒绝） */
   async scheduleTask(taskId: string, scheduledAt: number): Promise<PublishTask> {
     if (!Number.isFinite(scheduledAt) || scheduledAt <= Date.now()) {

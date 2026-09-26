@@ -1143,7 +1143,22 @@
     "statusReady": "準備完了",
     "statusExported": "エクスポート済み",
     "statusPublished": "公開済み",
-    "statusFailed": "失敗"
+    "statusFailed": "失敗",
+    "statViews": "再生",
+    "statLikes": "いいね",
+    "statComments": "コメント",
+    "statShares": "シェア",
+    "engagement": "エンゲージメント率",
+    "statsEntry": "データ回収",
+    "statsSave": "保存",
+    "statsSaved": "データを記録しました",
+    "roiTitle": "バージョン ROI（公開実績 vs 生成コスト）",
+    "roiHint": "エンゲージメント = いいね+コメント+シェア；コストは成片生成の Token 使用量（金額換算なし）；データは手動入力。",
+    "roiEmpty": "公開済みかつデータ回収済みのバージョンはまだありません",
+    "roiVersion": "バージョン",
+    "roiTokens": "Token コスト",
+    "roiPerEngagement": "Token/エンゲージメント",
+    "roiNoVersion": "バージョンなし"
   },
   "rework": {
     "title": "成片リワーク",

@@ -829,7 +829,22 @@
     "statusReady": "Ready",
     "statusExported": "Exported",
     "statusPublished": "Published",
-    "statusFailed": "Failed"
+    "statusFailed": "Failed",
+    "statViews": "Views",
+    "statLikes": "Likes",
+    "statComments": "Comments",
+    "statShares": "Shares",
+    "engagement": "Engagement",
+    "statsEntry": "Record stats",
+    "statsSave": "Save",
+    "statsSaved": "Stats recorded",
+    "roiTitle": "Version ROI (performance vs generation cost)",
+    "roiHint": "Engagement = likes + comments + shares; cost = tokens used to generate this cut (no currency estimate); data entered manually.",
+    "roiEmpty": "No published versions with recorded stats yet",
+    "roiVersion": "Version",
+    "roiTokens": "Token cost",
+    "roiPerEngagement": "Token / engagement",
+    "roiNoVersion": "unversioned"
   },
   "rework": {
     "title": "Rework Final Cut",
