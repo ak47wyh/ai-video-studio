@@ -137,7 +137,7 @@ export const timelineRepo = new TimelineRepositoryAdapter();
 // M3.1: Pipeline 任务仓储（持久化到 IndexedDB）
 export const pipelineTaskRepo = new PipelineTaskRepositoryAdapter();
 export const publishTaskRepo = new PublishTaskRepositoryAdapter();
-export const publishService = new PublishService(publishTaskRepo);
+export const publishService = new PublishService(publishTaskRepo, finalCutRepo);
 export const unitOfWork = new DexieUnitOfWorkAdapter();
 // 素材库仓储（提前声明，供 VoiceService 等服务注入）
 import { SavedVoiceRepository } from './adapters/outbound/repositories/AssetLibraryRepositories';

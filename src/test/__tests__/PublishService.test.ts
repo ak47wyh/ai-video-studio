@@ -10,8 +10,9 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 import { PublishService } from '../../domain/services/PublishService';
-import type { PublishTask } from '../../domain/entities/models';
+import type { PublishTask, FinalCut } from '../../domain/entities/models';
 import type { IPublishTaskRepository } from '../../domain/ports/PublishPorts';
+import type { IFinalCutRepository } from '../../domain/ports/OutboundPorts';
 
 function makeRepo() {
   const store = new Map<string, PublishTask>();
@@ -87,5 +88,78 @@ describe('PublishService — 发布任务状态机（P0-1）', () => {
     expect(list).toHaveLength(2);
     await svc.deleteTask(t1.id);
     expect(store.size).toBe(1);
+  });
+});
+
+
+describe('PublishService — P3-7 排期与发布回执', () => {
+  it('scheduleTask 设置未来排期时间并落库', async () => {
+    const { repo } = makeRepo();
+    const svc = new PublishService(repo);
+    const task = await svc.createTask({ finalCutId: 'fc-1', platform: 'douyin', title: 't' });
+    const future = Date.now() + 3600_000;
+    const scheduled = await svc.scheduleTask(task.id, future);
+    expect(scheduled.scheduledAt).toBe(future);
+    expect(repo.save).toHaveBeenCalled();
+  });
+
+  it('scheduleTask 拒绝非未来时间与终态任务', async () => {
+    const { repo } = makeRepo();
+    const svc = new PublishService(repo);
+    const task = await svc.createTask({ finalCutId: 'fc-1', platform: 'douyin', title: 't' });
+    await expect(svc.scheduleTask(task.id, Date.now() - 1000)).rejects.toThrow('in the future');
+    await svc.advance(task.id, 'ready');
+    await svc.advance(task.id, 'exported');
+    const pub = await svc.advance(task.id, 'published');
+    await expect(svc.scheduleTask(pub.id, Date.now() + 3600_000)).rejects.toThrow('terminal');
+  });
+
+  it('getDueTasks 仅返回已到期且未终态的任务', async () => {
+    const { repo } = makeRepo();
+    const svc = new PublishService(repo);
+    const now = Date.now();
+    const due = await svc.createTask({ finalCutId: 'fc-1', platform: 'douyin', title: 'due' });
+    const future = await svc.createTask({ finalCutId: 'fc-2', platform: 'bilibili', title: 'future' });
+    const published = await svc.createTask({ finalCutId: 'fc-3', platform: 'generic', title: 'pub' });
+    await svc.scheduleTask(due.id, now + 1000);
+    await svc.scheduleTask(future.id, now + 3600_000);
+    await svc.scheduleTask(published.id, now + 3600_000);
+    await svc.advance(published.id, 'ready');
+    await svc.advance(published.id, 'exported');
+    await svc.advance(published.id, 'published');
+    const result = await svc.getDueTasks(now + 2000);
+    expect(result.map(x => x.id)).toEqual([due.id]);
+  });
+
+  it('publishNow 快捷推进到 published', async () => {
+    const { repo } = makeRepo();
+    const svc = new PublishService(repo);
+    const task = await svc.createTask({ finalCutId: 'fc-1', platform: 'douyin', title: 't' });
+    await svc.advance(task.id, 'ready');
+    await svc.advance(task.id, 'exported');
+    const pub = await svc.publishNow(task.id);
+    expect(pub.status).toBe('published');
+  });
+
+  it('发布回执写回成片生命周期（lifecycle/publishedAt/publishChannel）', async () => {
+    const { repo } = makeRepo();
+    const cutStore = new Map<string, FinalCut>();
+    const finalCutRepo: IFinalCutRepository = {
+      findById: vi.fn(async (id: string) => cutStore.get(id)),
+      save: vi.fn(async (cut: FinalCut) => { cutStore.set(cut.id, cut); }),
+      findByStoryIds: vi.fn(async () => []),
+      delete: vi.fn(async () => {}),
+    };
+    const svc = new PublishService(repo, finalCutRepo);
+    const task = await svc.createTask({ finalCutId: 'fc-1', platform: 'bilibili', title: 't' });
+    cutStore.set('fc-1', { id: 'fc-1', storyId: 's-1', videoBlob: new Blob(), duration: 10, size: 1, hasSubtitles: false, createdAt: 1, lifecycle: 'ready' });
+    await svc.advance(task.id, 'ready');
+    await svc.advance(task.id, 'exported');
+    const published = await svc.advance(task.id, 'published');
+    const cut = cutStore.get('fc-1');
+    expect(cut).toBeDefined();
+    expect(cut.lifecycle).toBe('published');
+    expect(cut.publishedAt).toBe(published.updatedAt);
+    expect(cut.publishChannel).toBe('bilibili');
   });
 });

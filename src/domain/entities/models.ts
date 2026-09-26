@@ -215,6 +215,12 @@ export interface FinalCut {
   sourcePlatform?: string;
   /** P3-5 归档（资产中心统一管理） */
   archived?: boolean;
+  /** P3-7 成片生命周期：draft/ready/published/archived（发布回执联动） */
+  lifecycle?: FinalCutLifecycle;
+  /** P3-7 首次发布成功时间戳 */
+  publishedAt?: number;
+  /** P3-7 发布渠道 */
+  publishChannel?: PublishPlatform;
   // ===== P0-3 成片回改闭环 =====
   /** 生成配置快照（回改表单回显用） */
   pipelineOptions?: FinalCutPipelineOptions;
@@ -578,6 +584,8 @@ export type PublishPlatform = 'douyin' | 'bilibili' | 'generic';
 /** 发布任务状态机：draft → ready → exported → published；ready/exported 可转 failed，failed 可重试回 ready */
 export type PublishStatus = 'draft' | 'ready' | 'exported' | 'published' | 'failed';
 
+export type FinalCutLifecycle = 'draft' | 'ready' | 'published' | 'archived';
+
 /** 发布任务（成片 → 平台发布配置 + 状态追踪） */
 export interface PublishTask {
   id: string;
@@ -600,5 +608,7 @@ export interface PublishTask {
   /** 失败原因 */
   error?: string;
   createdAt: number;
+  /** P3-7 排期发布时间（未设置 = 即时） */
+  scheduledAt?: number;
   updatedAt: number;
 }

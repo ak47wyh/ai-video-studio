@@ -27,6 +27,7 @@ const ExportCenter = lazy(() => import('./ui/pages/ExportCenter').then(m => ({ d
 const VersionComparePage = lazy(() => import('./ui/pages/VersionComparePage').then(m => ({ default: m.VersionComparePage })));
 const TaskQueuePage = lazy(() => import('./ui/pages/TaskQueuePage').then(m => ({ default: m.TaskQueuePage })));
 const ComplianceCenterPage = lazy(() => import('./ui/pages/ComplianceCenterPage').then(m => ({ default: m.ComplianceCenterPage })));
+const PublishHistoryPage = lazy(() => import('./ui/pages/PublishHistoryPage').then(m => ({ default: m.PublishHistoryPage })));
 const ImageLab = lazy(() => import('./ui/pages/ImageLab').then(m => ({ default: m.ImageLab })));
 const VoiceLab = lazy(() => import('./ui/pages/VoiceLab').then(m => ({ default: m.VoiceLab })));
 const TextLab = lazy(() => import('./ui/pages/TextLab').then(m => ({ default: m.TextLab })));
@@ -116,6 +117,7 @@ function App() {
 <Route path="compare" element={<VersionComparePage />} />
 <Route path="queue" element={<TaskQueuePage />} />
 <Route path="compliance" element={<ComplianceCenterPage />} />
+<Route path="publish" element={<PublishHistoryPage />} />
                       <Route path="labs/image" element={<ImageLab />} />
                       <Route path="labs/voice" element={<VoiceLab />} />
                       <Route path="labs/text" element={<TextLab />} />

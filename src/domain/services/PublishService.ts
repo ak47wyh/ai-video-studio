@@ -1,5 +1,6 @@
 import type { PublishTask, PublishPlatform, PublishStatus } from '../entities/models';
 import type { IPublishTaskRepository } from '../ports/PublishPorts';
+import type { IFinalCutRepository } from '../ports/OutboundPorts';
 
 /**
  * 状态机：draft → ready → exported → published；ready/exported 可转 failed；failed 可重试回 ready。
@@ -36,8 +37,11 @@ export interface CreatePublishTaskInput {
 export class PublishService {
   private readonly repo: IPublishTaskRepository;
 
-  constructor(repo: IPublishTaskRepository) {
+  private readonly finalCutRepo?: IFinalCutRepository;
+
+  constructor(repo: IPublishTaskRepository, finalCutRepo?: IFinalCutRepository) {
     this.repo = repo;
+    this.finalCutRepo = finalCutRepo;
   }
 
   async createTask(input: CreatePublishTaskInput): Promise<PublishTask> {
@@ -75,6 +79,18 @@ export class PublishService {
     if (target === 'failed') next.error = error;
     else delete next.error;
     await this.repo.save(next);
+    if (target === 'published' && this.finalCutRepo) {
+      // P3-7 发布回执：写回成片生命周期（设计文档 A-1）
+      const cut = await this.finalCutRepo.findById(task.finalCutId);
+      if (cut) {
+        await this.finalCutRepo.save({
+          ...cut,
+          lifecycle: 'published',
+          publishedAt: next.updatedAt,
+          publishChannel: task.platform,
+        });
+      }
+    }
     return next;
   }
 
@@ -85,4 +101,30 @@ export class PublishService {
   async deleteTask(taskId: string): Promise<void> {
     await this.repo.delete(taskId);
   }
+  /** P3-7 排期：设定未来发布时间（<= 当前时间拒绝；终态任务拒绝） */
+  async scheduleTask(taskId: string, scheduledAt: number): Promise<PublishTask> {
+    if (!Number.isFinite(scheduledAt) || scheduledAt <= Date.now()) {
+      throw new Error('Schedule time must be in the future');
+    }
+    const task = await this.repo.getById(taskId);
+    if (!task) throw new Error(`Publish task not found: ${taskId}`);
+    if (task.status === 'published' || task.status === 'failed') {
+      throw new Error('Cannot schedule a terminal task');
+    }
+    const next: PublishTask = { ...task, scheduledAt, updatedAt: Date.now() };
+    await this.repo.save(next);
+    return next;
+  }
+
+  /** P3-7 到期任务：已排期且到达发布时间、仍可推进的任务（页面加载时检查） */
+  async getDueTasks(now = Date.now()): Promise<PublishTask[]> {
+    const all = await this.repo.query({});
+    return all.filter(t => t.scheduledAt != null && t.scheduledAt <= now && (t.status === 'draft' || t.status === 'ready' || t.status === 'exported'));
+  }
+
+  /** P3-7 立即发布：跳过排期直接推进到 published（含发布回执） */
+  async publishNow(taskId: string): Promise<PublishTask> {
+    return this.advance(taskId, 'published');
+  }
+
 }
