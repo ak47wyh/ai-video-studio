@@ -706,7 +706,8 @@
     },
     "versionCompare": "バージョン比較",
     "downloading": "エクスポート中…",
-    "downloadMetadataApplied": "ダウンロード完了（AI 宣言メタデータ付き）"
+    "downloadMetadataApplied": "ダウンロード完了（AI 宣言メタデータ付き）",
+    "openWorkspace": "成片ワークスペースを開く"
   },
   "agent": {
     "title": "AI Assistant",
@@ -1356,5 +1357,41 @@
     "duplicate": "この語句は既に存在します",
     "imported": "{{count}} 語句をインポートしました",
     "footnote": "有効な語句は公開プレフライトに注入されます：ヒットすると公開ボタンは無効になり、該当語句が表示されます"
+  },
+  "workspace": {
+    "untitledStory": "名前なしストーリー",
+    "back": "戻る",
+    "subtitle": "成片ワークスペース：比較 / 再チェック / 作り直し / 公開 / ダウンロードを一箇所で",
+    "withSubs": "字幕あり",
+    "noSubs": "字幕なし",
+    "lifecycleDraft": "下書き",
+    "downloaded": "ダウンロードしました（AI 生成宣言メタデータ付き）",
+    "downloading": "ダウンロード中…",
+    "download": "ダウンロード",
+    "rework": "作り直し（エディタへ）",
+    "compare": "バージョン比較",
+    "toAssets": "アセットセンター",
+    "notFound": "成片が見つかりません（削除された可能性）",
+    "publish.create": "公開タスクを作成",
+    "publish.title": "公開を開始",
+    "publish.confirm": "このバージョンの公開タスクを作成しますか？公開管理で続行できます。",
+    "publish.created": "公開タスクを作成しました — 公開管理へ",
+    "qc.title": "品質チェック",
+    "qc.recheck": "再チェック",
+    "qc.running": "チェック中…",
+    "qc.ok": "合格",
+    "qc.review": "要確認",
+    "qc.regenerate": "再生成推奨",
+    "qc.noIssues": "問題なし",
+    "qc.none": "未チェック — 再チェックでスナップショット作成",
+    "qc.done": "QC 合格",
+    "qc.issues": "{n} 件の問題を検出",
+    "cost.title": "バージョンコスト",
+    "cost.calls": "呼び出し",
+    "cost.tokens": "Token",
+    "cost.models": "モデル",
+    "srt.title": "字幕",
+    "srt.expand": "すべて展開",
+    "srt.collapse": "折りたたむ"
   }
 }

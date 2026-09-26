@@ -535,7 +535,8 @@
     },
     "versionCompare": "Versions",
     "downloading": "Exporting…",
-    "downloadMetadataApplied": "Downloaded (AI declaration metadata included)"
+    "downloadMetadataApplied": "Downloaded (AI declaration metadata included)",
+    "openWorkspace": "Open final-cut workspace"
   },
   "agent": {
     "title": "AI Assistant",
@@ -1042,5 +1043,41 @@
     "duplicate": "Word already exists",
     "imported": "Imported {{count}} words",
     "footnote": "Enabled words are injected into publish preflight: hits keep the publish button disabled and show matched words"
+  },
+  "workspace": {
+    "untitledStory": "Untitled story",
+    "back": "Back",
+    "subtitle": "Final-cut workspace: compare / recheck / rework / publish / download in one place",
+    "withSubs": "with subtitles",
+    "noSubs": "no subtitles",
+    "lifecycleDraft": "draft",
+    "downloaded": "Downloaded (with AI declaration metadata)",
+    "downloading": "Downloading…",
+    "download": "Download",
+    "rework": "Rework (open editor)",
+    "compare": "Version compare",
+    "toAssets": "Asset center",
+    "notFound": "Final cut not found — it may have been deleted",
+    "publish.create": "Create publish task",
+    "publish.title": "Start publish",
+    "publish.confirm": "Create a publish task for this version? You can continue in Publish Center.",
+    "publish.created": "Publish task created — go to Publish Center",
+    "qc.title": "Quality check",
+    "qc.recheck": "Recheck",
+    "qc.running": "Checking…",
+    "qc.ok": "Passed",
+    "qc.review": "Review advised",
+    "qc.regenerate": "Regenerate advised",
+    "qc.noIssues": "No issues",
+    "qc.none": "Not checked yet — tap recheck to snapshot",
+    "qc.done": "QC passed",
+    "qc.issues": "{n} QC issue(s) found",
+    "cost.title": "Version cost",
+    "cost.calls": "Calls",
+    "cost.tokens": "Tokens",
+    "cost.models": "Models",
+    "srt.title": "Subtitles",
+    "srt.expand": "Expand all",
+    "srt.collapse": "Collapse"
   }
 }

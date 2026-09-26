@@ -778,7 +778,8 @@
     },
     "versionCompare": "版本对比",
     "downloading": "导出中…",
-    "downloadMetadataApplied": "已下载（含 AI 声明元数据）"
+    "downloadMetadataApplied": "已下载（含 AI 声明元数据）",
+    "openWorkspace": "打开成片工作台"
   },
   "agent": {
     "title": "AI 助手",
@@ -1353,5 +1354,41 @@
     "duplicate": "该词已存在",
     "imported": "已导入 {{count}} 个词条",
     "footnote": "生效词条将自动注入发布预检：命中敏感词的成片发布按钮保持禁用并显示命中词条"
+  },
+  "workspace": {
+    "untitledStory": "未命名故事",
+    "back": "返回",
+    "subtitle": "成片工作台：对比 / 重检 / 回改 / 发布 / 下载 一处完成",
+    "withSubs": "含字幕",
+    "noSubs": "无字幕",
+    "lifecycleDraft": "草稿",
+    "downloaded": "已下载（含 AI 生成声明元数据）",
+    "downloading": "下载中…",
+    "download": "下载",
+    "rework": "回改（进剪辑）",
+    "compare": "版本对比",
+    "toAssets": "资产中心",
+    "notFound": "未找到该成片，可能已被删除",
+    "publish.create": "创建发布任务",
+    "publish.title": "发起发布",
+    "publish.confirm": "为当前版本创建发布任务？可在发布管理中继续推进。",
+    "publish.created": "发布任务已创建，前往发布管理",
+    "qc.title": "质检",
+    "qc.recheck": "重检",
+    "qc.running": "检测中…",
+    "qc.ok": "通过",
+    "qc.review": "建议复核",
+    "qc.regenerate": "建议重新生成",
+    "qc.noIssues": "无问题",
+    "qc.none": "尚未质检 — 点击重检生成快照",
+    "qc.done": "质检通过",
+    "qc.issues": "发现 {n} 个质检问题",
+    "cost.title": "版本成本",
+    "cost.calls": "调用",
+    "cost.tokens": "Token",
+    "cost.models": "模型",
+    "srt.title": "字幕",
+    "srt.expand": "展开全部",
+    "srt.collapse": "收起"
   }
 }
