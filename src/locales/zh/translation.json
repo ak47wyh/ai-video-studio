@@ -962,7 +962,14 @@
     "cutDeleteHint": "将删除该成片及其版本链记录，确定删除？",
     "downloadBtn": "下载",
     "cutWithSrt": "含字幕",
-    "cutNoSrt": "无字幕"
+    "cutNoSrt": "无字幕",
+    "batchSelectCut": "请先勾选成片",
+    "batchExport": "批量导出 {n} 项",
+    "batchQc": "批量质检 {n} 项",
+    "exporting": "正在批量导出…",
+    "qcing": "正在批量质检…",
+    "batchExportDone": "批量导出完成：成功 {ok} / 失败 {fail}",
+    "batchQcDone": "批量质检完成：通过 {ok} / 待处理 {fail}"
   },
   "imageStyle": {
     "default": "默认",

@@ -965,7 +965,14 @@
     "cutDeleteHint": "成片とバージョンチェーンを削除します。続行しますか？",
     "downloadBtn": "ダウンロード",
     "cutWithSrt": "SRTあり",
-    "cutNoSrt": "SRTなし"
+    "cutNoSrt": "SRTなし",
+    "batchSelectCut": "成片を先に選択してください",
+    "batchExport": "選択した {n} 件をエクスポート",
+    "batchQc": "選択した {n} 件をQC",
+    "exporting": "エクスポート中…",
+    "qcing": "QC実行中…",
+    "batchExportDone": "一括エクスポート完了：成功 {ok} / 失敗 {fail}",
+    "batchQcDone": "一括QC完了：合格 {ok} / 要対応 {fail}"
   },
   "imageStyle": {
     "default": "デフォルト",

@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Image as ImageIcon, Mic, Music, Film, Clapperboard, Trash2, Download, Archive, ArchiveRestore, Pencil, Check, X, Search } from 'lucide-react';
+import { Image as ImageIcon, Mic, Music, Film, Clapperboard, Trash2, Download, Archive, ArchiveRestore, Pencil, Check, X, Search, RefreshCw } from 'lucide-react';
 import { useSpace } from '../contexts/SpaceContext';
 import { useConfirm } from '../contexts/ConfirmContext';
 import { useToast } from '../contexts/ToastContext';
 import { AsyncState } from '../components/AsyncState';
-import { assetLibraryService, finalCutRepo, storyRepo } from '../../dependencies';
+import { assetLibraryService, finalCutRepo, storyRepo, ffmpegAdapter, complianceService, qcService } from '../../dependencies';
 import { useSavedImages, useSavedVoices, useSavedBgms, useSavedVideos } from '../hooks/useSavedAssets';
 import type { SavedImage, SavedVideo, FinalCut } from '../../domain/entities/models';
+import type { QcRecommendation } from '../../domain/ports/QcPorts';
 
 type Tab = 'cuts' | 'images' | 'voices' | 'bgms' | 'videos';
 type AssetKind = 'image' | 'voice' | 'bgm' | 'video';
@@ -30,6 +31,7 @@ export const AssetLibrary: React.FC = () => {
 
   const [cuts, setCuts] = useState<FinalCut[]>([]);
   const [cutsLoading, setCutsLoading] = useState(true);
+  const [batchBusy, setBatchBusy] = useState<{ kind: 'export' | 'qc'; done: number; total: number } | null>(null);
   const [storyTitles, setStoryTitles] = useState<Record<string, string>>({});
 
   const kwParams = keyword.trim() ? { keyword: keyword.trim() } : undefined;
@@ -194,6 +196,126 @@ export const AssetLibrary: React.FC = () => {
     }
   };
 
+
+  const RES_EXPECT: Record<string, { w: number; h: number }> = {
+    '512P': { w: 910, h: 512 },
+    '720P': { w: 1280, h: 720 },
+    '768P': { w: 1366, h: 768 },
+    '1080P': { w: 1920, h: 1080 },
+  };
+
+  /** P3-6 批量导出成片：逐个 MP4（AI 声明元数据注入）+ SRT + 汇总 CSV（沿用元数据写入口径） */
+  const batchExportCuts = async () => {
+    const ids = Array.from(selected).filter(k => k.startsWith("cut|")).map(k => k.split("|")[1]);
+    if (ids.length === 0) { toast.showToast("error", t("assetLibrary.batchSelectCut", "请先勾选成片")); return; }
+    setBatchBusy({ kind: "export", done: 0, total: ids.length });
+    const rows: Array<{ file: string; story: string; durationSec: number; size: number; metadata: string; qc: string }> = [];
+    let okCount = 0;
+    let failCount = 0;
+    for (let i = 0; i < ids.length; i++) {
+      const cut = cuts.find(x => x.id === ids[i]);
+      if (!cut) { failCount++; setBatchBusy({ kind: "export", done: i + 1, total: ids.length }); continue; }
+      try {
+        const title = storyTitles[cut.storyId] || cut.id;
+        const safe = title.replace(/[\\/:*?"<>|\s]+/g, "_").slice(0, 60);
+        const base = safe + "-" + new Date(cut.createdAt).toISOString().slice(0, 10);
+        let video = cut.videoBlob;
+        let metadataApplied = false;
+        try {
+          const meta = complianceService.buildAiMetadata(cut.version);
+          video = await ffmpegAdapter.withMetadata(cut.videoBlob, { comment: complianceService.serializeAiMetadata(meta) });
+          metadataApplied = true;
+        } catch {
+          // 元数据写入失败不阻断下载（保持可用性，诚实降级）
+        }
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(video);
+        a.download = base + ".mp4";
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 30000);
+        if (cut.srtContent) {
+          const s = document.createElement("a");
+          s.href = URL.createObjectURL(new Blob([cut.srtContent], { type: "text/plain;charset=utf-8" }));
+          s.download = base + ".srt";
+          s.click();
+          setTimeout(() => URL.revokeObjectURL(s.href), 30000);
+        }
+        rows.push({
+          file: base + ".mp4",
+          story: title,
+          durationSec: Math.round((cut.duration || 0) / 1000),
+          size: video.size,
+          metadata: metadataApplied ? "written" : "skipped",
+          qc: cut.qcReport ? cut.qcReport.recommendation : "none",
+        });
+        okCount++;
+      } catch {
+        failCount++;
+      }
+      setBatchBusy({ kind: "export", done: i + 1, total: ids.length });
+    }
+    // 汇总 CSV（沿用元数据写入口径：与单个成片导出一致）
+    const header = "file,story,durationSec,size,metadata,qc";
+    const csvLines = [header].concat(rows.map(r => [r.file, r.story.replace(/,/g, " "), String(r.durationSec), String(r.size), r.metadata, r.qc].join(",")));
+    const csv = new Blob([csvLines.join("\n")], { type: "text/csv;charset=utf-8" });
+    const c2 = document.createElement("a");
+    c2.href = URL.createObjectURL(csv);
+    c2.download = "batch-export-" + Date.now() + ".csv";
+    c2.click();
+    setTimeout(() => URL.revokeObjectURL(c2.href), 30000);
+    setBatchBusy(null);
+    setSelected(new Set());
+    toast.showToast("success", t("assetLibrary.batchExportDone", "批量导出完成：成功 {ok} / 失败 {fail}").replace("{ok}", String(okCount)).replace("{fail}", String(failCount)));
+  };
+
+  /** P3-6 批量 QC 重检：逐个 runQc，结论持久化到成片 qcReport 并刷新 */
+  const batchRunQc = async () => {
+    const ids = Array.from(selected).filter(k => k.startsWith("cut|")).map(k => k.split("|")[1]);
+    if (ids.length === 0) { toast.showToast("error", t("assetLibrary.batchSelectCut", "请先勾选成片")); return; }
+    setBatchBusy({ kind: "qc", done: 0, total: ids.length });
+    let passed = 0;
+    let issues = 0;
+    for (let i = 0; i < ids.length; i++) {
+      const cut = cuts.find(x => x.id === ids[i]);
+      if (!cut || !cut.videoBlob) { issues++; setBatchBusy({ kind: "qc", done: i + 1, total: ids.length }); continue; }
+      try {
+        const res = cut.pipelineOptions?.videoResolution ? RES_EXPECT[cut.pipelineOptions.videoResolution] : undefined;
+        const report = await qcService.runQc({
+          video: cut.videoBlob,
+          expectedDurationSec: cut.duration > 0 ? cut.duration / 1000 : undefined,
+          expectedWidth: res?.w,
+          expectedHeight: res?.h,
+          subtitleEndSec: cut.srtContent ? parseSrtEndSec(cut.srtContent) : undefined,
+        });
+        const snapshot = {
+          passed: report.passed,
+          recommendation: report.recommendation,
+          issueCount: report.issues.length,
+          issues: report.issues.map(x => ({ check: x.check, severity: x.severity, message: x.message })),
+          checkedAt: report.meta.checkedAt,
+        };
+        await finalCutRepo.save({ ...cut, qcReport: snapshot });
+        if (report.passed) passed++; else issues++;
+      } catch {
+        issues++;
+      }
+      setBatchBusy({ kind: "qc", done: i + 1, total: ids.length });
+    }
+    setBatchBusy(null);
+    setSelected(new Set());
+    await loadCuts();
+    toast.showToast("success", t("assetLibrary.batchQcDone", "批量质检完成：通过 {ok} / 待处理 {fail}").replace("{ok}", String(passed)).replace("{fail}", String(issues)));
+  };
+
+  /** 从 SRT 解析字幕最后一条结束时间（秒） */
+  const parseSrtEndSec = (srt: string): number | undefined => {
+    const times = srt.match(/\d{2}:\d{2}:\d{2},\d{3}\s*-->\s*\d{2}:\d{2}:\d{2},\d{3}/g);
+    if (!times || times.length === 0) return undefined;
+    const last = times[times.length - 1];
+    const m = last.match(/(\d{2}):(\d{2}):(\d{2}),(\d{3})\s*-->\s*\d{2}:\d{2}:\d{2},\d{3}/);
+    if (!m) return undefined;
+    return Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3]) + Number(m[4]) / 1000;
+  };
   const downloadAsset = async (kind: AssetKind, id: string, name: string) => {
     try {
       let url: string | null = null;
@@ -263,11 +385,26 @@ export const AssetLibrary: React.FC = () => {
           ))}
         </div>
         {selected.size > 0 && (
-          <button className="btn btn-danger btn-sm" onClick={() => void batchDelete()}>
+          <>
+          <button className="btn btn-primary btn-sm" onClick={() => void batchExportCuts()} disabled={!!batchBusy}>
+            <Download size={13} /> {t('assetLibrary.batchExport', '批量导出 {n} 项').replace('{n}', String(Array.from(selected).filter(k => k.startsWith('cut|')).length))}
+          </button>
+          <button className="btn btn-secondary btn-sm" onClick={() => void batchRunQc()} disabled={!!batchBusy}>
+            <RefreshCw size={13} /> {t('assetLibrary.batchQc', '批量质检 {n} 项').replace('{n}', String(Array.from(selected).filter(k => k.startsWith('cut|')).length))}
+          </button>
+          <button className="btn btn-danger btn-sm" onClick={() => void batchDelete()} disabled={!!batchBusy}>
             <Trash2 size={13} /> {t('assetLibrary.batchDelete', '删除选中 {n} 项').replace('{n}', String(selected.size))}
           </button>
+          </>
         )}
       </div>
+
+      {batchBusy && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+          <RefreshCw size={13} style={{ animation: 'spin 1s linear infinite' }} />
+          {batchBusy.kind === 'export' ? t('assetLibrary.exporting', '正在批量导出…') : t('assetLibrary.qcing', '正在批量质检…')} {batchBusy.done}/{batchBusy.total}
+        </div>
+      )}
 
       <div className="tabs" role="tablist">
         {tabs.map(tb => (
@@ -467,6 +604,23 @@ function useAsyncUrl(fn: () => Promise<string>): string | undefined {
 
 function CutPreview(props: { cut: FinalCut }) {
   const { t } = useTranslation();
+  const qc = props.cut.qcReport;
+  const qcBadge = (r?: QcRecommendation): string => {
+    if (r === 'ok') return 'var(--color-success)';
+    if (r === 'review') return 'var(--color-warning)';
+    if (r === 'regenerate') return 'var(--color-danger)';
+    return 'var(--text-secondary)';
+  };
+  if (qc) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, color: 'var(--text-secondary)', fontSize: '0.7rem' }}>
+        <span style={{ color: qcBadge(qc.recommendation), fontWeight: 600 }}>
+          QC: {qc.recommendation} ({qc.issueCount})
+        </span>
+        <span>{props.cut.hasSubtitles ? t('assetLibrary.cutWithSrt', '含字幕') : t('assetLibrary.cutNoSrt', '无字幕')}</span>
+      </div>
+    );
+  }
   if (props.cut.thumbnailUrl) {
     return <img src={props.cut.thumbnailUrl} alt={props.cut.id} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />;
   }

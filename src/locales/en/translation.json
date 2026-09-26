@@ -927,7 +927,14 @@
     "cutDeleteHint": "This will delete the final cut and its version chain. Continue?",
     "downloadBtn": "Download",
     "cutWithSrt": "With SRT",
-    "cutNoSrt": "No SRT"
+    "cutNoSrt": "No SRT",
+    "batchSelectCut": "Select final cuts first",
+    "batchExport": "Export {n} selected",
+    "batchQc": "QC {n} selected",
+    "exporting": "Exporting…",
+    "qcing": "Running QC…",
+    "batchExportDone": "Batch export done: {ok} ok / {fail} failed",
+    "batchQcDone": "Batch QC done: {ok} passed / {fail} pending"
   },
   "imageStyle": {
     "default": "Default",
