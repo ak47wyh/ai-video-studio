@@ -33,6 +33,7 @@ import { MockStoryBreakdownAdapter } from './adapters/outbound/api/MockStoryBrea
 
 // ==================== API 配置 Port 适配器 ====================
 import { apiConfigStoreAdapter } from './adapters/outbound/config/ApiConfigStoreAdapter';
+import { PublishChannelRegistry } from './domain/services/PublishChannels';
 /** API 配置 Port 单例（暴露给 UI 层读取激活平台） */
 export { apiConfigStoreAdapter };
 import { PlatformModelRegistry } from './adapters/outbound/config/PlatformModelRegistry';
@@ -137,7 +138,13 @@ export const timelineRepo = new TimelineRepositoryAdapter();
 // M3.1: Pipeline 任务仓储（持久化到 IndexedDB）
 export const pipelineTaskRepo = new PipelineTaskRepositoryAdapter();
 export const publishTaskRepo = new PublishTaskRepositoryAdapter();
-export const publishService = new PublishService(publishTaskRepo, finalCutRepo);
+export const publishChannelRegistry = new PublishChannelRegistry();
+export const publishService = new PublishService(
+  publishTaskRepo,
+  finalCutRepo,
+  publishChannelRegistry,
+  { config: apiConfigStoreAdapter.load() },
+);
 export const unitOfWork = new DexieUnitOfWorkAdapter();
 // 素材库仓储（提前声明，供 VoiceService 等服务注入）
 import { SavedVoiceRepository } from './adapters/outbound/repositories/AssetLibraryRepositories';

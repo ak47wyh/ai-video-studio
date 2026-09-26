@@ -1155,7 +1155,17 @@
     "roiVersion": "Version",
     "roiTokens": "Token cost",
     "roiPerEngagement": "Token / engagement",
-    "roiNoVersion": "unversioned"
+    "roiNoVersion": "unversioned",
+    "channelGeneric": "Local publish",
+    "channelReady": "Credentials ready",
+    "channelNative": "No credentials needed",
+    "channelPending": "Credentials pending",
+    "credsEntry": "Configure credentials",
+    "credsTitle": "Configure publish credentials",
+    "credsHint": "AppKey and AccessToken come from platform open-platform developer qualification; stored AES-GCM encrypted; real API hookup awaits platform review.",
+    "credsSave": "Save",
+    "credsSaved": "Credentials saved (AES-GCM encrypted)",
+    "publishedManual": "Confirmed published (semi-auto)"
   },
   "rework": {
     "title": "Rework Final Cut",

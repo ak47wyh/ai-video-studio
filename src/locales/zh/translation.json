@@ -1155,7 +1155,17 @@
     "roiVersion": "版本",
     "roiTokens": "Token 成本",
     "roiPerEngagement": "Token/互动",
-    "roiNoVersion": "未标版本"
+    "roiNoVersion": "未标版本",
+    "channelGeneric": "本地发布",
+    "channelReady": "凭据已就绪",
+    "channelNative": "无需凭据",
+    "channelPending": "待配置凭据",
+    "credsEntry": "配置凭据",
+    "credsTitle": "配置发布平台凭据",
+    "credsHint": "AppKey 与 AccessToken 来自平台开放平台开发者资质；凭据经 AES-GCM 加密存储，真实 API 接入待平台审核。",
+    "credsSave": "保存",
+    "credsSaved": "平台凭据已保存（AES-GCM 加密存储）",
+    "publishedManual": "已确认发布（半自动）"
   },
   "rework": {
     "title": "成片回改",

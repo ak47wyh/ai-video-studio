@@ -13,6 +13,7 @@ import { PublishService } from '../../domain/services/PublishService';
 import type { PublishTask, FinalCut } from '../../domain/entities/models';
 import type { IPublishTaskRepository } from '../../domain/ports/PublishPorts';
 import type { IFinalCutRepository } from '../../domain/ports/OutboundPorts';
+import { PublishChannelRegistry } from '../../domain/services/PublishChannels';
 
 function makeRepo() {
   const store = new Map<string, PublishTask>();
@@ -194,5 +195,72 @@ describe('PublishService — P3-8 数据回传', () => {
     const { repo } = makeRepo();
     const svc = new PublishService(repo);
     await expect(svc.updateStats('nope', { views: 1, likes: 0, comments: 0, shares: 0 })).rejects.toThrow('not found');
+  });
+});
+
+
+describe('PublishService — P3-9 通道化发布', () => {
+  const config = (over: Record<string, string> = {}) => ({
+    activePlatform: 'volcengine' as const,
+    minimaxApiKey: '', minimaxGroupId: '', minimaxBaseUrl: '', minimaxAnthropicBaseUrl: '',
+    volcArkOpenAiApiKey: '', volcArkAnthropicApiKey: '', volcArkBaseUrl: '', volcArkAgentPlanBaseUrl: '',
+    volcArkAnthropicBaseUrl: '', volcArkTextProtocol: 'openai' as const, volcArkAnthropicModel: '', volcArkAutoFallback: true,
+    volcArkImageModel: '', volcVoiceAppId: '', volcVoiceAccessToken: '', volcVoiceCluster: '',
+    volcVoiceCloneModelType: 0 as const, volcSeedTtsModel: '', volcSeedTtsEnabled: false,
+    klingAccessKey: '', klingSecretKey: '', klingBaseUrl: '', wanApiKey: '', wanBaseUrl: '',
+    hunyuanSecretId: '', hunyuanSecretKey: '', hunyuanBaseUrl: '', zhipuApiKey: '', zhipuBaseUrl: '',
+    viduApiKey: '', viduBaseUrl: '', theme: 'light' as const, vconsoleEnabled: false,
+    ...over,
+  });
+  const channels = new PublishChannelRegistry();
+
+  it('executePublish generic 直接发布并回执成片生命周期', async () => {
+    const { repo } = makeRepo();
+    const cutStore = new Map<string, FinalCut>();
+    const finalCutRepo: IFinalCutRepository = {
+      findById: vi.fn(async (id: string) => cutStore.get(id)),
+      save: vi.fn(async (cut: FinalCut) => { cutStore.set(cut.id, cut); }),
+      findByStoryIds: vi.fn(async () => []),
+      delete: vi.fn(async () => {}),
+    };
+    const svc = new PublishService(repo, finalCutRepo, channels, { config: config() });
+    const task = await svc.createTask({ finalCutId: 'fc-1', platform: 'generic', title: 't' });
+    cutStore.set('fc-1', { id: 'fc-1', storyId: 's-1', videoBlob: new Blob(), duration: 1, size: 1, hasSubtitles: false, createdAt: 1, lifecycle: 'ready' });
+    await svc.advance(task.id, 'ready');
+    await svc.advance(task.id, 'exported');
+    const result = await svc.executePublish(task.id);
+    expect(result.task.status).toBe('published');
+    expect(result.manual).toBeUndefined();
+    const cut = cutStore.get('fc-1');
+    if (!cut) throw new Error('cut not saved');
+    expect(cut.lifecycle).toBe('published');
+  });
+
+  it('executePublish douyin 无凭据时被通道阻止且不推进', async () => {
+    const { repo, store } = makeRepo();
+    const svc = new PublishService(repo, undefined, channels, { config: config() });
+    const task = await svc.createTask({ finalCutId: 'fc-1', platform: 'douyin', title: 't' });
+    await svc.advance(task.id, 'ready');
+    await svc.advance(task.id, 'exported');
+    await expect(svc.executePublish(task.id)).rejects.toThrow('请先配置');
+    expect(store.get(task.id)?.status).toBe('exported');
+  });
+
+  it('executePublish douyin 凭据就绪时半自动放行（needsManual）', async () => {
+    const { repo } = makeRepo();
+    const svc = new PublishService(repo, undefined, channels, { config: config({ publishDouyinAppKey: 'k', publishDouyinAccessToken: 't' }) });
+    const task = await svc.createTask({ finalCutId: 'fc-1', platform: 'douyin', title: 't' });
+    await svc.advance(task.id, 'ready');
+    await svc.advance(task.id, 'exported');
+    const result = await svc.executePublish(task.id);
+    expect(result.task.status).toBe('published');
+    expect(result.manual).toBe(true);
+  });
+
+  it('setChannelContext 可更新通道上下文', async () => {
+    const { repo } = makeRepo();
+    const svc = new PublishService(repo, undefined, channels, { config: config() });
+    svc.setChannelContext({ config: config({ publishBilibiliAppKey: 'b', publishBilibiliAccessToken: 't' }) });
+    expect(channels.isReady('bilibili', config({ publishBilibiliAppKey: 'b', publishBilibiliAccessToken: 't' }))).toBe(true);
   });
 });

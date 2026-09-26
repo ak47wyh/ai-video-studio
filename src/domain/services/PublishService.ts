@@ -1,5 +1,7 @@
 import type { PublishTask, PublishPlatform, PublishStatus, PublishStats } from '../entities/models';
 import type { IPublishTaskRepository } from '../ports/PublishPorts';
+import type { PublishChannelRegistry } from './PublishChannels';
+import type { PublishChannelContext } from '../ports/PublishChannelPorts';
 import type { IFinalCutRepository } from '../ports/OutboundPorts';
 
 /**
@@ -38,10 +40,14 @@ export class PublishService {
   private readonly repo: IPublishTaskRepository;
 
   private readonly finalCutRepo?: IFinalCutRepository;
+  private readonly channels?: PublishChannelRegistry;
+  private channelCtx?: PublishChannelContext;
 
-  constructor(repo: IPublishTaskRepository, finalCutRepo?: IFinalCutRepository) {
+  constructor(repo: IPublishTaskRepository, finalCutRepo?: IFinalCutRepository, channels?: PublishChannelRegistry, channelCtx?: PublishChannelContext) {
     this.repo = repo;
     this.finalCutRepo = finalCutRepo;
+    this.channels = channels;
+    this.channelCtx = channelCtx;
   }
 
   async createTask(input: CreatePublishTaskInput): Promise<PublishTask> {
@@ -100,6 +106,28 @@ export class PublishService {
 
   async deleteTask(taskId: string): Promise<void> {
     await this.repo.delete(taskId);
+  }
+  /** P3-9 更新通道上下文（发布页保存凭据后刷新 config 快照） */
+  setChannelContext(ctx: PublishChannelContext): void {
+    this.channelCtx = ctx;
+  }
+
+  /** P3-9 通道化发布：按平台走发布通道门禁；generic 直接完成，douyin/bilibili 凭据未配置时阻止 */
+  async executePublish(taskId: string): Promise<{ task: PublishTask; manual?: boolean; message?: string }> {
+    const task = await this.repo.getById(taskId);
+    if (!task) throw new Error(`Publish task not found: ${taskId}`);
+    if (!this.channels || !this.channelCtx) {
+      throw new Error('Publish channels not wired');
+    }
+    const channel = this.channels.get(task.platform);
+    if (!channel) throw new Error(`No publish channel for ${task.platform}`);
+    const result = await channel.execute(task, this.channelCtx);
+    if (!result.ok) {
+      throw new Error(result.message ?? 'Publish blocked by channel');
+    }
+    // 通道放行（generic 本地完成 / douyin·bilibili 半自动确认）→ 推进 published 并回执成片生命周期
+    const published = await this.advance(task.id, 'published');
+    return { task: published, manual: result.needsManual, message: result.message };
   }
   /** P3-8 发布数据回传：仅 published 任务可写（半自动录入，不伪造真实 API） */
   async updateStats(taskId: string, stats: Omit<PublishStats, 'collectedAt'>): Promise<PublishTask> {

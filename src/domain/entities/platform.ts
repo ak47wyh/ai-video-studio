@@ -103,6 +103,12 @@ export interface ApiConfig {
   viduApiKey: string;
   viduBaseUrl: string;
 
+  // --- P3-9 发布平台凭据（真实 API 接入门禁；未配置时发布通道阻止半自动发布） ---
+  publishDouyinAppKey?: string;
+  publishDouyinAccessToken?: string;
+  publishBilibiliAppKey?: string;
+  publishBilibiliAccessToken?: string;
+
   // --- 激活平台 ---
   activePlatform: PlatformId;
 

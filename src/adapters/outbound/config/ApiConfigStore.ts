@@ -92,6 +92,11 @@ const DEFAULT_CONFIG: ApiConfig = {
   viduBaseUrl: 'https://api.vidu.cn',
 
   // 默认激活 MiniMax
+  // P3-9 发布平台凭据（默认空，未配置时发布通道阻止并引导配置）
+  publishDouyinAppKey: '',
+  publishDouyinAccessToken: '',
+  publishBilibiliAppKey: '',
+  publishBilibiliAccessToken: '',
   activePlatform: 'minimax',
 
   // 主题默认值

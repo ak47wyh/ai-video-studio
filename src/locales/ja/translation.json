@@ -1158,7 +1158,17 @@
     "roiVersion": "バージョン",
     "roiTokens": "Token コスト",
     "roiPerEngagement": "Token/エンゲージメント",
-    "roiNoVersion": "バージョンなし"
+    "roiNoVersion": "バージョンなし",
+    "channelGeneric": "ローカル公開",
+    "channelReady": "認証情報 準備完了",
+    "channelNative": "認証不要",
+    "channelPending": "認証情報 未設定",
+    "credsEntry": "認証情報を設定",
+    "credsTitle": "公開プラットフォーム認証情報を設定",
+    "credsHint": "AppKey と AccessToken は各プラットフォームの開発者資格から取得；AES-GCM で暗号化保存、実 API 接続は審査待ち。",
+    "credsSave": "保存",
+    "credsSaved": "認証情報を保存しました（AES-GCM 暗号化）",
+    "publishedManual": "公開を確認しました（半自動）"
   },
   "rework": {
     "title": "成片リワーク",
