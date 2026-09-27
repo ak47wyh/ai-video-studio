@@ -1399,5 +1399,21 @@
     "deleteConfirmTitle": "Delete final cut",
     "deleteConfirm": "This cannot be undone. Continue?",
     "deleted": "Deleted"
+  },
+  "qc": {
+    "suggestion": {
+      "reworkBtn": "Quick fix & rework",
+      "limited": "Reworked in last 5 min — wait a moment",
+      "duration": "Actual duration deviates from target — preset to shorten generation",
+      "durationManual": "Already at shortest tier — review duration config manually",
+      "subtitleSync": "Subtitles exceed video duration — preset to shorten generation",
+      "subtitleSyncManual": "Already at shortest tier — review subtitle timing manually",
+      "silence": "Silence over limit — preset to disable narration (review narration/BGM)",
+      "resolution": "Resolution mismatch — preset to align expected resolution",
+      "blackFrames": "Black frames detected — review footage and transitions",
+      "loudness": "Peak volume too low — review BGM/narration ratio",
+      "probe": "Media probe failed — preset plain rework",
+      "manual": "Manual review advised"
+    }
   }
 }

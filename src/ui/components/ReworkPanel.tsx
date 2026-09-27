@@ -4,6 +4,12 @@ import { RefreshCw, X, History } from 'lucide-react';
 import { reworkService } from '../../dependencies';
 import type { FinalCut, VideoStyle, VideoModel, VideoResolution, FinalCutPipelineOptions } from '../../domain/entities/models';
 
+/** P4-2 建议重跑预填：options 优先于 pipelineOptions 回显；hint 为建议文案 */
+export interface ReworkSuggestion {
+  options?: Partial<FinalCutPipelineOptions>;
+  hint?: string;
+}
+
 const STYLES: VideoStyle[] = ['cinematic', 'anime', 'watercolor', 'gufeng', '3dcartoon', 'scifi', 'documentary', 'fairy_tale'];
 const MODELS: VideoModel[] = ['MiniMax-Hailuo-2.3', 'MiniMax-Hailuo-2.3-Fast', 'MiniMax-Hailuo-02', 'T2V-01-Director', 'T2V-01', 'I2V-01-Director', 'I2V-01-live', 'I2V-01', 'S2V-01'];
 const RESOLUTIONS: VideoResolution[] = ['512P', '720P', '768P', '1080P'];
@@ -12,9 +18,9 @@ const RESOLUTIONS: VideoResolution[] = ['512P', '720P', '768P', '1080P'];
  * P0-3 成片回改面板：从 FinalCut.pipelineOptions 回显配置 → 重跑 pipeline → 生成新版本。
  * 同源版本列表展示版本链（v1/v2/...），当前版本高亮。
  */
-export const ReworkPanel: React.FC<{ cut: FinalCut; storyTitle: string; onClose: () => void; onDone: () => void }> = ({ cut, storyTitle, onClose, onDone }) => {
+export const ReworkPanel: React.FC<{ cut: FinalCut; storyTitle: string; onClose: () => void; onDone: () => void; suggested?: ReworkSuggestion }> = ({ cut, storyTitle, onClose, onDone, suggested }) => {
   const { t } = useTranslation();
-  const initial: FinalCutPipelineOptions = cut.pipelineOptions ?? {};
+  const initial: FinalCutPipelineOptions = { ...(cut.pipelineOptions ?? {}), ...(suggested?.options ?? {}) };
 
   const [videoStyle, setVideoStyle] = useState<VideoStyle | undefined>(initial.videoStyle);
   const [videoModel, setVideoModel] = useState<VideoModel | undefined>(initial.videoModel);
@@ -82,6 +88,12 @@ export const ReworkPanel: React.FC<{ cut: FinalCut; storyTitle: string; onClose:
           {storyTitle} · {t('rework.baseVersion', '基础版本')} {versionOf(cut)} · {new Date(cut.createdAt).toLocaleDateString()}
           {cut.sourceVersionId && <span> · {t('rework.derivedFrom', '由回改生成')}</span>}
         </div>
+
+        {suggested?.hint && (
+          <div style={{ fontSize: '0.78rem', color: 'var(--color-warning)', background: 'rgba(250,173,20,0.12)', padding: '0.45rem 0.6rem', borderRadius: 8, marginBottom: '0.6rem' }}>
+            {suggested.hint}
+          </div>
+        )}
 
         {/* 配置表单（回显） */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem', padding: '0.7rem', background: 'rgba(0,0,0,0.03)', borderRadius: 10, marginBottom: '0.75rem' }}>

@@ -1399,5 +1399,21 @@
     "deleteConfirmTitle": "删除成片",
     "deleteConfirm": "删除后不可恢复，确定继续？",
     "deleted": "已删除"
+  },
+  "qc": {
+    "suggestion": {
+      "reworkBtn": "一键修复重跑",
+      "limited": "近 5 分钟已重跑，请稍候",
+      "duration": "实际时长与期望偏差过大，已预填缩短生成时长",
+      "durationManual": "已是最短档位，请人工核查时长配置",
+      "subtitleSync": "字幕超出视频时长，已预填缩短生成时长",
+      "subtitleSyncManual": "已是最短档位，请人工核查字幕时间",
+      "silence": "静音段超限，已预填关闭旁白（请核对旁白/BGM 配置）",
+      "resolution": "分辨率不匹配，已预填对齐期望分辨率",
+      "blackFrames": "检测到黑帧，请人工核查素材与转场",
+      "loudness": "音量峰值偏低，请人工核查 BGM/旁白比例",
+      "probe": "媒体探测失败，已预填原样重跑",
+      "manual": "建议人工核查"
+    }
   }
 }
