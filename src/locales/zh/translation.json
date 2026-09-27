@@ -1081,7 +1081,11 @@
     "tabGenerating": "生成",
     "tabPreview": "预览",
     "previewHint": "您可以在工作台中进一步编辑视频，或重新生成。",
-    "storyFilm.templateFallback": "文案生成失败，已使用模板故事继续"
+    "storyFilm.templateFallback": "文案生成失败，已使用模板故事继续",
+    "cta": {
+      "openEditor": "进入剪辑工作台",
+      "exportCenter": "前往导出中心"
+    }
   },
   "notFound": {
     "message": "您访问的页面不存在",

@@ -677,7 +677,11 @@
     "tabGenerating": "Generando",
     "tabPreview": "Vista previa",
     "previewHint": "Puedes editar el video en el banco de trabajo o regenerarlo.",
-    "storyFilm.templateFallback": "Story text generation failed; continuing with a template story"
+    "storyFilm.templateFallback": "Story text generation failed; continuing with a template story",
+    "cta": {
+      "openEditor": "Open Editor",
+      "exportCenter": "Go to Export Center"
+    }
   },
   "imageStyle": {
     "default": "Predeterminado",

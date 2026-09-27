@@ -478,13 +478,16 @@ export const StoryFilmPage: React.FC = () => {
         {t('storyFilm.previewHint', '您可以在工作台中进一步编辑视频，或重新生成。')}
       </p>
 
-      {/* 操作按钮 */}
-      <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
+      {/* 操作按钮（S-2：生成完成显式跳转剪辑工作台 + 导出中心） */}
+      <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
         <button
           className="btn btn-primary"
           onClick={() => result && navigate(`/workbench?story=${result.storyId}`)}
         >
-          <ChevronRight size={14} /> {t('storyFilm.goToWorkbench', '进入工作台编辑')}
+          <ChevronRight size={14} /> {t('storyFilm.cta.openEditor', '进入剪辑工作台')}
+        </button>
+        <button className="btn btn-secondary" onClick={() => navigate('/export')}>
+          <ArrowRight size={14} /> {t('storyFilm.cta.exportCenter', '前往导出中心')}
         </button>
         <button className="btn btn-secondary" onClick={resetFilm}>
           <RefreshCw size={14} /> {t('storyFilm.regenerate', '重新生成')}

@@ -1084,7 +1084,11 @@
     "tabGenerating": "生成中",
     "tabPreview": "プレビュー",
     "previewHint": "ワークベンチでビデオを編集するか、再生成できます。",
-    "storyFilm.templateFallback": "文案生成に失敗したため、テンプレートストーリーで続行します"
+    "storyFilm.templateFallback": "文案生成に失敗したため、テンプレートストーリーで続行します",
+    "cta": {
+      "openEditor": "編集ワークベンチへ",
+      "exportCenter": "エクスポートセンターへ"
+    }
   },
   "notFound": {
     "message": "お探しのページは存在しません",
