@@ -148,6 +148,8 @@ export interface VideoTask {
   lastFrameImage?: string;
   /** 生成视频的 OPFS 存储路径（Phase 2-B 持久化，videoUrl 过期时降级） */
   videoStoragePath?: string;
+  /** V-2 轮询超时自动重试计数（0=未重试；超过上限后标记 FAILED） */
+  retryCount?: number;
 }
 
 // --- Final Cut & Pipeline (v7) ---

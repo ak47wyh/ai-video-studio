@@ -62,6 +62,10 @@ export class VideoGenerationService {
 
   private activePollers = new Map<string, AbortController>();
 
+  /** V-2 轮询超时后自动重试：最多重试 1 次，间隔 30s */
+  private static readonly MAX_AUTO_RETRIES = 1;
+  private static readonly RETRY_DELAY_MS = 30000;
+
   constructor(
     videoTaskRepo: IVideoTaskRepository,
     segmentRepo: IStorySegmentRepository,
@@ -330,9 +334,28 @@ export class VideoGenerationService {
 
         if (retries >= maxRetries) {
           this.activePollers.delete(taskId);
+          // V-2 超时自动重试：首次超时保留任务并等待 30s 后重启轮询（仍超时才 FAILED）
+          const fresh = await this.videoTaskRepo.findById(taskId);
+          const retryCount = fresh?.retryCount ?? 0;
+          if (retryCount < VideoGenerationService.MAX_AUTO_RETRIES) {
+            if (fresh) {
+              fresh.retryCount = retryCount + 1;
+              await this.videoTaskRepo.save(fresh);
+            }
+            this.logger.warn('polling timeout, auto retry scheduled', {
+              service: 'VideoGenerationService',
+              method: 'pollTaskStatus',
+              taskId,
+              externalTaskId,
+              retryCount: retryCount + 1,
+              retryDelayMs: VideoGenerationService.RETRY_DELAY_MS,
+            });
+            setTimeout(() => this.pollTaskStatus(taskId, externalTaskId), VideoGenerationService.RETRY_DELAY_MS);
+            return;
+          }
           const timeoutErr = new TimeoutError({
             message: 'Polling timeout',
-            context: { taskId, externalTaskId, retries, pollIntervalMs: pollInterval },
+            context: { taskId, externalTaskId, retries, pollIntervalMs: pollInterval, retryCount },
           });
           await this.videoTaskRepo.updateStatus(taskId, 'FAILED', undefined, timeoutErr.message);
           return;
