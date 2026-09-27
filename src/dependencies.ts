@@ -409,6 +409,11 @@ export const pipelineService = new PipelineService({
   httpFetch,
 });
 
+// V-1（SYSTEM_OPTIMIZATION_PLAN）：平台切换 → 清空视频任务轮询器（防旧平台轮询泄漏/误用新平台适配器）
+platformRouter.onChange(() => {
+  videoGenerationService.cancelAllPolling();
+});
+
 export const reworkService = new FinalCutReworkService(finalCutRepo, pipelineService);
 
 export const projectRepo = new ProjectRepositoryAdapter();

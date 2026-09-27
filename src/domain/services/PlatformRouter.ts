@@ -60,6 +60,9 @@ interface CachedAdapter {
   instance: unknown;
 }
 
+/** 平台变更监听（reset 时触发，供轮询器/缓存联动清理 —— SYSTEM_OPTIMIZATION_PLAN V-1） */
+export type PlatformChangeListener = () => void;
+
 export class PlatformRouter {
   private configStore: IApiConfigStore;
   private capabilities: IPlatformCapabilitiesPort;
@@ -68,6 +71,8 @@ export class PlatformRouter {
   private readonly registry = new Map<PlatformCapability, Map<PlatformId, AdapterFactory<unknown>>>();
   /** 实例缓存：capability → 已实例化的 adapter */
   private readonly cache = new Map<PlatformCapability, CachedAdapter>();
+  /** 平台变更监听器（reset 时通知） */
+  private readonly changeListeners = new Set<PlatformChangeListener>();
 
   constructor(
     configStore: IApiConfigStore = apiConfigStoreAdapter,
@@ -240,5 +245,12 @@ export class PlatformRouter {
 
   reset(): void {
     this.cache.clear();
+    for (const listener of this.changeListeners) listener();
+  }
+
+  /** 订阅平台变更（返回退订函数）；平台切换/配置变更导致 reset 时触发 */
+  onChange(listener: PlatformChangeListener): () => void {
+    this.changeListeners.add(listener);
+    return () => { this.changeListeners.delete(listener); };
   }
 }
