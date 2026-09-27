@@ -676,7 +676,8 @@
     "tabConfig": "Configurazione",
     "tabGenerating": "Generazione",
     "tabPreview": "Anteprima",
-    "previewHint": "Puoi modificare il video nel banco di lavoro o rigenerarlo."
+    "previewHint": "Puoi modificare il video nel banco di lavoro o rigenerarlo.",
+    "storyFilm.templateFallback": "Story text generation failed; continuing with a template story"
   },
   "imageStyle": {
     "default": "Predefinito",

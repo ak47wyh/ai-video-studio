@@ -676,7 +676,8 @@
     "tabConfig": "설정",
     "tabGenerating": "생성 중",
     "tabPreview": "미리보기",
-    "previewHint": "워크벤치에서 비디오를 편집하거나 다시 생성할 수 있습니다."
+    "previewHint": "워크벤치에서 비디오를 편집하거나 다시 생성할 수 있습니다.",
+    "storyFilm.templateFallback": "Story text generation failed; continuing with a template story"
   },
   "imageStyle": {
     "default": "기본",

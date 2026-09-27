@@ -676,7 +676,8 @@
     "tabConfig": "Configuration",
     "tabGenerating": "Génération",
     "tabPreview": "Aperçu",
-    "previewHint": "Vous pouvez modifier la vidéo dans l'atelier ou la régénérer."
+    "previewHint": "Vous pouvez modifier la vidéo dans l'atelier ou la régénérer.",
+    "storyFilm.templateFallback": "Story text generation failed; continuing with a template story"
   },
   "imageStyle": {
     "default": "Par défaut",

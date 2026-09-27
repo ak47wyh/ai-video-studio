@@ -676,7 +676,8 @@
     "tabConfig": "Настройка",
     "tabGenerating": "Генерация",
     "tabPreview": "Предпросмотр",
-    "previewHint": "Вы можете отредактировать видео в рабочей области или перегенерировать его."
+    "previewHint": "Вы можете отредактировать видео в рабочей области или перегенерировать его.",
+    "storyFilm.templateFallback": "Story text generation failed; continuing with a template story"
   },
   "imageStyle": {
     "default": "По умолчанию",

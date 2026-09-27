@@ -42,7 +42,7 @@ export function useStoryFilm(): UseStoryFilmResult {
   const { showToast } = useToast();
   const [step, setStep] = useState<StoryFilmStep>('config');
   const [progress, setProgress] = useState<StoryFilmProgress | null>(null);
-  const [result, setResult] = useState<{ storyId: string; pipelineTaskId: string } | null>(null);
+  const [result, setResult] = useState<{ storyId: string; pipelineTaskId: string; usedTemplate?: boolean } | null>(null);
   const [isGeneratingText, setIsGeneratingText] = useState(false);
   const [generatedText, setGeneratedText] = useState('');
   const cancelledRef = useRef(false);
@@ -64,6 +64,9 @@ export function useStoryFilm(): UseStoryFilmResult {
         setResult(filmResult);
         setStep('preview');
         showToast('success', t('storyFilm.generateSuccess', '视频生成完成'));
+        if (filmResult.usedTemplate) {
+          showToast('info', t('storyFilm.templateFallback', '文案生成失败，已使用模板故事继续'));
+        }
       }
     } catch (e) {
       if (!cancelledRef.current) {

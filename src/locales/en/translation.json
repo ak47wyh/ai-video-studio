@@ -1080,7 +1080,8 @@
     "tabConfig": "Config",
     "tabGenerating": "Generating",
     "tabPreview": "Preview",
-    "previewHint": "You can edit the video in workbench or regenerate."
+    "previewHint": "You can edit the video in workbench or regenerate.",
+    "storyFilm.templateFallback": "Story text generation failed; continuing with a template story"
   },
   "notFound": {
     "message": "The page you are looking for does not exist",

@@ -676,7 +676,8 @@
     "tabConfig": "Configuração",
     "tabGenerating": "Gerando",
     "tabPreview": "Visualização",
-    "previewHint": "Você pode editar o vídeo na bancada ou regenerá-lo."
+    "previewHint": "Você pode editar o vídeo na bancada ou regenerá-lo.",
+    "storyFilm.templateFallback": "Story text generation failed; continuing with a template story"
   },
   "imageStyle": {
     "default": "Padrão",
