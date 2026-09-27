@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ListChecks, Plus, RotateCcw, X, Play } from 'lucide-react';
+import { ListChecks, Plus, RotateCcw, X, Play, Pause } from 'lucide-react';
 import { pipelineService, storyRepo } from '../../dependencies';
 import type { PipelineTask } from '../../domain/entities/models';
 import type { Story } from '../../domain/entities/models';
@@ -19,6 +19,7 @@ const STATUS_COLOR: Record<string, string> = {
   failed: 'var(--color-danger)',
   cancelled: 'var(--text-muted)',
   idle: 'var(--color-warning)',
+  paused: 'var(--color-warning)',
 };
 
 export const TaskQueuePage: React.FC = () => {
@@ -73,7 +74,7 @@ export const TaskQueuePage: React.FC = () => {
   }, [tasks]);
 
   const stats = useMemo(() => ({
-    running: tasks.filter(t => t.status !== 'idle' && t.status !== 'complete' && t.status !== 'failed' && t.status !== 'cancelled').length,
+    running: tasks.filter(t => t.status !== 'idle' && t.status !== 'paused' && t.status !== 'complete' && t.status !== 'failed' && t.status !== 'cancelled').length,
     queued: tasks.filter(t => t.status === 'idle').length,
     done: tasks.filter(t => t.status === 'complete' || t.status === 'failed' || t.status === 'cancelled').length,
   }), [tasks]);
@@ -81,6 +82,20 @@ export const TaskQueuePage: React.FC = () => {
   const handleCancel = (id: string) => {
     pipelineService.cancelTask(id);
     showToast('info', t('queue.taskCancelled', '任务取消中'));
+  };
+
+  const handlePause = (id: string) => {
+    pipelineService.pauseTask(id);
+    showToast('info', t('queue.taskPaused', '任务已暂停'));
+  };
+
+  const handleResume = async (task: PipelineTask) => {
+    try {
+      await pipelineService.resumeTask(task.id);
+      showToast('success', t('queue.taskResumed', '已恢复续跑'));
+    } catch (e) {
+      showToast('error', getErrorMessage(e, t('queue.retryFailed', '恢复失败')));
+    }
   };
 
   const handleRetry = async (task: PipelineTask) => {
@@ -150,7 +165,7 @@ export const TaskQueuePage: React.FC = () => {
           <span style={{ fontSize: '0.72rem', color: STATUS_COLOR[task.status] ?? 'var(--text-muted)' }}>
             {t(`queue.status.${task.status}`, task.status)}
           </span>
-          {!isTerminal && (
+          {!isTerminal && task.status !== 'paused' && (
             <>
               <select
                 className="form-select"
@@ -165,7 +180,15 @@ export const TaskQueuePage: React.FC = () => {
               <button className="btn btn-secondary btn-xs" onClick={() => handleCancel(task.id)} title={t('queue.cancel', '取消')}>
                 <X size={13} />
               </button>
+              <button className="btn btn-secondary btn-xs" onClick={() => handlePause(task.id)} title={t('queue.pause', '暂停')}>
+                <Pause size={13} />
+              </button>
             </>
+          )}
+          {task.status === 'paused' && (
+            <button className="btn btn-primary btn-xs" onClick={() => handleResume(task)} title={t('queue.resume', '继续')}>
+              <Play size={13} /> {t('queue.resume', '继续')}
+            </button>
           )}
           {task.status === 'failed' && (
             <button className="btn btn-primary btn-xs" onClick={() => handleRetry(task)} title={t('queue.retry', '重试')}>

@@ -23,6 +23,7 @@ const STAGE_LABELS: Record<PipelineStatus, string> = {
   complete: '完成',
   failed: '失败',
   cancelled: '取消',
+  paused: '已暂停',
 };
 
 const getStageIcon = (status: 'pending' | 'running' | 'done' | 'failed') => {

@@ -1327,7 +1327,12 @@
       "post_processing": "後処理中",
       "generating_srt": "字幕生成中",
       "burning_subtitles": "字幕焼き込み中"
-    }
+    },
+    "status.paused": "一時停止中",
+    "taskPaused": "タスクを一時停止しました",
+    "taskResumed": "再開しました",
+    "pause": "一時停止",
+    "resume": "再開"
   },
   "compliance": {
     "title": "コンプライアンス管理センター",

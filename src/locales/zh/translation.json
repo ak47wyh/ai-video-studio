@@ -1324,7 +1324,12 @@
       "post_processing": "后期处理",
       "generating_srt": "生成字幕",
       "burning_subtitles": "压制字幕"
-    }
+    },
+    "status.paused": "已暂停",
+    "taskPaused": "任务已暂停",
+    "taskResumed": "已恢复续跑",
+    "pause": "暂停",
+    "resume": "继续"
   },
   "compliance": {
     "title": "合规治理中心",

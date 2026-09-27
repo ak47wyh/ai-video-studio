@@ -406,6 +406,10 @@ export class PipelineService {
           this.markCancelled(task.id, '用户取消');
           continue;
         }
+        if (task.pauseRequested) {
+          this.markPaused(task.id, '用户暂停');
+          continue;
+        }
         const runner = this.queueRunners.get(task.id);
         this.queueRunners.delete(task.id);
         if (runner) {
@@ -437,6 +441,10 @@ export class PipelineService {
     const task = this.tasks.get(taskId);
     if (!task) return;
     if (task.status === 'complete' || task.status === 'failed' || task.status === 'cancelled') return;
+    if (task.status === 'paused') {
+      this.markCancelled(taskId, reason);
+      return;
+    }
     task.cancelRequested = true;
     // 排队中（未开始执行）：直接从队列移除并标记取消
     const idx = this.pendingQueue.findIndex(q => q.id === taskId);
@@ -446,6 +454,59 @@ export class PipelineService {
       return;
     }
     this.notify(task);
+  }
+
+  /**
+   * P-2 用户主动暂停：仅对非终态任务生效。
+   * - 执行中：标记 pauseRequested，runStages 阶段边界检查后停止（保留已完成阶段，可续跑）
+   * - 排队中（idle）：标记后出队时被跳过，等待恢复
+   * - paused/complete/failed/cancelled：忽略（幂等）
+   */
+  pauseTask(taskId: string, reason = '用户暂停'): void {
+    const task = this.tasks.get(taskId);
+    if (!task) return;
+    if (task.status === 'complete' || task.status === 'failed' || task.status === 'cancelled' || task.status === 'paused') return;
+    task.pauseRequested = true;
+    task.status = 'paused';
+    task.currentStep = "Paused: " + reason;
+    this.notify(task);
+    this.logger.warn('pipeline paused', { service: 'PipelineService', method: 'pauseTask', taskId, reason });
+  }
+
+  /** P-2 暂停状态标记（runStages 阶段边界检测到 pauseRequested 时调用） */
+  private markPaused(taskId: string, reason = '用户暂停'): void {
+    const task = this.tasks.get(taskId);
+    if (!task) return;
+    task.pauseRequested = true;
+    task.status = 'paused';
+    task.currentStep = "Paused: " + reason;
+    this.cleanupPollers(taskId);
+    this.notify(task);
+    this.logger.warn('pipeline paused at stage boundary', { service: 'PipelineService', method: 'markPaused', taskId, reason });
+  }
+
+  /**
+   * P-2 恢复暂停任务：清除暂停标志后复用断点续跑（resumePipeline）
+   * 仅对 paused 任务生效；其余状态忽略。
+   */
+  async resumeTask(taskId: string): Promise<PipelineTask> {
+    const task = this.tasks.get(taskId);
+    if (!task) {
+      const fromRepo = await this.loadTaskFromRepo(taskId);
+      if (fromRepo) {
+        this.tasks.set(fromRepo.id, { ...fromRepo });
+        fromRepo.pauseRequested = false;
+        fromRepo.status = 'idle';
+        this.notify(fromRepo);
+        return this.resumePipeline(taskId, {});
+      }
+      throw new Error("Pipeline task not found: " + taskId);
+    }
+    if (task.status !== 'paused') return task;
+    task.pauseRequested = false;
+    task.status = 'idle';
+    this.notify(task);
+    return this.resumePipeline(taskId, {});
   }
 
   /** P1-7 标记任务取消 */
@@ -674,6 +735,10 @@ export class PipelineService {
         this.markCancelled(task.id, '用户取消');
         return;
       }
+      if (task.pauseRequested) {
+        this.markPaused(task.id, '用户暂停');
+        return;
+      }
       // P1-7 阶段级失败自动重试（可配置次数/退避）
       let attempt = 0;
       for (;;) {
@@ -683,6 +748,10 @@ export class PipelineService {
         } catch (e) {
           if (task.cancelRequested) {
             this.markCancelled(task.id, '用户取消');
+            return;
+          }
+          if (task.pauseRequested) {
+            this.markPaused(task.id, '用户暂停');
             return;
           }
           attempt++;

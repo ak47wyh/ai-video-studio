@@ -1013,7 +1013,12 @@
       "post_processing": "Post-processing",
       "generating_srt": "Generating subtitles",
       "burning_subtitles": "Burning subtitles"
-    }
+    },
+    "status.paused": "Paused",
+    "taskPaused": "Task paused",
+    "taskResumed": "Resumed",
+    "pause": "Pause",
+    "resume": "Resume"
   },
   "compliance": {
     "title": "Compliance Center",
