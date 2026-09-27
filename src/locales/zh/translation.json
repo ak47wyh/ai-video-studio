@@ -1365,7 +1365,7 @@
     "downloaded": "已下载（含 AI 生成声明元数据）",
     "downloading": "下载中…",
     "download": "下载",
-    "rework": "回改（进剪辑）",
+    "rework": "回改",
     "compare": "版本对比",
     "toAssets": "资产中心",
     "notFound": "未找到该成片，可能已被删除",
@@ -1389,6 +1389,15 @@
     "cost.models": "模型",
     "srt.title": "字幕",
     "srt.expand": "展开全部",
-    "srt.collapse": "收起"
+    "srt.collapse": "收起",
+    "archive": "归档",
+    "unarchive": "取消归档",
+    "archived": "已归档",
+    "archivedToast": "已归档",
+    "unarchivedToast": "已取消归档",
+    "delete": "删除",
+    "deleteConfirmTitle": "删除成片",
+    "deleteConfirm": "删除后不可恢复，确定继续？",
+    "deleted": "已删除"
   }
 }

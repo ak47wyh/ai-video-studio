@@ -1078,6 +1078,15 @@
     "cost.models": "Models",
     "srt.title": "Subtitles",
     "srt.expand": "Expand all",
-    "srt.collapse": "Collapse"
+    "srt.collapse": "Collapse",
+    "archive": "Archive",
+    "unarchive": "Unarchive",
+    "archived": "Archived",
+    "archivedToast": "Archived",
+    "unarchivedToast": "Unarchived",
+    "delete": "Delete",
+    "deleteConfirmTitle": "Delete final cut",
+    "deleteConfirm": "This cannot be undone. Continue?",
+    "deleted": "Deleted"
   }
 }

@@ -1365,7 +1365,7 @@
     "downloaded": "Downloaded (with AI declaration metadata)",
     "downloading": "Downloading…",
     "download": "Download",
-    "rework": "Rework (open editor)",
+    "rework": "Rework",
     "compare": "Version compare",
     "toAssets": "Asset center",
     "notFound": "Final cut not found — it may have been deleted",
@@ -1389,6 +1389,15 @@
     "cost.models": "Models",
     "srt.title": "Subtitles",
     "srt.expand": "Expand all",
-    "srt.collapse": "Collapse"
+    "srt.collapse": "Collapse",
+    "archive": "Archive",
+    "unarchive": "Unarchive",
+    "archived": "Archived",
+    "archivedToast": "Archived",
+    "unarchivedToast": "Unarchived",
+    "delete": "Delete",
+    "deleteConfirmTitle": "Delete final cut",
+    "deleteConfirm": "This cannot be undone. Continue?",
+    "deleted": "Deleted"
   }
 }

@@ -1368,7 +1368,7 @@
     "downloaded": "ダウンロードしました（AI 生成宣言メタデータ付き）",
     "downloading": "ダウンロード中…",
     "download": "ダウンロード",
-    "rework": "作り直し（エディタへ）",
+    "rework": "作り直し",
     "compare": "バージョン比較",
     "toAssets": "アセットセンター",
     "notFound": "成片が見つかりません（削除された可能性）",
@@ -1392,6 +1392,15 @@
     "cost.models": "モデル",
     "srt.title": "字幕",
     "srt.expand": "すべて展開",
-    "srt.collapse": "折りたたむ"
+    "srt.collapse": "折りたたむ",
+    "archive": "アーカイブ",
+    "unarchive": "アーカイブ解除",
+    "archived": "アーカイブ済み",
+    "archivedToast": "アーカイブしました",
+    "unarchivedToast": "アーカイブ解除しました",
+    "delete": "削除",
+    "deleteConfirmTitle": "成片を削除",
+    "deleteConfirm": "削除後は元に戻せません。続行しますか？",
+    "deleted": "削除しました"
   }
 }
