@@ -1401,7 +1401,9 @@
     "delete": "削除",
     "deleteConfirmTitle": "成片を削除",
     "deleteConfirm": "削除後は元に戻せません。続行しますか？",
-    "deleted": "削除しました"
+    "deleted": "削除しました",
+    "downloadedMetadata": "ダウンロードしました（AI 生成宣言メタデータ付き）",
+    "downloadedPlain": "ダウンロードしました（AI 宣言メタデータ失敗、降級）"
   },
   "qc": {
     "suggestion": {
@@ -1418,5 +1420,31 @@
       "probe": "メディアプローブ失敗 — 素のまま再生成をプリセット",
       "manual": "手動確認を推奨"
     }
+  },
+  "insights": {
+    "title": "データ洞察",
+    "subtitle": "制作 / コスト / 公開 / バージョン効率を一箇所で",
+    "scope": "データはローカル由来：成片 / QC スナップショット / 公開統計 / コスト計量。コストは Token/呼び出し単位で、金額は推定しません。",
+    "creation": "制作トレンド（直近 14 日）",
+    "cost": "コストトレンド（直近 14 日）",
+    "publish": "公開パフォーマンス",
+    "version": "バージョン効率",
+    "empty": "データなし",
+    "avgDuration": "平均時間",
+    "totalCuts": "成片",
+    "calls": "呼び出し",
+    "budget": "予算",
+    "exceeded": "超過",
+    "used": "使用",
+    "publishCount": "タスク",
+    "views": "再生",
+    "engagement": "エンゲージ率",
+    "stories": "ストーリー",
+    "versions": "バージョン",
+    "avgVersion": "平均/ストーリー",
+    "qcRate": "QC 合格率",
+    "qcReported": "検査済み",
+    "reworked": "作り直し",
+    "note": "バージョン効率はローカルの成片と QC スナップショットからリアルタイム計算。"
   }
 }

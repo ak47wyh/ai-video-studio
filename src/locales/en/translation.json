@@ -1398,7 +1398,9 @@
     "delete": "Delete",
     "deleteConfirmTitle": "Delete final cut",
     "deleteConfirm": "This cannot be undone. Continue?",
-    "deleted": "Deleted"
+    "deleted": "Deleted",
+    "downloadedMetadata": "Downloaded (with AI declaration metadata)",
+    "downloadedPlain": "Downloaded (AI declaration metadata failed — degraded)"
   },
   "qc": {
     "suggestion": {
@@ -1415,5 +1417,31 @@
       "probe": "Media probe failed — preset plain rework",
       "manual": "Manual review advised"
     }
+  },
+  "insights": {
+    "title": "Data Insights",
+    "subtitle": "Creation / Cost / Publish / Version efficiency in one place",
+    "scope": "Data from local: final cuts, QC snapshots, publish stats, cost metering. Costs are measured in tokens/calls, never estimated in money.",
+    "creation": "Creation trend (last 14 days)",
+    "cost": "Cost trend (last 14 days)",
+    "publish": "Publish performance",
+    "version": "Version efficiency",
+    "empty": "No data yet",
+    "avgDuration": "Avg duration",
+    "totalCuts": "cuts",
+    "calls": "calls",
+    "budget": "Budget",
+    "exceeded": "exceeded",
+    "used": "Used",
+    "publishCount": "tasks",
+    "views": "views",
+    "engagement": "engagement",
+    "stories": "Stories",
+    "versions": "Versions",
+    "avgVersion": "avg versions/story",
+    "qcRate": "QC pass rate",
+    "qcReported": "checked",
+    "reworked": "Reworks",
+    "note": "Version efficiency computed live from local final cuts and QC snapshots."
   }
 }

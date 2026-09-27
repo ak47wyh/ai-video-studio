@@ -1398,7 +1398,9 @@
     "delete": "删除",
     "deleteConfirmTitle": "删除成片",
     "deleteConfirm": "删除后不可恢复，确定继续？",
-    "deleted": "已删除"
+    "deleted": "已删除",
+    "downloadedMetadata": "已下载（含 AI 生成声明元数据）",
+    "downloadedPlain": "已下载（AI 声明元数据写入失败，已降级）"
   },
   "qc": {
     "suggestion": {
@@ -1415,5 +1417,31 @@
       "probe": "媒体探测失败，已预填原样重跑",
       "manual": "建议人工核查"
     }
+  },
+  "insights": {
+    "title": "数据洞察",
+    "subtitle": "创作 / 成本 / 发布 / 版本效率 一处复盘",
+    "scope": "数据来自本地：成片 / QC 快照 / 发布回传 / 成本计量；成本以 Token/调用计，不估算金额。",
+    "creation": "创作趋势（近 14 日）",
+    "cost": "成本趋势（近 14 日）",
+    "publish": "发布表现",
+    "version": "版本效率",
+    "empty": "暂无数据",
+    "avgDuration": "日均成片时长",
+    "totalCuts": "成片",
+    "calls": "调用",
+    "budget": "预算",
+    "exceeded": "已超限",
+    "used": "已用",
+    "publishCount": "任务",
+    "views": "播放",
+    "engagement": "互动率",
+    "stories": "故事",
+    "versions": "版本",
+    "avgVersion": "均版本/故事",
+    "qcRate": "QC 通过率",
+    "qcReported": "已质检",
+    "reworked": "回改次数",
+    "note": "版本效率基于本地成片与 QC 快照实时计算。"
   }
 }
