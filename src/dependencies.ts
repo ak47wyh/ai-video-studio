@@ -26,6 +26,7 @@ import { PlatformAwareTextSplitter } from './adapters/outbound/services/Platform
 import { PlatformAwareStoryBreakdown } from './adapters/outbound/services/PlatformAwareStoryBreakdown';
 import { FFmpegAdapter } from './adapters/outbound/api/FFmpegAdapter';
 import { DashScopeAsrAdapter } from './adapters/outbound/api/DashScopeAsrAdapter';
+import { VolcengineAsrAdapter } from './adapters/outbound/api/VolcengineAsrAdapter';
 
 // ==================== Mock / 降级适配器 ====================
 import { MockTextSplitterAdapter } from './adapters/outbound/api/MockTextSplitter';
@@ -255,7 +256,11 @@ export const textAdapter = new MiniMaxTextAdapter();
 export const ffmpegAdapter = new FFmpegAdapter();
 // A1：字幕 ASR 接入真实云端服务（DashScope Paraformer，复用 Wan 平台 Key）；
 // 未配置 Key / 失败时自动降级为平均分配（WhisperAdapter 占位实现保留在代码库）
-export const whisperAdapter = new DashScopeAsrAdapter(apiConfigStoreAdapter, defaultLogger.child({ service: 'DashScopeAsr' }));
+export const whisperAdapter = new VolcengineAsrAdapter(
+  apiConfigStoreAdapter,
+  defaultLogger.child({ service: 'VolcengineAsr' }),
+  new DashScopeAsrAdapter(apiConfigStoreAdapter, defaultLogger.child({ service: 'DashScopeAsr' })),
+);
 
 // ========================================
 // M3.3 模型注册表（EVOLUTION_DESIGN.md §7.3）
