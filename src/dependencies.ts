@@ -53,6 +53,7 @@ import { VersionCompareService } from './domain/services/VersionCompareService';
 import { PipelineService } from './domain/services/PipelineService';
 import { SubtitleService } from './domain/services/SubtitleService';
 import { ShareService } from './domain/services/ShareService';
+import { FreeMusicArchiveAdapter } from './adapters/outbound/api/freemusicarchive/FreeMusicArchiveAdapter';
 import { ImageGenerationService } from './domain/services/ImageGenerationService';
 import { VoiceService } from './domain/services/VoiceService';
 import { MusicService } from './domain/services/MusicService';
@@ -341,9 +342,14 @@ export const voiceService = new VoiceService(
   httpFetch, // P1-2：HTTP 抓取 Port
 );
 
+// M-2: savedBgmRepo 需在 musicService 前初始化（TDZ），声明随 MusicService 区块
+const savedBgmRepo = new SavedBgmRepository();
+
 export const musicService = new MusicService(platformRouter, apiConfigStoreAdapter, segmentRepo, getFileStorage, defaultLogger.child({ service: 'MusicService' }),
   costMeter, // P1-21：成本计量
   httpFetch, // P1-2：HTTP 抓取 Port
+  new FreeMusicArchiveAdapter(), // M-2: 音乐库（FMA 公共 API，停服时如实降级）
+  savedBgmRepo,
 );
 
 export const musicLabService = new MusicLabService(
@@ -500,7 +506,8 @@ export const savedImageRepo = new SavedImageRepository();
 // savedVoiceRepo 已在仓储实例区域提前声明
 export const savedPromptRepo = new SavedPromptRepository();
 export const savedVideoRepo = new SavedVideoRepository();
-export const savedBgmRepo = new SavedBgmRepository();
+// savedBgmRepo 已在 MusicService 区块提前声明（M-2 TDZ 规避）
+export { savedBgmRepo };
 
 // AssetLibraryService 使用延迟获取模式（lazy accessor），
 // 允许在模块加载时构造，但实际调用方法时才获取 fileStorage。

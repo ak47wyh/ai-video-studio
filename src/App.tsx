@@ -1,6 +1,7 @@
 import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { SharePage } from './ui/pages/SharePage';
+import { MusicLibraryPage } from './ui/pages/MusicLibraryPage';
 import { MainLayout } from './ui/layouts/MainLayout';
 import { SpaceProvider } from './ui/contexts/SpaceContext';
 import { ToastProvider } from './ui/contexts/ToastContext';
@@ -128,6 +129,7 @@ function App() {
                       <Route path="labs/text" element={<TextLab />} />
                       <Route path="labs/video" element={<VideoLab />} />
                       <Route path="labs/music" element={<MusicLab />} />
+                      <Route path="labs/music-library" element={<MusicLibraryPage />} />
                       <Route path="labs/watermark" element={<WatermarkLab />} />
                       <Route path="labs/enhance" element={<EnhanceLab />} />
                       <Route path="editor" element={<VideoEditor />} />

@@ -1537,5 +1537,25 @@
     "bold": "加粗",
     "preview": "实时预览",
     "previewText": "示例字幕 Preview"
+  },
+  "musicLibrary": {
+    "title": "音乐库",
+    "subtitle": "浏览外部音乐库并导入 BGM（一期：Free Music Archive）",
+    "searchPlaceholder": "搜索曲目 / 艺术家",
+    "genre": "流派",
+    "allGenres": "全部流派",
+    "search": "搜索",
+    "licenseNotice": "曲目受 CC 许可保护，使用时需保留原作者署名。",
+    "unavailable": "音乐库服务暂不可用（外部 API 已停服），请稍后再试或使用「音乐生成」创作 BGM。",
+    "searchFailed": "搜索失败",
+    "preview": "试听",
+    "loading": "加载中…",
+    "previewUnavailable": "试听服务暂不可用",
+    "previewFailed": "试听失败",
+    "import": "导入到 BGM 库",
+    "importing": "导入中…",
+    "imported": "已导入到 BGM 库",
+    "importUnavailable": "导入服务暂不可用",
+    "importFailed": "导入失败"
   }
 }

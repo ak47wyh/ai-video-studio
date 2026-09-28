@@ -1537,5 +1537,25 @@
     "bold": "Bold",
     "preview": "Live preview",
     "previewText": "示例字幕 Preview"
+  },
+  "musicLibrary": {
+    "title": "Music library",
+    "subtitle": "Browse external music library and import BGM (v1: Free Music Archive)",
+    "searchPlaceholder": "Search tracks / artists",
+    "genre": "Genre",
+    "allGenres": "All genres",
+    "search": "Search",
+    "licenseNotice": "Tracks are CC-licensed; keep the original artist attribution when using.",
+    "unavailable": "Music library service unavailable (external API retired). Try later or create BGM with AI music generation.",
+    "searchFailed": "Search failed",
+    "preview": "Preview",
+    "loading": "Loading…",
+    "previewUnavailable": "Preview service unavailable",
+    "previewFailed": "Preview failed",
+    "import": "Import to BGM library",
+    "importing": "Importing…",
+    "imported": "Imported to BGM library",
+    "importUnavailable": "Import service unavailable",
+    "importFailed": "Import failed"
   }
 }

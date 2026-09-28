@@ -2,6 +2,8 @@ import type { IMusicPort, IStorySegmentRepository, MusicGenerationContext, Music
 import type { IFileStoragePort } from '../ports/FileStoragePorts';
 import type { IApiConfigStore } from '../ports/PlatformPorts';
 import type { ILoggerPort, ICostMeter, IHttpFetchPort } from '../ports/CrossCuttingPorts';
+import type { IMusicLibraryPort, MusicSearchOptions, MusicTrack } from '../ports/MusicLibraryPorts';
+import type { ISavedBgmRepository } from '../ports/AssetLibraryPorts';
 import type { PlatformRouter } from './PlatformRouter';
 
 export class MusicService {
@@ -13,6 +15,9 @@ export class MusicService {
   private costMeter?: ICostMeter;
   /** P1-2：可选注入的 HTTP 抓取 Port */
   private httpFetch?: IHttpFetchPort;
+  /** M-2：可选注入的音乐库 Port（未注入时搜索/导入抛明确错误） */
+  private libraryPort?: IMusicLibraryPort;
+  private savedBgmRepo?: ISavedBgmRepository;
 
   constructor(
     router: PlatformRouter,
@@ -22,6 +27,8 @@ export class MusicService {
     logger: ILoggerPort,
     costMeter?: ICostMeter,
     httpFetch?: IHttpFetchPort,
+    libraryPort?: IMusicLibraryPort,
+    savedBgmRepo?: ISavedBgmRepository,
   ) {
     this.router = router;
     this.configStore = configStore;
@@ -30,6 +37,53 @@ export class MusicService {
     this.logger = logger;
     this.costMeter = costMeter;
     this.httpFetch = httpFetch;
+    this.libraryPort = libraryPort;
+    this.savedBgmRepo = savedBgmRepo;
+  }
+
+  /**
+   * M-2: 搜索音乐库
+   */
+  async searchLibrary(opts: MusicSearchOptions): Promise<MusicTrack[]> {
+    if (!this.libraryPort) throw new Error('MusicService: libraryPort not injected');
+    return this.libraryPort.search(opts);
+  }
+
+  /**
+   * M-2: 试听曲目（返回预览音频 URL；不可用时抛领域错误）
+   */
+  async previewTrack(trackId: string): Promise<string> {
+    if (!this.libraryPort) throw new Error('MusicService: libraryPort not injected');
+    return this.libraryPort.getPreviewUrl(trackId);
+  }
+
+  /**
+   * M-2: 导入曲目到 BGM 资产库（下载 → 文件存储 → saved_bgm 表）
+   */
+  async importTrack(track: MusicTrack, spaceId: string): Promise<string> {
+    if (!this.libraryPort) throw new Error('MusicService: libraryPort not injected');
+    if (!this.httpFetch) throw new Error('MusicService: httpFetch not injected');
+    if (!this.savedBgmRepo) throw new Error('MusicService: savedBgmRepo not injected');
+    const url = await this.libraryPort.getDownloadUrl(track.id);
+    const blob = await this.httpFetch.fetchBlob(url);
+    const fileStorage = this.getFileStorage();
+    const id = `bgm-lib-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+    const blobKey = `opfs://music-library/${id}.mp3`;
+    await fileStorage.storeBlob(blobKey, blob);
+    await this.savedBgmRepo.save({
+      id,
+      spaceId,
+      name: `${track.title} - ${track.artist}`,
+      prompt: track.genre,
+      model: 'music-library',
+      durationSec: track.durationSec,
+      audioBlobKey: blobKey,
+      tags: [track.genre, track.license],
+      sourceType: 'import',
+      sourceId: track.id,
+      createdAt: Date.now(),
+    });
+    return id;
   }
 
   /** 获取当前配置对应的音乐生成适配器 */

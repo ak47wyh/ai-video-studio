@@ -1540,5 +1540,25 @@
     "bold": "太字",
     "preview": "プレビュー",
     "previewText": "示例字幕 Preview"
+  },
+  "musicLibrary": {
+    "title": "音楽ライブラリ",
+    "subtitle": "外部音楽ライブラリを閲覧して BGM をインポート（第 1 期：Free Music Archive）",
+    "searchPlaceholder": "曲 / アーティストを検索",
+    "genre": "ジャンル",
+    "allGenres": "全ジャンル",
+    "search": "検索",
+    "licenseNotice": "曲は CC ライセンスの対象です。使用時は原作者のクレジットを保持してください。",
+    "unavailable": "音楽ライブラリが利用できません（外部 API はサービス終了）。後でもう一度試すか、「音楽生成」で BGM を作成してください。",
+    "searchFailed": "検索に失敗",
+    "preview": "試聴",
+    "loading": "読み込み中…",
+    "previewUnavailable": "試聴サービスを利用できません",
+    "previewFailed": "試聴に失敗",
+    "import": "BGM ライブラリにインポート",
+    "importing": "インポート中…",
+    "imported": "BGM ライブラリにインポートしました",
+    "importUnavailable": "インポートサービスを利用できません",
+    "importFailed": "インポートに失敗"
   }
 }
