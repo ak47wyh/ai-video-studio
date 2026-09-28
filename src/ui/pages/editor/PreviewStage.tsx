@@ -55,6 +55,7 @@ export const PreviewStage: React.FC<PreviewStageProps> = ({ timeline, selectedCl
         // 降级到仓储查找
         switch (ref.kind) {
           case 'videoTask': {
+            if (!ref.refId) break;
             const task = await videoTaskRepo.findById(ref.refId);
             if (task?.videoStoragePath) {
               const blob = await fs.getBlob(task.videoStoragePath);
@@ -69,6 +70,7 @@ export const PreviewStage: React.FC<PreviewStageProps> = ({ timeline, selectedCl
             break;
           }
           case 'savedVideo': {
+            if (!ref.refId) break;
             const v = await savedVideoRepo.getById(ref.refId);
             if (v) {
               const blob = await fs.getBlob(v.blobKey);
@@ -80,6 +82,7 @@ export const PreviewStage: React.FC<PreviewStageProps> = ({ timeline, selectedCl
             break;
           }
           case 'finalCut': {
+            if (!ref.refId) break;
             const fc = await finalCutRepo.findById(ref.refId);
             if (fc?.videoStoragePath) {
               const blob = await fs.getBlob(fc.videoStoragePath);
@@ -94,6 +97,7 @@ export const PreviewStage: React.FC<PreviewStageProps> = ({ timeline, selectedCl
             break;
           }
           case 'savedVoice': {
+            if (!ref.refId) break;
             const v = await savedVoiceRepo.getById(ref.refId);
             if (v) {
               const blob = await fs.getBlob(v.audioBlobKey);
@@ -102,6 +106,20 @@ export const PreviewStage: React.FC<PreviewStageProps> = ({ timeline, selectedCl
                 if (!revoked) setPreviewUrl(url);
               }
             }
+            break;
+          }
+          case 'imageAsVideo': {
+            // T-2: 图片转视频素材，直接用图片 URL 预览静态帧
+            if (!ref.imageUrl) break;
+            url = ref.imageUrl;
+            if (!revoked) setPreviewUrl(url);
+            break;
+          }
+          case 'externalUrl': {
+            // T-2: 远程视频/音频 URL 直用
+            if (!ref.url) break;
+            url = ref.url;
+            if (!revoked) setPreviewUrl(url);
             break;
           }
         }

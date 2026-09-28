@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { Image as ImageIcon, Sparkles, RefreshCw, Type, ImagePlus } from 'lucide-react';
 import { imageGenerationService, assetLibraryService, apiConfigStoreAdapter } from '../../dependencies';
 import type { ImageAspectRatio, ImageGenerationContext } from '../../domain/ports/OutboundPorts';
@@ -220,6 +221,23 @@ export const ImageLab: React.FC = () => {
       setIsGenerating(false);
     }
   };
+
+  // ==================== T-2 添加到时间线 ====================
+  const navigate = useNavigate();
+  const [addToTimelineImg, setAddToTimelineImg] = useState<GalleryImage | null>(null);
+  const [addDurSec, setAddDurSec] = useState(3);
+
+  const handleAddToTimeline = useCallback((img: GalleryImage) => {
+    setAddDurSec(3);
+    setAddToTimelineImg(img);
+  }, []);
+
+  const handleAddToTimelineConfirm = useCallback(() => {
+    if (!addToTimelineImg) return;
+    const durationSec = Number.isFinite(addDurSec) && addDurSec > 0 ? addDurSec : 3;
+    navigate(`/editor?imageUrl=${encodeURIComponent(addToTimelineImg.url)}&durationSec=${durationSec}`);
+    setAddToTimelineImg(null);
+  }, [addToTimelineImg, addDurSec, navigate]);
 
   // ==================== 下载 ====================
   const handleDownload = useCallback((image: GalleryImage) => {
@@ -576,6 +594,7 @@ export const ImageLab: React.FC = () => {
             onSave={handleSaveClick}
             onUseAsReference={handleUseAsReference}
             onSendToSegment={(img) => setPickerAsset({ url: img.url, field: 'image' })}
+            onAddToTimeline={handleAddToTimeline}
           />
           <SavedRecordsPanel images={savedThisSession} autoExpandKey={savedPanelExpandKey} />
         </div>
@@ -589,6 +608,50 @@ export const ImageLab: React.FC = () => {
           onSave={handleSaveConfirm}
           onCancel={() => { setShowSaveDialog(false); setSaveTargetImage(null); }}
         />
+      )}
+      {addToTimelineImg && (
+        <div
+          onClick={() => setAddToTimelineImg(null)}
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(0,0,0,0.6)', zIndex: 9999,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem',
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="glass-panel"
+            style={{ maxWidth: 360, width: '100%', padding: '1.25rem', borderRadius: 'var(--radius-md)' }}
+          >
+            <h3 style={{ margin: 0, marginBottom: '0.5rem', fontSize: '1rem' }}>
+              {t('imageLab.addToTimeline', '添加到时间线')}
+            </h3>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
+              {t('imageLab.addToTimelineHint', '图片将转为视频片段加入剪辑时间线')}
+            </div>
+            <label style={{ fontSize: '0.8rem', display: 'block', marginBottom: '0.35rem' }}>
+              {t('imageLab.durationSec', '时长（秒，默认 3）')}
+            </label>
+            <input
+              type="number"
+              className="input"
+              min={1}
+              max={30}
+              step={0.5}
+              value={addDurSec}
+              onChange={(e) => setAddDurSec(Number(e.target.value))}
+              style={{ width: '100%', boxSizing: 'border-box' }}
+            />
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', justifyContent: 'flex-end' }}>
+              <button className="btn btn-secondary" onClick={() => setAddToTimelineImg(null)}>
+                {t('common.cancel', '取消')}
+              </button>
+              <button className="btn btn-primary" onClick={handleAddToTimelineConfirm}>
+                {t('common.confirm', '确认')}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
       <SegmentPicker
         isOpen={!!pickerAsset}

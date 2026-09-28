@@ -1165,5 +1165,10 @@
     "inspector": {
       "transitionDuration": "Transition duration (s)"
     }
+  },
+  "imageLab": {
+    "addToTimeline": "Add to timeline",
+    "addToTimelineHint": "Image will be turned into a video clip on the edit timeline",
+    "durationSec": "Duration (s, default 3)"
   }
 }

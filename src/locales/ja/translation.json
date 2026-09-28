@@ -1475,5 +1475,10 @@
     "transitionLabel": "トランジション",
     "transitionNone": "なし",
     "durationSecLabel": "長さ（秒）"
+  },
+  "imageLab": {
+    "addToTimeline": "タイムラインに追加",
+    "addToTimelineHint": "画像はビデオクリップに変換され編集タイムラインに追加されます",
+    "durationSec": "長さ（秒、既定 3）"
   }
 }

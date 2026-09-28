@@ -281,6 +281,31 @@ export class FFmpegAdapter implements IFFmpegPort, IQcMediaPort {
     }
   }
 
+  /** T-2: 图片转视频片段（loop 静态图 N 秒） */
+  async imageToVideo(image: Blob, durationSec: number): Promise<Blob> {
+    await this.load();
+    const ffmpeg = this.ensureLoaded();
+    const imgName = 'img.jpg';
+    const outName = 'out.mp4';
+    try {
+      await this.writeFile(imgName, image);
+      await ffmpeg.exec([
+        '-loop', '1',
+        '-i', imgName,
+        '-t', String(durationSec),
+        '-r', '30',
+        '-vf', 'fps=30',
+        '-pix_fmt', 'yuv420p',
+        '-c:v', 'libx264',
+        outName
+      ]);
+      return await this.readFile(outName);
+    } finally {
+      await this.safeDelete(imgName);
+      await this.safeDelete(outName);
+    }
+  }
+
   async compress(video: Blob, crf = 23): Promise<Blob> {
     await this.load();
     const ffmpeg = this.ensureLoaded();

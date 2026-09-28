@@ -12,7 +12,7 @@
  * 子组件均拆分到 editor/ 目录，单文件控制在 300 行内。
  */
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useSpace } from '../contexts/SpaceContext';
@@ -110,6 +110,28 @@ export const VideoEditor: React.FC = () => {
       targetTrack.clips.push(newClip);
     });
   }, [timeline, updateTimeline, showToast, t]);
+
+  // T-2: 从 URL 接收 ImageLab「添加到时间线」的图片素材（imageAsVideo）
+  const pendingImageConsumedRef = useRef(false);
+  useEffect(() => {
+    if (!timeline || loading || pendingImageConsumedRef.current) return;
+    const imageUrl = searchParams.get('imageUrl');
+    if (!imageUrl) return;
+    pendingImageConsumedRef.current = true;
+    const parsed = Number(searchParams.get('durationSec') ?? '3');
+    const durationSec = Number.isFinite(parsed) && parsed > 0 ? parsed : 3;
+    handleAddToTimeline(
+      { kind: 'imageAsVideo', imageUrl, durationSec },
+      t('imageLab.addToTimeline', '图片素材'),
+      durationSec,
+    );
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete('imageUrl');
+      next.delete('durationSec');
+      return next;
+    }, { replace: true });
+  }, [timeline, loading, searchParams, handleAddToTimeline, setSearchParams, t]);
 
   /** 属性面板修改 clip */
   const handlePatchClip = useCallback((clipId: string, patch: Partial<TimelineClip>) => {

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Download, BookmarkPlus, ImagePlus, X, Maximize2, Send } from 'lucide-react';
+import { Download, BookmarkPlus, ImagePlus, X, Maximize2, Send, Film } from 'lucide-react';
 
 export interface GalleryImage {
   url: string;
@@ -16,11 +16,13 @@ interface ImageGalleryProps {
   onSave: (image: GalleryImage) => void;
   onUseAsReference?: (image: GalleryImage) => void;
   onSendToSegment?: (image: GalleryImage) => void;
+  /** T-2: 添加到时间线（图片转视频素材） */
+  onAddToTimeline?: (image: GalleryImage) => void;
 }
 
 /** 多图画廊组件：网格展示 + 大图模态框 */
 export const ImageGallery: React.FC<ImageGalleryProps> = ({
-  images, onDownload, onSave, onUseAsReference, onSendToSegment,
+  images, onDownload, onSave, onUseAsReference, onSendToSegment, onAddToTimeline,
 }) => {
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
 
@@ -86,6 +88,14 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({
                   onClick={() => onUseAsReference(img)}
                   title="用作图生图参考"
                 ><ImagePlus size={12} /> 用作参考</button>
+              )}
+              {onAddToTimeline && (
+                <button
+                  className="btn btn-secondary"
+                  style={{ fontSize: '0.7rem', padding: '0.25rem 0.5rem' }}
+                  onClick={() => onAddToTimeline(img)}
+                  title="添加到时间线（图片转视频）"
+                ><Film size={12} /> 添加到时间线</button>
               )}
             </div>
           </div>

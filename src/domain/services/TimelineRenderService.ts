@@ -242,6 +242,7 @@ export class TimelineRenderService implements ITimelineRenderPort {
       }
       switch (ref.kind) {
         case 'videoTask': {
+          if (!ref.refId) return null;
           const task = await this.deps.videoTaskRepo.findById(ref.refId);
           if (!task || task.status !== 'SUCCESS' || !task.videoUrl) return null;
           const blob = await this.fetchOrRead(task.videoUrl, task.videoStoragePath);
@@ -249,6 +250,7 @@ export class TimelineRenderService implements ITimelineRenderPort {
           return { blob, durationSec };
         }
         case 'savedVideo': {
+          if (!ref.refId) return null;
           const v = await this.deps.savedVideoRepo.getById(ref.refId);
           if (!v) return null;
           const blob = await fileStorage.getBlob(v.blobKey);
@@ -256,6 +258,7 @@ export class TimelineRenderService implements ITimelineRenderPort {
           return { blob, durationSec: v.durationSec };
         }
         case 'finalCut': {
+          if (!ref.refId) return null;
           const fc = await this.deps.finalCutRepo.findById(ref.refId);
           if (!fc) return null;
           const blob = fc.videoStoragePath ? await fileStorage.getBlob(fc.videoStoragePath) : fc.videoBlob;
@@ -263,11 +266,26 @@ export class TimelineRenderService implements ITimelineRenderPort {
           return { blob, durationSec: fc.duration };
         }
         case 'savedVoice': {
+          if (!ref.refId) return null;
           const v = await this.deps.savedVoiceRepo.getById(ref.refId);
           if (!v) return null;
           const blob = await fileStorage.getBlob(v.audioBlobKey);
           if (!blob) return null;
           return { blob, durationSec: 0 };
+        }
+        case 'imageAsVideo': {
+          // T-2: 远程图片转视频片段（图片 URL + 时长）
+          if (!ref.imageUrl) return null;
+          const imgBlob = await this.fetchOrRead(ref.imageUrl);
+          const durationSec = ref.durationSec && ref.durationSec > 0 ? ref.durationSec : 3;
+          const blob = await this.deps.ffmpegPort.imageToVideo(imgBlob, durationSec);
+          return { blob, durationSec };
+        }
+        case 'externalUrl': {
+          // T-2: 远程视频/音频 URL 直用（时长由调用方裁剪/探测）
+          if (!ref.url) return null;
+          const blob = await this.fetchOrRead(ref.url);
+          return { blob, durationSec: -1 };
         }
         default:
           return null;

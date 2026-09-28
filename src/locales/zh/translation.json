@@ -1472,5 +1472,10 @@
     "transitionLabel": "转场",
     "transitionNone": "无",
     "durationSecLabel": "时长（秒）"
+  },
+  "imageLab": {
+    "addToTimeline": "添加到时间线",
+    "addToTimelineHint": "图片将转为视频片段加入剪辑时间线",
+    "durationSec": "时长（秒，默认 3）"
   }
 }

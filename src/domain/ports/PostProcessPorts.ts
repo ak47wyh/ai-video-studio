@@ -81,6 +81,8 @@ export interface IFFmpegPort {
   applyDelogo(video: Blob, regions: { x: number; y: number; width: number; height: number }[]): Promise<Blob>;
   /** 将图片帧序列重新编码为视频（含可选音频流） */
   encodeFromFrames(frames: Blob[], fps: number, audio?: Blob): Promise<Blob>;
+  /** T-2: 单张图片转视频片段（loop N 秒，30fps yuv420p） */
+  imageToVideo(image: Blob, durationSec: number): Promise<Blob>;
   /** P2-9 写入媒体元数据（-metadata + -c copy，不重编码） */
   withMetadata(video: Blob, metadata: Record<string, string>): Promise<Blob>;
 }
@@ -107,21 +109,29 @@ export type TimelineClipType = 'video' | 'audio' | 'subtitle' | 'transition';
 /**
  * 时间线片段的素材来源引用语义。
  *
- * 渲染时根据 kind + refId 解析为实际 Blob/URL：
+ * 渲染时根据 kind + 引用字段解析为实际 Blob/URL：
  * - videoTask: 来自故事分镜的 VideoTask（refId = task.id）
  * - savedVideo: 资产库的 SavedVideo（refId = video.id）
  * - finalCut: 已有成片作为单段素材（refId = finalCut.id）
  * - savedImage: 资产库图片作为静态帧（refId = image.id）
  * - savedVoice: 资产库语音（refId = voice.id）
+ * - imageAsVideo: T-2 远程图片转视频片段（imageUrl + durationSec）
+ * - externalUrl: T-2 远程视频/音频 URL 直用（url + mimeType）
  *
  * inPointSec/outPointSec 用于源素材裁切（入/出点，秒）。
  */
 export interface TimelineClipSource {
-  kind: 'videoTask' | 'savedVideo' | 'finalCut' | 'savedImage' | 'savedVoice';
-  refId: string;
+  kind: 'videoTask' | 'savedVideo' | 'finalCut' | 'savedImage' | 'savedVoice' | 'imageAsVideo' | 'externalUrl';
+  refId?: string;
   storagePath?: string;
   inPointSec?: number;
   outPointSec?: number;
+  /** T-2: imageAsVideo 专属 —— 图片 URL + 转视频时长（秒，默认 3） */
+  imageUrl?: string;
+  durationSec?: number;
+  /** T-2: externalUrl 专属 —— 远程媒体 URL + MIME 类型 */
+  url?: string;
+  mimeType?: 'video/mp4' | 'audio/mpeg';
 }
 
 export interface TimelineClip {
