@@ -824,7 +824,16 @@
       "success": "描画完了",
       "failed": "描画失敗",
       "retry": "再試行",
-      "download": "動画をダウンロード"
+      "download": "動画をダウンロード",
+      "resolutionVertical": "縦 1080×1920",
+      "resolution4kWarn": "4K レンダリングは時間がかかり、元が 4K 未満なら画質は上がりません",
+      "format": "形式",
+      "formatMp4": "MP4（推奨）",
+      "formatGif": "GIF（動画、30 秒以内）",
+      "formatWebp": "WebP（アニメーション、Web 向け）",
+      "formatMov": "MOV（高品質）",
+      "formatWebm": "WebM（オープン、Web 向け）",
+      "gifLongWarn": "GIF が 30 秒を超えるとファイルサイズが大きくなる可能性があります"
     }
   },
   "network": {

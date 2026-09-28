@@ -311,6 +311,7 @@ export const VideoEditor: React.FC = () => {
         open={exportOpen}
         onClose={() => setExportOpen(false)}
         onExport={handleExport}
+        durationMs={timeline?.duration}
       />
 
       <ImportVideoModal

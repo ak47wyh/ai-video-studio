@@ -727,7 +727,16 @@
       "success": "渲染完成",
       "failed": "渲染失败",
       "retry": "重试",
-      "download": "下载视频"
+      "download": "下载视频",
+      "resolutionVertical": "竖屏 1080×1920",
+      "resolution4kWarn": "4K 渲染耗时较长，且源素材不足 4K 时画质不会提升",
+      "format": "格式",
+      "formatMp4": "MP4（通用推荐）",
+      "formatGif": "GIF（动图，适合 ≤30s）",
+      "formatWebp": "WebP（动画，适合网页）",
+      "formatMov": "MOV（高质量，适合剪辑）",
+      "formatWebm": "WebM（开源，适合网页）",
+      "gifLongWarn": "GIF 时长超过 30 秒，文件体积可能过大"
     }
   },
   "export": {

@@ -14,21 +14,22 @@ import type { Timeline } from './PostProcessPorts';
 // 渲染选项
 // ==========================================
 
-export type ExportResolution = 'original' | '1080p' | '720p';
+export type ExportResolution = 'original' | '1080p' | '720p' | '480p' | '4k' | 'vertical_1080x1920';
+export type ExportFormat = 'mp4' | 'gif' | 'webp' | 'mov' | 'webm';
 export type ExportQuality = 'high' | 'medium' | 'low';
 
 /**
  * 渲染导出选项（剪辑工作台导出弹窗使用）。
  *
- * - resolution: 目标分辨率；original 表示保持源分辨率
- * - format: 目标格式（MVP 仅 mp4）
+ * - resolution: 目标分辨率（E-2 扩展 480p/4k/竖屏）；original 表示保持源分辨率
+ * - format: 目标格式（E-1 扩展 gif/webp/mov/webm）
  * - quality: 压缩预设，映射 CRF（high=18 / medium=23 / low=28）
  * - burnSubtitles: 是否烧录字幕轨
  * - subtitleStyle: 字幕样式预设
  */
 export interface RenderExportOptions {
   resolution: ExportResolution;
-  format: 'mp4';
+  format: ExportFormat;
   quality: ExportQuality;
   burnSubtitles?: boolean;
   subtitleStyle?: import('./PostProcessPorts').SubtitleStyle;

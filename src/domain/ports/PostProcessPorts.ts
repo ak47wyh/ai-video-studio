@@ -1,7 +1,7 @@
 // --- FFmpeg 后期处理 ---
 
 export type TransitionType = 'none' | 'fade' | 'fadeblack' | 'fadewhite' | 'wipeleft' | 'wiperight' | 'slideup' | 'slidedown' | 'circlecrop' | 'rectcrop' | 'distance';
-export type OutputFormat = 'mp4' | 'webm' | 'mov';
+export type OutputFormat = 'mp4' | 'webm' | 'mov' | 'gif' | 'webp';
 
 /** T-1：转场参数配置（类型 + 时长） */
 export interface TransitionOptions {

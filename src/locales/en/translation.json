@@ -727,7 +727,16 @@
       "success": "Render complete",
       "failed": "Render failed",
       "retry": "Retry",
-      "download": "Download Video"
+      "download": "Download Video",
+      "resolutionVertical": "Vertical 1080×1920",
+      "resolution4kWarn": "4K rendering takes longer; quality won't improve if source is below 4K",
+      "format": "Format",
+      "formatMp4": "MP4 (recommended)",
+      "formatGif": "GIF (≤30s)",
+      "formatWebp": "WebP (animated, for web)",
+      "formatMov": "MOV (high quality)",
+      "formatWebm": "WebM (open source, for web)",
+      "gifLongWarn": "GIF longer than 30s may produce a very large file"
     }
   },
   "export": {

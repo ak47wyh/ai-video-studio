@@ -53,8 +53,11 @@ const QUALITY_CRF: Record<RenderExportOptions['quality'], number> = {
 };
 
 const RESOLUTION_MAP: Record<Exclude<RenderExportOptions['resolution'], 'original'>, { width: number; height: number }> = {
-  '1080p': { width: 1920, height: 1080 },
+  '480p': { width: 854, height: 480 },
   '720p': { width: 1280, height: 720 },
+  '1080p': { width: 1920, height: 1080 },
+  '4k': { width: 3840, height: 2160 },
+  'vertical_1080x1920': { width: 1080, height: 1920 },
 };
 
 export class TimelineRenderService implements ITimelineRenderPort {
@@ -178,7 +181,7 @@ export class TimelineRenderService implements ITimelineRenderPort {
 
     // 5. 后处理：resize / compress
     if (options.resolution !== 'original') {
-      const dim = RESOLUTION_MAP[options.resolution as '1080p' | '720p'];
+      const dim = RESOLUTION_MAP[options.resolution as Exclude<RenderExportOptions['resolution'], 'original'>];
       if (dim) {
         emit(82, 'render.stage.postProcess');
         try {

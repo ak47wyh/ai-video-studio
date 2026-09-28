@@ -17,20 +17,26 @@ interface ExportModalProps {
   open: boolean;
   onClose: () => void;
   onExport: (options: RenderExportOptions, onProgress: (p: RenderProgress) => void) => Promise<Blob>;
+  /** E-1/E-2: 当前时间线时长（ms），用于 GIF 体积警告与 4K 提示 */
+  durationMs?: number;
 }
 
 type Phase = 'idle' | 'rendering' | 'done' | 'error';
 
-export const ExportModal: React.FC<ExportModalProps> = ({ open, onClose, onExport }) => {
+export const ExportModal: React.FC<ExportModalProps> = ({ open, onClose, onExport, durationMs }) => {
   const { t } = useTranslation();
   const { showToast } = useToast();
   const [resolution, setResolution] = useState<RenderExportOptions['resolution']>('original');
+  const [format, setFormat] = useState<RenderExportOptions['format']>('mp4');
   const [quality, setQuality] = useState<RenderExportOptions['quality']>('medium');
   const [burnSubtitles, setBurnSubtitles] = useState(true);
   const [phase, setPhase] = useState<Phase>('idle');
   const [progress, setProgress] = useState<RenderProgress | null>(null);
   const [resultBlob, setResultBlob] = useState<Blob | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // E-1: GIF 时长 >30s 时提示体积风险；E-2: 4K 提示耗时长
+  const gifLongWarning = format === 'gif' && typeof durationMs === 'number' && durationMs / 1000 > 30;
 
   if (!open) return null;
 
@@ -42,7 +48,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ open, onClose, onExpor
     try {
       const options: RenderExportOptions = {
         resolution,
-        format: 'mp4',
+        format,
         quality,
         burnSubtitles,
       };
@@ -62,7 +68,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ open, onClose, onExpor
     const url = URL.createObjectURL(resultBlob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `render-${Date.now()}.mp4`;
+    a.download = `render-${Date.now()}.${format}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -111,7 +117,29 @@ export const ExportModal: React.FC<ExportModalProps> = ({ open, onClose, onExpor
                 <option value="original">{t('editor.export.resolutionOriginal', '原分辨率')}</option>
                 <option value="1080p">1080p</option>
                 <option value="720p">720p</option>
+                <option value="480p">480p</option>
+                <option value="4k">4K</option>
+                <option value="vertical_1080x1920">{t('editor.export.resolutionVertical', '竖屏 1080×1920')}</option>
               </select>
+              {resolution === '4k' && (
+                <div style={{ fontSize: '0.75rem', color: 'var(--warning-color, #f59e0b)', marginTop: '0.3rem' }}>
+                  {t('editor.export.resolution4kWarn', '4K 渲染耗时较长，且源素材不足 4K 时画质不会提升')}
+                </div>
+              )}
+            </Field>
+            <Field label={t('editor.export.format', '格式')}>
+              <select className="input" value={format} onChange={e => setFormat(e.target.value as RenderExportOptions['format'])}>
+                <option value="mp4">{t('editor.export.formatMp4', 'MP4（通用推荐）')}</option>
+                <option value="gif">{t('editor.export.formatGif', 'GIF（动图，适合 ≤30s）')}</option>
+                <option value="webp">{t('editor.export.formatWebp', 'WebP（动画，适合网页）')}</option>
+                <option value="mov">{t('editor.export.formatMov', 'MOV（高质量，适合剪辑）')}</option>
+                <option value="webm">{t('editor.export.formatWebm', 'WebM（开源，适合网页）')}</option>
+              </select>
+              {gifLongWarning && (
+                <div style={{ fontSize: '0.75rem', color: 'var(--warning-color, #f59e0b)', marginTop: '0.3rem' }}>
+                  {t('editor.export.gifLongWarn', 'GIF 时长超过 30 秒，文件体积可能过大')}
+                </div>
+              )}
             </Field>
             <Field label={t('editor.export.quality', '质量')}>
               <select className="input" value={quality} onChange={e => setQuality(e.target.value as RenderExportOptions['quality'])}>

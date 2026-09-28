@@ -335,13 +335,22 @@ export class FFmpegAdapter implements IFFmpegPort, IQcMediaPort {
     const outName = `out.${format}`;
     try {
       await this.writeFile(inputName, input);
-      const codecMap: Record<OutputFormat, string> = { mp4: 'libx264', webm: 'libvpx', mov: 'libx264' };
-      await ffmpeg.exec([
-        '-i', inputName,
-        '-c:v', codecMap[format],
-        '-c:a', 'aac',
-        outName
-      ]);
+      const codecMap: Record<OutputFormat, string> = { mp4: 'libx264', webm: 'libvpx-vp9', mov: 'libx264', gif: 'gif', webp: 'libwebp' };
+      const args: string[] = ['-i', inputName];
+      if (format === 'gif') {
+        // E-1: GIF 动图（fps=15 + palette，480 宽）
+        args.push(
+          '-vf', 'fps=15,scale=480:-1:flags=lanczos,split[a][b];[a]palettegen[p];[b][p]paletteuse',
+          '-loop', '0',
+        );
+      } else if (format === 'webp') {
+        // E-1: WebP 动画（libwebp + loop 0）
+        args.push('-c:v', 'libwebp', '-loop', '0');
+      } else {
+        args.push('-c:v', codecMap[format], '-c:a', format === 'webm' ? 'libopus' : 'aac');
+      }
+      args.push(outName);
+      await ffmpeg.exec(args);
       return await this.readFile(outName);
     } finally {
       await this.safeDelete(inputName);
