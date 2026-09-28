@@ -26,6 +26,7 @@ import type {
   ITimelineRenderPort,
   RenderExportOptions,
   RenderProgress,
+  RenderStageKey,
 } from '../ports/TimelineRenderPorts';
 import type { IFileStoragePort } from '../ports/FileStoragePorts';
 import type { IVideoTaskRepository, IFinalCutRepository } from '../ports/OutboundPorts';
@@ -76,12 +77,12 @@ export class TimelineRenderService implements ITimelineRenderPort {
   ): Promise<Blob> {
     const log = this.logger;
     const ffmpeg = this.deps.ffmpegPort;
-    const emit = (percent: number, stage: string) => onProgress?.({ percent, stage });
+    const emit = (percent: number, stage: RenderStageKey) => onProgress?.({ percent, stage });
 
     log.info('[TimelineRender] start', { service: 'TimelineRenderService', clips: timeline.tracks.reduce((n, t) => n + t.clips.length, 0) });
 
     await ffmpeg.load();
-    emit(2, '加载渲染引擎');
+    emit(2, 'render.stage.loadingEngine');
 
     const videoTrack = timeline.tracks.find(t => t.type === 'video' && !t.locked);
     const audioTracks = timeline.tracks.filter(t => t.type === 'audio' && !t.muted && !t.locked);
@@ -92,7 +93,7 @@ export class TimelineRenderService implements ITimelineRenderPort {
     }
 
     // 1. 解析视频轨 clips → 带时长的 Blob
-    emit(5, '解析视频素材');
+    emit(5, 'render.stage.parsingClips');
     const sortedVideoClips = [...videoTrack.clips].sort((a, b) => a.startTime - b.startTime);
     const videoBlobs: Array<{ blob: Blob; durationSec: number; transition?: TransitionType | 'none' }> = [];
     for (let i = 0; i < sortedVideoClips.length; i++) {
@@ -112,11 +113,11 @@ export class TimelineRenderService implements ITimelineRenderPort {
       }
       const durationSec = clip.duration > 0 ? clip.duration / 1000 : resolved.durationSec;
       videoBlobs.push({ blob, durationSec, transition: clip.transition });
-      emit(5 + Math.round(((i + 1) / sortedVideoClips.length) * 20), `解析视频素材 ${i + 1}/${sortedVideoClips.length}`);
+      emit(5 + Math.round(((i + 1) / sortedVideoClips.length) * 20), 'render.stage.parsingClips');
     }
 
     // 2. 视频轨：转场 + concat
-    emit(28, '拼接视频片段');
+    emit(28, 'render.stage.concatVideo');
     let videoResult = videoBlobs[0].blob;
     let prevDuration = videoBlobs[0].durationSec;
     for (let i = 1; i < videoBlobs.length; i++) {
@@ -139,13 +140,13 @@ export class TimelineRenderService implements ITimelineRenderPort {
         videoResult = await ffmpeg.concat([{ blob: videoResult }, { blob: cur.blob }]);
       }
       prevDuration = cur.durationSec;
-      emit(28 + Math.round((i / videoBlobs.length) * 20), `拼接视频片段 ${i + 1}/${videoBlobs.length}`);
+      emit(28 + Math.round((i / videoBlobs.length) * 20), 'render.stage.concatVideo');
     }
 
     // 3. 音频混音 → merge 到视频
     let result = videoResult;
     if (audioTracks.length > 0) {
-      emit(52, '混音');
+      emit(52, 'render.stage.mixingAudio');
       const audioBlob = await this.collectAndMixAudio(audioTracks);
       if (audioBlob) {
         try {
@@ -161,7 +162,7 @@ export class TimelineRenderService implements ITimelineRenderPort {
 
     // 4. 字幕烧录
     if (options.burnSubtitles && subtitleTrack && subtitleTrack.clips.some(c => c.text)) {
-      emit(70, '烧录字幕');
+      emit(70, 'render.stage.burningSubtitles');
       const srt = this.buildSrt(subtitleTrack);
       if (srt) {
         try {
@@ -179,7 +180,7 @@ export class TimelineRenderService implements ITimelineRenderPort {
     if (options.resolution !== 'original') {
       const dim = RESOLUTION_MAP[options.resolution as '1080p' | '720p'];
       if (dim) {
-        emit(82, '调整分辨率');
+        emit(82, 'render.stage.postProcess');
         try {
           result = await ffmpeg.resize(result, dim.width, dim.height);
         } catch (e) {
@@ -191,7 +192,7 @@ export class TimelineRenderService implements ITimelineRenderPort {
       }
     }
 
-    emit(88, '压缩导出');
+    emit(88, 'render.stage.postProcess');
     const crf = QUALITY_CRF[options.quality];
     result = await ffmpeg.compress(result, crf);
 
@@ -199,7 +200,7 @@ export class TimelineRenderService implements ITimelineRenderPort {
       result = await ffmpeg.convertFormat(result, options.format);
     }
 
-    emit(100, '渲染完成');
+    emit(100, 'render.stage.finalizing');
     log.info('[TimelineRender] done', { service: 'TimelineRenderService', size: result.size });
     return result;
   }

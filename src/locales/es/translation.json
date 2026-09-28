@@ -1142,5 +1142,16 @@
     "qcReported": "checked",
     "reworked": "Reworks",
     "note": "Version efficiency computed live from local final cuts and QC snapshots."
+  },
+  "render": {
+    "stage": {
+      "loadingEngine": "Loading render engine",
+      "parsingClips": "Parsing video assets {{percent}}%",
+      "concatVideo": "Concatenating clips",
+      "mixingAudio": "Mixing audio",
+      "burningSubtitles": "Burning subtitles",
+      "postProcess": "Post-processing",
+      "finalizing": "Finalizing"
+    }
   }
 }

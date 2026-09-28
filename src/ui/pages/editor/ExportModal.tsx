@@ -36,7 +36,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ open, onClose, onExpor
 
   const handleExport = async () => {
     setPhase('rendering');
-    setProgress({ percent: 0, stage: t('editor.export.starting', '初始化') });
+    setProgress({ percent: 0, stage: 'render.stage.loadingEngine' });
     setErrorMsg(null);
     setResultBlob(null);
     try {
@@ -144,7 +144,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ open, onClose, onExpor
                 />
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.4rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                <span>{progress?.stage ?? ''}</span>
+                <span>{t(progress?.stage ?? '', { percent: progress?.percent ?? 0 })}</span>
                 <span>{Math.round(progress?.percent ?? 0)}%</span>
               </div>
             </div>

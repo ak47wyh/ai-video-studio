@@ -1456,5 +1456,16 @@
     "qcReported": "検査済み",
     "reworked": "作り直し",
     "note": "バージョン効率はローカルの成片と QC スナップショットからリアルタイム計算。"
+  },
+  "render": {
+    "stage": {
+      "loadingEngine": "レンダリングエンジンを読み込み中",
+      "parsingClips": "動画素材を解析中 {{percent}}%",
+      "concatVideo": "クリップを結合中",
+      "mixingAudio": "ミキシング中",
+      "burningSubtitles": "字幕を焼き込み中",
+      "postProcess": "後処理",
+      "finalizing": "仕上げ"
+    }
   }
 }

@@ -34,12 +34,22 @@ export interface RenderExportOptions {
   subtitleStyle?: import('./PostProcessPorts').SubtitleStyle;
 }
 
+/** 渲染阶段 i18n key（T-3：domain 不硬编码中文，UI 用 t(stage) 翻译） */
+export type RenderStageKey =
+  | 'render.stage.loadingEngine'
+  | 'render.stage.parsingClips'
+  | 'render.stage.concatVideo'
+  | 'render.stage.mixingAudio'
+  | 'render.stage.burningSubtitles'
+  | 'render.stage.postProcess'
+  | 'render.stage.finalizing';
+
 /** 渲染进度回调 */
 export interface RenderProgress {
   /** 0~100 */
   percent: number;
-  /** 当前阶段可读文案，如"拼接片段" */
-  stage: string;
+  /** 当前阶段 i18n key（RenderStageKey） */
+  stage: RenderStageKey;
 }
 
 /**

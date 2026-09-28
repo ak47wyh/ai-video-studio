@@ -1453,5 +1453,16 @@
     "qcReported": "已质检",
     "reworked": "回改次数",
     "note": "版本效率基于本地成片与 QC 快照实时计算。"
+  },
+  "render": {
+    "stage": {
+      "loadingEngine": "加载渲染引擎",
+      "parsingClips": "解析视频素材 {{percent}}%",
+      "concatVideo": "拼接视频片段",
+      "mixingAudio": "混音中",
+      "burningSubtitles": "烧录字幕",
+      "postProcess": "后处理",
+      "finalizing": "收尾"
+    }
   }
 }
