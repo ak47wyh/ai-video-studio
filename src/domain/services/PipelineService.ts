@@ -28,6 +28,7 @@ import type { MusicService } from './MusicService';
 import type { BGMRecommendationService } from './BGMRecommendationService';
 import { PromisePool } from './PromisePool';
 import { getStylePromptSuffix } from '../data/stylePresets';
+import { resolveConcurrency, retryOnceOnRateLimit } from './platformConcurrency';
 
 export type { PipelineTask, PipelineStatus, PipelineStep };
 
@@ -975,6 +976,7 @@ export class PipelineService {
     this.pendingVideoTasks.set(task.id, new Set(externalTaskIds));
 
     // 预构建每个分镜的视频 prompt（含镜头建议）
+    const videoConcurrency = resolveConcurrency(activePlatform, options.concurrency);
     const segPromptResults = await PromisePool.run(
       segments,
       async (seg: StorySegment, _index: number) => {
@@ -1012,7 +1014,7 @@ export class PipelineService {
         const progress = 55 + Math.round((done / total) * 5);
         emitProgress('generating_videos', progress, `构建视频 prompt ${done}/${total}`);
       },
-      { concurrency: 3 },
+      { concurrency: videoConcurrency },
     );
 
     // 提交视频任务（并发池，控制平台 QPS）
@@ -1035,7 +1037,7 @@ export class PipelineService {
             return { taskEntity: existingTask, externalTaskId: existingTask.externalTaskId ?? '' };
           }
           const videoPrompt = styleSuffix ? item.prompt + styleSuffix : item.prompt;
-          const externalTaskId = await this.getVideoPort().submitVideoTask({
+          const externalTaskId = await retryOnceOnRateLimit(() => this.getVideoPort().submitVideoTask({
             mode: options.videoMode || 't2v',
             model: options.videoModel,
             prompt: videoPrompt,
@@ -1043,7 +1045,7 @@ export class PipelineService {
             duration: options.videoDuration || 6,
             resolution: options.videoResolution || '768P',
             promptOptimizer: options.promptOptimizer !== false,
-          });
+          }), 5000);
           const taskEntity: VideoTask = {
             id: uuidv4(),
             segmentId: item.seg.id,
@@ -1083,7 +1085,7 @@ export class PipelineService {
         const progress = 60 + Math.round((done / total) * 5);
         emitProgress('generating_videos', progress, `已提交 ${done}/${total} 个视频任务`);
       },
-      { concurrency: options.concurrency ?? 3 },
+      { concurrency: videoConcurrency },
     );
 
     for (const r of submitResults) {
