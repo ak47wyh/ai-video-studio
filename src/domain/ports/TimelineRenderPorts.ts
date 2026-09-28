@@ -33,6 +33,12 @@ export interface RenderExportOptions {
   quality: ExportQuality;
   burnSubtitles?: boolean;
   subtitleStyle?: import('./PostProcessPorts').SubtitleStyle;
+  /** M-1: BGM 混音音量 0.0~1.0，默认 0.3 */
+  bgmVolume?: number;
+  /** M-1: BGM 淡入秒数，默认 0 */
+  bgmFadeInSec?: number;
+  /** M-1: BGM 淡出秒数，默认 0 */
+  bgmFadeOutSec?: number;
 }
 
 /** 渲染阶段 i18n key（T-3：domain 不硬编码中文，UI 用 t(stage) 翻译） */

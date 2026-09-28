@@ -839,7 +839,11 @@
       "formatMov": "MOV（高品質）",
       "formatWebm": "WebM（オープン、Web 向け）",
       "gifLongWarn": "GIF が 30 秒を超えるとファイルサイズが大きくなる可能性があります",
-      "subtitleStyle": "字幕スタイル"
+      "subtitleStyle": "字幕スタイル",
+      "bgmMix": "オーディオミックス（BGM）",
+      "bgmVolume": "BGM 音量",
+      "bgmFadeIn": "フェードイン（秒）",
+      "bgmFadeOut": "フェードアウト（秒）"
     }
   },
   "network": {

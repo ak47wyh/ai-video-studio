@@ -360,6 +360,29 @@ export class FFmpegAdapter implements IFFmpegPort, IQcMediaPort {
     }
   }
 
+  /** M-1: 音频淡入/淡出（afade 滤镜） */
+  async fadeAudio(audio: Blob, opts: { fadeInSec: number; fadeOutSec: number; durationSec?: number }): Promise<Blob> {
+    await this.load();
+    const ffmpeg = this.ensureLoaded();
+    const inName = 'in.mp3';
+    const outName = 'out.mp3';
+    try {
+      await this.writeFile(inName, audio);
+      const filters: string[] = [];
+      if (opts.fadeInSec > 0) filters.push(`afade=t=in:st=0:d=${opts.fadeInSec}`);
+      if (opts.fadeOutSec > 0 && opts.durationSec && opts.durationSec > opts.fadeOutSec) {
+        const st = opts.durationSec - opts.fadeOutSec;
+        filters.push(`afade=t=out:st=${st}:d=${opts.fadeOutSec}`);
+      }
+      if (filters.length === 0) return audio;
+      await ffmpeg.exec(['-i', inName, '-af', filters.join(','), '-c:a', 'aac', outName]);
+      return await this.readFile(outName);
+    } finally {
+      await this.safeDelete(inName);
+      await this.safeDelete(outName);
+    }
+  }
+
   /** SU-3: SRT → ASS 转换（ffmpeg 内置字幕转换；style 由转换器默认样式承担） */
   async convertSubtitle(srt: string, _toFormat: 'ass', style?: SubtitleStyle): Promise<string> {
     await this.load();

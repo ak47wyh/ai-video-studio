@@ -737,7 +737,11 @@
       "formatMov": "MOV (high quality)",
       "formatWebm": "WebM (open source, for web)",
       "gifLongWarn": "GIF longer than 30s may produce a very large file",
-      "subtitleStyle": "Subtitle style"
+      "subtitleStyle": "Subtitle style",
+      "bgmMix": "Audio mix (BGM)",
+      "bgmVolume": "BGM volume",
+      "bgmFadeIn": "Fade in (s)",
+      "bgmFadeOut": "Fade out (s)"
     }
   },
   "export": {

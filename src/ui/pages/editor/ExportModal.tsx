@@ -47,6 +47,10 @@ export const ExportModal: React.FC<ExportModalProps> = ({ open, onClose, onExpor
   const [quality, setQuality] = useState<RenderExportOptions['quality']>('medium');
   const [burnSubtitles, setBurnSubtitles] = useState(true);
   const [subtitleStyle, setSubtitleStyle] = useState<SubtitleStyle>(loadStoredStyle);
+  // M-1: BGM 音量 / 淡入淡出（导出时覆盖）
+  const [bgmVolume, setBgmVolume] = useState(0.3);
+  const [bgmFadeInSec, setBgmFadeInSec] = useState(0);
+  const [bgmFadeOutSec, setBgmFadeOutSec] = useState(0);
   const [phase, setPhase] = useState<Phase>('idle');
   const [progress, setProgress] = useState<RenderProgress | null>(null);
   const [resultBlob, setResultBlob] = useState<Blob | null>(null);
@@ -69,6 +73,9 @@ export const ExportModal: React.FC<ExportModalProps> = ({ open, onClose, onExpor
         quality,
         burnSubtitles,
         subtitleStyle,
+        bgmVolume,
+        bgmFadeInSec,
+        bgmFadeOutSec,
       };
       const blob = await onExport(options, p => setProgress(p));
       setResultBlob(blob);
@@ -181,6 +188,45 @@ export const ExportModal: React.FC<ExportModalProps> = ({ open, onClose, onExpor
                 </div>
               </details>
             )}
+            <details style={{ margin: '0 0 0.75rem', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 8, padding: '0.6rem' }}>
+              <summary style={{ fontSize: '0.8rem', cursor: 'pointer', color: 'var(--text-muted)' }}>
+                {t('editor.export.bgmMix', '音频混合（BGM）')}
+              </summary>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.5rem' }}>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  {t('editor.export.bgmVolume', 'BGM 音量')} {Math.round(bgmVolume * 100)}%
+                </label>
+                <input
+                  id="export-bgm-volume"
+                  className="input" type="range" min={0} max={100} step={5}
+                  value={Math.round(bgmVolume * 100)}
+                  onChange={e => setBgmVolume(Number(e.target.value) / 100)}
+                  style={{ width: '100%' }}
+                />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>
+                      {t('editor.export.bgmFadeIn', '淡入（秒）')}
+                    </label>
+                    <input
+                      id="export-bgm-fade-in"
+                      className="input" type="number" min={0} max={10} step={0.5} value={bgmFadeInSec}
+                      onChange={e => setBgmFadeInSec(Math.max(0, Number(e.target.value)))}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>
+                      {t('editor.export.bgmFadeOut', '淡出（秒）')}
+                    </label>
+                    <input
+                      id="export-bgm-fade-out"
+                      className="input" type="number" min={0} max={10} step={0.5} value={bgmFadeOutSec}
+                      onChange={e => setBgmFadeOutSec(Math.max(0, Number(e.target.value)))}
+                    />
+                  </div>
+                </div>
+              </div>
+            </details>
             <button className="btn btn-primary" style={{ width: '100%', marginTop: '0.5rem' }} onClick={handleExport}>
               <Download size={16} />
               {t('editor.export.start', '开始渲染')}

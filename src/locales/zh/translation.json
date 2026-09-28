@@ -737,7 +737,11 @@
       "formatMov": "MOV（高质量，适合剪辑）",
       "formatWebm": "WebM（开源，适合网页）",
       "gifLongWarn": "GIF 时长超过 30 秒，文件体积可能过大",
-      "subtitleStyle": "字幕样式"
+      "subtitleStyle": "字幕样式",
+      "bgmMix": "音频混合（BGM）",
+      "bgmVolume": "BGM 音量",
+      "bgmFadeIn": "淡入（秒）",
+      "bgmFadeOut": "淡出（秒）"
     }
   },
   "export": {

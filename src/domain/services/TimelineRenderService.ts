@@ -150,7 +150,7 @@ export class TimelineRenderService implements ITimelineRenderPort {
     let result = videoResult;
     if (audioTracks.length > 0) {
       emit(52, 'render.stage.mixingAudio');
-      const audioBlob = await this.collectAndMixAudio(audioTracks);
+      const audioBlob = await this.collectAndMixAudio(audioTracks, options, timeline.duration);
       if (audioBlob) {
         try {
           result = await ffmpeg.merge({ video: result, audio: audioBlob });
@@ -319,7 +319,7 @@ export class TimelineRenderService implements ITimelineRenderPort {
 
   // ===== 音频混音 =====
 
-  private async collectAndMixAudio(audioTracks: TimelineTrack[]): Promise<Blob | null> {
+  private async collectAndMixAudio(audioTracks: TimelineTrack[], options: RenderExportOptions, durationMs: number): Promise<Blob | null> {
     const ffmpeg = this.deps.ffmpegPort;
     const trackBlobs: Blob[] = [];
     for (const track of audioTracks) {
@@ -331,10 +331,18 @@ export class TimelineRenderService implements ITimelineRenderPort {
     }
     if (trackBlobs.length === 0) return null;
     if (trackBlobs.length === 1) return trackBlobs[0];
-    // 链式混音：第一个为主（旁白），后续以 0.3 音量混入（BGM 语义）
+    // M-1: 链式混音——第一个为主（旁白），后续为 BGM 轨，音量/淡入淡出由导出选项控制
+    const bgmVolume = options.bgmVolume ?? 0.3;
+    const fadeInSec = options.bgmFadeInSec ?? 0;
+    const fadeOutSec = options.bgmFadeOutSec ?? 0;
+    const durationSec = durationMs > 0 ? durationMs / 1000 : undefined;
     let acc = trackBlobs[0];
     for (let i = 1; i < trackBlobs.length; i++) {
-      acc = await ffmpeg.mixAudio(acc, trackBlobs[i], { voiceVolume: 1, bgmVolume: 0.3 });
+      let bgm = trackBlobs[i];
+      if (fadeInSec > 0 || fadeOutSec > 0) {
+        bgm = await ffmpeg.fadeAudio(bgm, { fadeInSec, fadeOutSec, durationSec });
+      }
+      acc = await ffmpeg.mixAudio(acc, bgm, { voiceVolume: 1, bgmVolume });
     }
     return acc;
   }

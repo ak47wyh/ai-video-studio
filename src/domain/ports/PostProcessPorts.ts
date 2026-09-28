@@ -90,6 +90,8 @@ export interface IFFmpegPort {
   withMetadata(video: Blob, metadata: Record<string, string>): Promise<Blob>;
   /** SU-3: 字幕格式转换（当前支持 SRT → ASS），返回转换后字幕文本 */
   convertSubtitle(srt: string, toFormat: 'ass', style?: SubtitleStyle): Promise<string>;
+  /** M-1: 音频淡入/淡出（afade 滤镜；durationSec 用于 fade-out 定位，缺省仅淡入） */
+  fadeAudio(audio: Blob, opts: { fadeInSec: number; fadeOutSec: number; durationSec?: number }): Promise<Blob>;
 }
 
 // --- 字幕转录 ---
