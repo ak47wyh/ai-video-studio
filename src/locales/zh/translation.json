@@ -1557,5 +1557,9 @@
     "imported": "已导入到 BGM 库",
     "importUnavailable": "导入服务暂不可用",
     "importFailed": "导入失败"
+  },
+  "capability": {
+    "unsupported": "{{platform}} 暂不支持 {{capability}}",
+    "apply": "前往 {{platform}} 申请"
   }
 }

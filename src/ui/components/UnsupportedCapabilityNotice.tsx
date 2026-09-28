@@ -16,7 +16,7 @@
 
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AlertTriangle, ArrowRight } from 'lucide-react';
+import { AlertTriangle, ArrowRight, ExternalLink } from 'lucide-react';
 import { usePlatformCapabilities } from '../hooks/usePlatformCapabilities';
 import { apiConfigStoreAdapter } from '../../dependencies';
 import type { Capability } from '../../domain/services/platformCapabilities';
@@ -76,11 +76,24 @@ export const UnsupportedCapabilityNotice: React.FC<UnsupportedCapabilityNoticePr
         aria-hidden
       />
       <h3 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 600, color: 'var(--text-primary)' }}>
-        {t('unsupported.title', '{{capability}} 当前平台不可用', { capability: capLabel })}
+        {t('capability.unsupported', '{{platform}} 暂不支持 {{capability}}', { platform: platformMeta.name, capability: capLabel })}
       </h3>
       <p style={{ margin: '0 0 20px', fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.6 }}>
         {error.message}
       </p>
+
+      {platformMeta.externalLink && (
+        <a
+          className="btn btn-secondary"
+          href={platformMeta.externalLink}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none', marginBottom: 16 }}
+        >
+          <ExternalLink size={14} aria-hidden />
+          <span>{t('capability.apply', '前往 {{platform}} 申请', { platform: platformMeta.name })}</span>
+        </a>
+      )}
 
       {alternatives.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>

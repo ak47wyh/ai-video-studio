@@ -1560,5 +1560,9 @@
     "imported": "BGM ライブラリにインポートしました",
     "importUnavailable": "インポートサービスを利用できません",
     "importFailed": "インポートに失敗"
+  },
+  "capability": {
+    "unsupported": "{{platform}} は {{capability}} をまだサポートしていません",
+    "apply": "{{platform}} で申請する"
   }
 }

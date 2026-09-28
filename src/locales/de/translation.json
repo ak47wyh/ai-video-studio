@@ -1252,5 +1252,9 @@
     "imported": "Imported to BGM library",
     "importUnavailable": "Import service unavailable",
     "importFailed": "Import failed"
+  },
+  "capability": {
+    "unsupported": "{{platform}} does not support {{capability}} yet",
+    "apply": "Apply on {{platform}}"
   }
 }
