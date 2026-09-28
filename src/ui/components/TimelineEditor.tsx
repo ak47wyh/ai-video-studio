@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Play, Pause, ZoomIn, ZoomOut, Scissors, Volume2, VolumeX, Lock, Unlock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import type { Timeline, TimelineClip, TimelineTrack, TransitionType } from '../../domain/ports/PostProcessPorts';
+import type { Timeline, TimelineClip, TimelineTrack, TransitionType, TransitionOptions } from '../../domain/ports/PostProcessPorts';
+import { normalizeTransition } from '../../domain/ports/PostProcessPorts';
 import {
   moveClip, resizeClip, trimClipLeft, removeClip,
   setClipTransition, splitClipAtPlayhead,
@@ -24,6 +25,8 @@ const MIN_PX_PER_SECOND = 20;
 const MAX_PX_PER_SECOND = 240;
 /** 吸附阈值（像素）：拖动到该距离内自动吸附到其他 clip 边缘 / 播放头 */
 const SNAP_THRESHOLD_PX = 8;
+/** T-1：可选转场类型（不含 none） */
+const TRANSITION_TYPES: TransitionType[] = ['fade', 'fadeblack', 'fadewhite', 'wipeleft', 'wiperight', 'slideup', 'slidedown', 'circlecrop', 'rectcrop', 'distance'];
 
 export const TimelineEditor: React.FC<TimelineEditorProps> = React.memo(({
   timeline,
@@ -208,7 +211,7 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = React.memo(({
     onChange(splitClipAtPlayhead(timeline, selectedClipId, currentTimeMsRef.current));
   }, [selectedClipId, timeline, onChange]);
 
-  const handleSetTransition = useCallback((clipId: string, transition: TransitionType | 'none') => {
+  const handleSetTransition = useCallback((clipId: string, transition: TransitionOptions) => {
     onChange(setClipTransition(timeline, clipId, transition));
   }, [timeline, onChange]);
 
@@ -427,7 +430,7 @@ interface ClipViewProps {
   /** 左边缘裁切：deltaMs>0 缩短左侧，<0 向左扩展 */
   onTrimLeft: (deltaMs: number) => void;
   onRemove: () => void;
-  onTransitionChange: (transition: TransitionType | 'none') => void;
+  onTransitionChange: (transition: TransitionOptions) => void;
 }
 
 const ClipView: React.FC<ClipViewProps> = ({
@@ -438,7 +441,21 @@ const ClipView: React.FC<ClipViewProps> = ({
   onResize,
   onTrimLeft,
   onRemove,
+  onTransitionChange,
 }) => {
+  const { t } = useTranslation();
+  // T-1：转场参数（兼容旧字符串字段迁移）
+  const curTransition = normalizeTransition(clip.transition);
+  const [showTransitionPanel, setShowTransitionPanel] = useState(false);
+  const [transitionDur, setTransitionDur] = useState(curTransition?.durationSec ?? 0.5);
+  const transitionType = curTransition?.type ?? 'none';
+
+  const handleTransitionType = (type: string) => {
+    const tt = type as TransitionType;
+    onTransitionChange({ type: tt, durationSec: tt === 'none' ? 0.5 : transitionDur });
+    setShowTransitionPanel(tt !== 'none');
+  };
+
   const left = (clip.startTime / 1000) * pxPerSecond;
   const width = (clip.duration / 1000) * pxPerSecond;
   // 右边缘 resize
@@ -532,10 +549,68 @@ const ClipView: React.FC<ClipViewProps> = ({
       <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {clip.text || clip.source || clip.type}
       </span>
-      {clip.transition && clip.transition !== 'none' && (
-        <span style={{ fontSize: '0.6rem', opacity: 0.7, marginLeft: '0.25rem' }}>
-          ↪ {clip.transition}
-        </span>
+      <span
+        role="button"
+        aria-label={t('timelineEditor.transitionLabel')}
+        onClick={(e) => { e.stopPropagation(); setShowTransitionPanel(!showTransitionPanel); }}
+        style={{
+          fontSize: '0.6rem',
+          opacity: curTransition && curTransition.type !== 'none' ? 0.9 : 0.5,
+          marginLeft: '0.25rem',
+          cursor: 'pointer',
+          whiteSpace: 'nowrap',
+          flexShrink: 0,
+        }}
+        title={t('timelineEditor.transitionLabel')}
+      >
+        {curTransition && curTransition.type !== 'none'
+          ? `↪ ${curTransition.type} ${curTransition.durationSec.toFixed(1)}s`
+          : '↪'}
+      </span>
+      {showTransitionPanel && (
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            position: 'absolute', top: 46, left: 0, zIndex: 20,
+            background: '#1e1b2e', border: '1px solid rgba(255,255,255,0.15)',
+            borderRadius: 'var(--radius-sm)', padding: '0.5rem', minWidth: 190,
+            fontSize: '0.7rem', color: '#fff', boxShadow: '0 4px 16px rgba(0,0,0,0.35)',
+          }}
+        >
+          <div style={{ marginBottom: '0.35rem', fontWeight: 600 }}>{t('timelineEditor.transitionLabel')}</div>
+          <select
+            value={transitionType}
+            onChange={(e) => handleTransitionType(e.target.value)}
+            style={{
+              width: '100%', background: '#2a2640', color: '#fff',
+              border: '1px solid rgba(255,255,255,0.2)', borderRadius: 6,
+              padding: '0.2rem', fontSize: '0.7rem',
+            }}
+          >
+            <option value="none">{t('timelineEditor.transitionNone')}</option>
+            {TRANSITION_TYPES.map((tt) => <option key={tt} value={tt}>{tt}</option>)}
+          </select>
+          {transitionType !== 'none' && (
+            <div style={{ marginTop: '0.35rem' }}>
+              <div style={{ marginBottom: '0.2rem' }}>
+                {t('timelineEditor.durationSecLabel')}: {transitionDur.toFixed(1)}s
+              </div>
+              <input
+                type="range"
+                min={0.1}
+                max={2}
+                step={0.1}
+                value={transitionDur}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  setTransitionDur(v);
+                  onTransitionChange({ type: transitionType, durationSec: v });
+                }}
+                style={{ width: '100%' }}
+              />
+            </div>
+          )}
+        </div>
       )}
       {/* 左边缘 trim 手柄 */}
       <div

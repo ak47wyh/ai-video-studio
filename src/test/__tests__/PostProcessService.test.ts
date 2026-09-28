@@ -88,8 +88,8 @@ describe('PostProcessService — 后处理编排（A3）', () => {
   it('applyTransition / concatClips / compress / trim 均委托 ffmpeg', async () => {
     const ff = makeFFmpeg();
     const svc = new PostProcessService(ff, makeWhisper());
-    await svc.applyTransition(new Blob(['a']), new Blob(['b']), 'fade', 0.5);
-    expect(ff.applyTransition).toHaveBeenCalledWith(expect.any(Blob), expect.any(Blob), 'fade', 0.5, undefined);
+    await svc.applyTransition(new Blob(['a']), new Blob(['b']), { type: 'fade', durationSec: 0.5 });
+    expect(ff.applyTransition).toHaveBeenCalledWith(expect.any(Blob), expect.any(Blob), { type: 'fade', durationSec: 0.5 }, undefined);
     await svc.concatClips([new Blob(['a']), new Blob(['b'])]);
     expect(ff.concat).toHaveBeenCalled();
     await svc.compress(new Blob(['v']), 28);

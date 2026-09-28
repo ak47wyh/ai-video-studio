@@ -14,6 +14,7 @@ import React from 'react';
 import { Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { TimelineClip, TransitionType } from '../../../domain/ports/PostProcessPorts';
+import { normalizeTransition } from '../../../domain/ports/PostProcessPorts';
 import { TEXT_LIMITS } from '../../../domain/constants/textLimits';
 
 const TRANSITIONS: Array<{ value: TransitionType | 'none'; label: string }> = [
@@ -51,6 +52,8 @@ export const InspectorPanel: React.FC<InspectorPanelProps> = ({ clip, onPatch, o
 
   const inPointSec = clip.sourceRef?.inPointSec ?? 0;
   const outPointSec = clip.sourceRef?.outPointSec ?? (clip.duration / 1000);
+  // T-1：转场参数（兼容旧字符串字段迁移）
+  const curTransition = normalizeTransition(clip.transition);
 
   const patchSourceRef = (patch: Partial<NonNullable<TimelineClip['sourceRef']>>) => {
     if (!clip.sourceRef) return;
@@ -124,13 +127,39 @@ export const InspectorPanel: React.FC<InspectorPanelProps> = ({ clip, onPatch, o
       <Field label={t('editor.inspector.transition', '转场')}>
         <select
           className="input"
-          value={clip.transition ?? 'none'}
-          onChange={e => onPatch(clip.id, { transition: e.target.value as TransitionType | 'none' })}
+          value={curTransition?.type ?? 'none'}
+          onChange={e => {
+            const type = e.target.value as TransitionType;
+            onPatch(clip.id, {
+              transition: {
+                type,
+                durationSec: type === 'none' ? 0.5 : (curTransition?.durationSec ?? 0.5),
+              },
+            });
+          }}
         >
           {TRANSITIONS.map(tr => (
             <option key={tr.value} value={tr.value}>{tr.label}</option>
           ))}
         </select>
+        {curTransition && curTransition.type !== 'none' && (
+          <Field label={t('editor.inspector.transitionDuration', '转场时长 (s)')}>
+            <input
+              type="range"
+              className="input"
+              min={0.1}
+              max={2}
+              step={0.1}
+              value={curTransition.durationSec}
+              onChange={e => onPatch(clip.id, {
+                transition: { type: curTransition.type, durationSec: Number(e.target.value) },
+              })}
+            />
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+              {curTransition.durationSec.toFixed(1)}s
+            </div>
+          </Field>
+        )}
       </Field>
 
       {clip.type === 'subtitle' && (

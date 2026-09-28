@@ -11,7 +11,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { timelineService, timelineRenderPort } from '../../dependencies';
-import type { Timeline, TimelineClip, TransitionType } from '../../domain/ports/PostProcessPorts';
+import type { Timeline, TimelineClip, TransitionOptions } from '../../domain/ports/PostProcessPorts';
 import type { RenderExportOptions, RenderProgress } from '../../domain/ports/TimelineRenderPorts';
 
 export interface UseTimelineResult {
@@ -217,7 +217,7 @@ export function removeClip(timeline: Timeline, clipId: string): Timeline {
   return { ...timeline, tracks };
 }
 
-export function setClipTransition(timeline: Timeline, clipId: string, transition: TransitionType | 'none'): Timeline {
+export function setClipTransition(timeline: Timeline, clipId: string, transition: TransitionOptions): Timeline {
   const tracks = timeline.tracks.map(track => ({
     ...track,
     clips: track.clips.map(c => (c.id === clipId ? { ...c, transition } : c)),

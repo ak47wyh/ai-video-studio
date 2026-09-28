@@ -1,7 +1,31 @@
 // --- FFmpeg 后期处理 ---
 
-export type TransitionType = 'fade' | 'fadeblack' | 'fadewhite' | 'wipeleft' | 'wiperight' | 'slideup' | 'slidedown' | 'circlecrop' | 'rectcrop' | 'distance';
+export type TransitionType = 'none' | 'fade' | 'fadeblack' | 'fadewhite' | 'wipeleft' | 'wiperight' | 'slideup' | 'slidedown' | 'circlecrop' | 'rectcrop' | 'distance';
 export type OutputFormat = 'mp4' | 'webm' | 'mov';
+
+/** T-1：转场参数配置（类型 + 时长） */
+export interface TransitionOptions {
+  type: TransitionType;
+  /** 转场时长（秒），默认 0.5，范围 0.1 ~ 2.0 */
+  durationSec: number;
+}
+
+/** T-1：时长钳制到 [0.1, 2.0]，非法值回退 0.5 */
+export function clampTransitionDuration(sec: number): number {
+  if (!Number.isFinite(sec)) return 0.5;
+  return Math.min(2.0, Math.max(0.1, sec));
+}
+
+/** T-1：旧字符串转场字段（如 'fade' / 'none'）迁移为 TransitionOptions，向后兼容 */
+export function normalizeTransition(raw?: unknown): TransitionOptions | undefined {
+  if (!raw) return undefined;
+  if (typeof raw === 'string') return { type: raw as TransitionType, durationSec: 0.5 };
+  if (typeof raw === 'object' && 'type' in (raw as Record<string, unknown>)) {
+    const obj = raw as TransitionOptions;
+    return { type: obj.type, durationSec: clampTransitionDuration(obj.durationSec ?? 0.5) };
+  }
+  return undefined;
+}
 
 export interface CropOptions {
   x: number;
@@ -45,7 +69,7 @@ export interface IFFmpegPort {
   concat(clips: VideoClip[]): Promise<Blob>;
   burnSubtitles(video: Blob, srt: string, style?: SubtitleStyle): Promise<Blob>;
   mixAudio(voice: Blob, bgm: Blob, config: BgmMixConfig): Promise<Blob>;
-  applyTransition(clip1: Blob, clip2: Blob, transition: TransitionType, duration: number, offsetSec?: number): Promise<Blob>;
+  applyTransition(clip1: Blob, clip2: Blob, opts: TransitionOptions, offsetSec?: number): Promise<Blob>;
   compress(video: Blob, crf?: number): Promise<Blob>;
   convertFormat(input: Blob, format: OutputFormat): Promise<Blob>;
   changeSpeed(video: Blob, speed: number): Promise<Blob>;
@@ -111,7 +135,8 @@ export interface TimelineClip {
   /** 素材来源引用（渲染时解析为 Blob） */
   sourceRef?: TimelineClipSource;
   text?: string;
-  transition?: TransitionType | 'none';
+  /** T-1：转场参数；旧字符串字段（'fade' 等）在渲染入口经 normalizeTransition 迁移 */
+  transition?: TransitionOptions;
 }
 
 export interface TimelineTrack {

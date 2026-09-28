@@ -1,4 +1,4 @@
-import type { IFFmpegPort, IWhisperPort, SubtitleStyle, BgmMixConfig, TransitionType, OutputFormat, CropOptions } from '../ports/PostProcessPorts';
+import type { IFFmpegPort, IWhisperPort, SubtitleStyle, BgmMixConfig, TransitionOptions, OutputFormat, CropOptions } from '../ports/PostProcessPorts';
 
 export class PostProcessService {
   private ffmpegPort: IFFmpegPort;
@@ -35,8 +35,8 @@ export class PostProcessService {
     return this.ffmpegPort.mixAudio(voice, bgm, config);
   }
 
-  async applyTransition(clip1: Blob, clip2: Blob, transition: TransitionType, duration = 0.5, offsetSec?: number): Promise<Blob> {
-    return this.ffmpegPort.applyTransition(clip1, clip2, transition, duration, offsetSec);
+  async applyTransition(clip1: Blob, clip2: Blob, opts: TransitionOptions, offsetSec?: number): Promise<Blob> {
+    return this.ffmpegPort.applyTransition(clip1, clip2, opts, offsetSec);
   }
 
   async concatClips(clips: Blob[]): Promise<Blob> {

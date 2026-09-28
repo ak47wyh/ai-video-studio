@@ -1,5 +1,5 @@
 import type { FFmpeg } from '@ffmpeg/ffmpeg';
-import type { IFFmpegPort, MergeContext, VideoClip, SubtitleStyle, BgmMixConfig, TransitionType, OutputFormat, CropOptions } from '../../../domain/ports/PostProcessPorts';
+import type { IFFmpegPort, MergeContext, VideoClip, SubtitleStyle, BgmMixConfig, TransitionOptions, OutputFormat, CropOptions } from '../../../domain/ports/PostProcessPorts';
 import type { IQcMediaPort, MediaProbeResult, QcSilenceSegment, QcBlackSegment, QcLoudnessResult } from '../../../domain/ports/QcPorts';
 
 const CORE_VERSION = '0.12.6';
@@ -253,7 +253,7 @@ export class FFmpegAdapter implements IFFmpegPort, IQcMediaPort {
     }
   }
 
-  async applyTransition(clip1: Blob, clip2: Blob, transition: TransitionType, duration: number, offsetSec?: number): Promise<Blob> {
+  async applyTransition(clip1: Blob, clip2: Blob, opts: TransitionOptions, offsetSec?: number): Promise<Blob> {
     await this.load();
     const ffmpeg = this.ensureLoaded();
     const clip1Name = 'c1.mp4';
@@ -268,7 +268,7 @@ export class FFmpegAdapter implements IFFmpegPort, IQcMediaPort {
       await ffmpeg.exec([
         '-i', clip1Name,
         '-i', clip2Name,
-        '-filter_complex', `[0][1]xfade=transition=${transition}:duration=${duration}:offset=${offset}`,
+        '-filter_complex', `[0][1]xfade=transition=${opts.type}:duration=${opts.durationSec}:offset=${offset}`,
         '-c:v', 'libx264',
         '-crf', '23',
         outName

@@ -710,7 +710,8 @@
       "text": "Subtitle Text",
       "textPlaceholder": "Enter subtitle text...",
       "source": "Source",
-      "remove": "Remove"
+      "remove": "Remove",
+      "transitionDuration": "Transition duration (s)"
     },
     "export": {
       "title": "Export Video",
@@ -1466,5 +1467,10 @@
       "postProcess": "Post-processing",
       "finalizing": "Finalizing"
     }
+  },
+  "timelineEditor": {
+    "transitionLabel": "Transition",
+    "transitionNone": "None",
+    "durationSecLabel": "Duration (s)"
   }
 }

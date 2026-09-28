@@ -1155,5 +1155,15 @@
       "postProcess": "Post-processing",
       "finalizing": "Finalizing"
     }
+  },
+  "timelineEditor": {
+    "transitionLabel": "Transition",
+    "transitionNone": "None",
+    "durationSecLabel": "Duration (s)"
+  },
+  "editor": {
+    "inspector": {
+      "transitionDuration": "Transition duration (s)"
+    }
   }
 }

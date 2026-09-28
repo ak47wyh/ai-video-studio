@@ -13,13 +13,14 @@
  */
 
 import { v4 as uuidv4 } from 'uuid';
+import { normalizeTransition } from '../ports/PostProcessPorts';
 import type {
   IFFmpegPort,
   Timeline,
   TimelineClip,
   TimelineTrack,
   TimelineClipSource,
-  TransitionType,
+  TransitionOptions,
   SubtitleStyle,
 } from '../ports/PostProcessPorts';
 import type {
@@ -95,7 +96,7 @@ export class TimelineRenderService implements ITimelineRenderPort {
     // 1. 解析视频轨 clips → 带时长的 Blob
     emit(5, 'render.stage.parsingClips');
     const sortedVideoClips = [...videoTrack.clips].sort((a, b) => a.startTime - b.startTime);
-    const videoBlobs: Array<{ blob: Blob; durationSec: number; transition?: TransitionType | 'none' }> = [];
+    const videoBlobs: Array<{ blob: Blob; durationSec: number; transition?: TransitionOptions }> = [];
     for (let i = 0; i < sortedVideoClips.length; i++) {
       const clip = sortedVideoClips[i];
       const resolved = await this.resolveSourceBlob(clip.sourceRef);
@@ -122,13 +123,12 @@ export class TimelineRenderService implements ITimelineRenderPort {
     let prevDuration = videoBlobs[0].durationSec;
     for (let i = 1; i < videoBlobs.length; i++) {
       const cur = videoBlobs[i];
-      const tr = cur.transition;
-      if (tr && tr !== 'none') {
-        const transitionDur = 0.5;
-        // offset = 前一段时长 - 转场时长（修复原 offset 硬编码 3s 的 bug）
-        const offsetSec = Math.max(0, prevDuration - transitionDur);
+      const tr = normalizeTransition(cur.transition);
+      if (tr && tr.type !== 'none') {
+        // T-1：转场时长可配置（clamp 到 0.1~2.0）；offset = 前一段时长 - 转场时长
+        const offsetSec = Math.max(0, prevDuration - tr.durationSec);
         try {
-          videoResult = await ffmpeg.applyTransition(videoResult, cur.blob, tr, transitionDur, offsetSec);
+          videoResult = await ffmpeg.applyTransition(videoResult, cur.blob, tr, offsetSec);
         } catch (e) {
           log.warn('[TimelineRender] transition failed, fallback to concat', {
             service: 'TimelineRenderService',

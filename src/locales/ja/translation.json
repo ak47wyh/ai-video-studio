@@ -807,7 +807,8 @@
       "text": "字幕テキスト",
       "textPlaceholder": "字幕テキストを入力...",
       "source": "ソース",
-      "remove": "削除"
+      "remove": "削除",
+      "transitionDuration": "トランジション長 (秒)"
     },
     "export": {
       "title": "動画をエクスポート",
@@ -1469,5 +1470,10 @@
       "postProcess": "後処理",
       "finalizing": "仕上げ"
     }
+  },
+  "timelineEditor": {
+    "transitionLabel": "トランジション",
+    "transitionNone": "なし",
+    "durationSecLabel": "長さ（秒）"
   }
 }

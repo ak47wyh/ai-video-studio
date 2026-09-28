@@ -1357,7 +1357,7 @@ export class PipelineService {
       const offsetSec = Math.max(0, prev.durationSec - TRANSITION_DUR_SEC);
       try {
         finalVideoBlob = await this.deps.postProcess.applyTransition(
-          finalVideoBlob, cur.video, 'fade', TRANSITION_DUR_SEC, offsetSec,
+          finalVideoBlob, cur.video, { type: 'fade', durationSec: TRANSITION_DUR_SEC }, offsetSec,
         );
       } catch (e) {
         this.logger.warn('transition failed, fallback to concat', {
