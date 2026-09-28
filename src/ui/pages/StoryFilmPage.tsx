@@ -40,6 +40,7 @@ export const StoryFilmPage: React.FC = () => {
   const {
     step, progress, result, isGeneratingText, generatedText,
     startFilm, generateText, cancelFilm, resetFilm,
+    estimatedRemainingSec, isEstimating,
   } = useStoryFilm();
 
   // ===== 配置状态 =====
@@ -412,6 +413,19 @@ export const StoryFilmPage: React.FC = () => {
           />
         </div>
       </div>
+
+      {/* U-2 预计剩余时间 */}
+      {(estimatedRemainingSec != null || isEstimating) && (
+        <div
+          role="status"
+          aria-live="polite"
+          style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1.25rem', textAlign: 'center' }}
+        >
+          {isEstimating
+            ? t('storyFilm.estimating', '估算剩余时间中...')
+            : t('storyFilm.estimatedRemaining', '预计剩余约 {{sec}} 分钟', { sec: Math.ceil(estimatedRemainingSec! / 60) })}
+        </div>
+      )}
 
       {/* 取消按钮 */}
       <button className="btn btn-secondary" onClick={async () => {

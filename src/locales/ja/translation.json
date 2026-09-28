@@ -1088,7 +1088,9 @@
     "cta": {
       "openEditor": "編集ワークベンチへ",
       "exportCenter": "エクスポートセンターへ"
-    }
+    },
+    "estimating": "残り時間を計算中...",
+    "estimatedRemaining": "残り約 {{sec}} 分"
   },
   "notFound": {
     "message": "お探しのページは存在しません",

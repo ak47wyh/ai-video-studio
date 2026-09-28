@@ -681,7 +681,9 @@
     "cta": {
       "openEditor": "Open Editor",
       "exportCenter": "Go to Export Center"
-    }
+    },
+    "estimating": "Estimating remaining time...",
+    "estimatedRemaining": "About {{sec}} minutes remaining"
   },
   "imageStyle": {
     "default": "Par défaut",

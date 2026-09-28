@@ -1085,7 +1085,9 @@
     "cta": {
       "openEditor": "Open Editor",
       "exportCenter": "Go to Export Center"
-    }
+    },
+    "estimating": "Estimating remaining time...",
+    "estimatedRemaining": "About {{sec}} minutes remaining"
   },
   "notFound": {
     "message": "The page you are looking for does not exist",

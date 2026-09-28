@@ -1085,7 +1085,9 @@
     "cta": {
       "openEditor": "进入剪辑工作台",
       "exportCenter": "前往导出中心"
-    }
+    },
+    "estimating": "估算剩余时间中...",
+    "estimatedRemaining": "预计剩余约 {{sec}} 分钟"
   },
   "notFound": {
     "message": "您访问的页面不存在",
