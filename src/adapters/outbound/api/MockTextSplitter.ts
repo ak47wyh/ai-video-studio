@@ -1,10 +1,12 @@
 import type { ITextSplitterPort, SegmentDraft } from '../../../domain/ports/OutboundPorts';
 import type { ILoggerPort } from '../../../domain/ports/CrossCuttingPorts';
+import { BaseMockAdapter } from './BaseMockAdapter';
 
-export class MockTextSplitterAdapter implements ITextSplitterPort {
+export class MockTextSplitterAdapter extends BaseMockAdapter implements ITextSplitterPort {
   private logger?: ILoggerPort;
 
   constructor(logger?: ILoggerPort) {
+    super();
     this.logger = logger;
   }
   async splitStoryToSegments(text: string, knownCharacterNames: string[]): Promise<SegmentDraft[]> {

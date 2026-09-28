@@ -1,14 +1,16 @@
 import type { IStoryBreakdownPort, StoryBreakdownResult } from '../../../domain/ports/OutboundPorts';
 import type { ILoggerPort } from '../../../domain/ports/CrossCuttingPorts';
+import { BaseMockAdapter } from './BaseMockAdapter';
 
 /**
  * Mock adapter that simulates AI-powered story breakdown.
  * In production, this would call an LLM API to extract characters, backgrounds, and segments.
  */
-export class MockStoryBreakdownAdapter implements IStoryBreakdownPort {
+export class MockStoryBreakdownAdapter extends BaseMockAdapter implements IStoryBreakdownPort {
   private logger?: ILoggerPort;
 
   constructor(logger?: ILoggerPort) {
+    super();
     this.logger = logger;
   }
   async breakdownStory(text: string): Promise<StoryBreakdownResult> {
