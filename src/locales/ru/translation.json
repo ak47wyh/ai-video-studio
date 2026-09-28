@@ -536,7 +536,12 @@
     "versionCompare": "Versions",
     "downloading": "Exporting…",
     "downloadMetadataApplied": "Downloaded (AI declaration metadata included)",
-    "openWorkspace": "Open final-cut workspace"
+    "openWorkspace": "Open final-cut workspace",
+    "subtitleFormat": {
+      "label": "Формат субтитров",
+      "srt": "SRT",
+      "ass": "ASS"
+    }
   },
   "agent": {
     "title": "AI Assistant",

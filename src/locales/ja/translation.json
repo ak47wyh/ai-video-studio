@@ -707,7 +707,12 @@
     "versionCompare": "バージョン比較",
     "downloading": "エクスポート中…",
     "downloadMetadataApplied": "ダウンロード完了（AI 宣言メタデータ付き）",
-    "openWorkspace": "成片ワークスペースを開く"
+    "openWorkspace": "成片ワークスペースを開く",
+    "subtitleFormat": {
+      "label": "字幕形式",
+      "srt": "SRT",
+      "ass": "ASS"
+    }
   },
   "agent": {
     "title": "AI Assistant",

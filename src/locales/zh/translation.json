@@ -789,7 +789,12 @@
     "versionCompare": "版本对比",
     "downloading": "导出中…",
     "downloadMetadataApplied": "已下载（含 AI 声明元数据）",
-    "openWorkspace": "打开成片工作台"
+    "openWorkspace": "打开成片工作台",
+    "subtitleFormat": {
+      "label": "字幕格式",
+      "srt": "SRT",
+      "ass": "ASS"
+    }
   },
   "agent": {
     "title": "AI 助手",

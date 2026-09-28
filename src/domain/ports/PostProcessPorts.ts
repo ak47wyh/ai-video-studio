@@ -85,6 +85,8 @@ export interface IFFmpegPort {
   imageToVideo(image: Blob, durationSec: number): Promise<Blob>;
   /** P2-9 写入媒体元数据（-metadata + -c copy，不重编码） */
   withMetadata(video: Blob, metadata: Record<string, string>): Promise<Blob>;
+  /** SU-3: 字幕格式转换（当前支持 SRT → ASS），返回转换后字幕文本 */
+  convertSubtitle(srt: string, toFormat: 'ass', style?: SubtitleStyle): Promise<string>;
 }
 
 // --- 字幕转录 ---

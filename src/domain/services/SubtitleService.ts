@@ -1,4 +1,4 @@
-import type { IWhisperPort } from '../ports/PostProcessPorts';
+import type { IWhisperPort, IFFmpegPort, SubtitleStyle } from '../ports/PostProcessPorts';
 import type { ITextGenerationPort } from '../ports/OutboundPorts';
 import type { IApiConfigStore, IModelRegistry } from '../ports/PlatformPorts';
 import type { ILoggerPort, ICostMeter } from '../ports/CrossCuttingPorts';
@@ -28,6 +28,7 @@ export class SubtitleService {
   private configStore: IApiConfigStore;
   private costMeter?: ICostMeter;
   private modelRegistry?: IModelRegistry;
+  private ffmpegPort?: IFFmpegPort;
   // @ts-expect-error Logger injected for future use
   private _logger: ILoggerPort;
 
@@ -38,6 +39,7 @@ export class SubtitleService {
     logger: ILoggerPort,
     costMeter?: ICostMeter,
     modelRegistry?: IModelRegistry,
+    ffmpegPort?: IFFmpegPort,
   ) {
     this.whisperPort = whisperPort;
     this.router = router;
@@ -45,6 +47,18 @@ export class SubtitleService {
     this._logger = logger;
     this.costMeter = costMeter;
     this.modelRegistry = modelRegistry;
+    this.ffmpegPort = ffmpegPort;
+  }
+
+  /**
+   * SU-3: SRT → ASS 转换（调用 IFFmpegPort.convertSubtitle）。
+   * 未注入 ffmpegPort 时抛出明确错误（不静默降级）。
+   */
+  async convertSrtToAss(srtContent: string, style?: SubtitleStyle): Promise<string> {
+    if (!this.ffmpegPort) {
+      throw new Error('SubtitleService: ffmpegPort not injected, cannot convert SRT to ASS');
+    }
+    return this.ffmpegPort.convertSubtitle(srtContent, 'ass', style);
   }
 
   /** 解析当前对齐任务应使用的模型 ID（M3.3：走 PlatformRouter） */

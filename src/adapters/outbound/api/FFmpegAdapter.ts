@@ -358,6 +358,36 @@ export class FFmpegAdapter implements IFFmpegPort, IQcMediaPort {
     }
   }
 
+  /** SU-3: SRT → ASS 转换（ffmpeg 内置字幕转换；style 由转换器默认样式承担） */
+  async convertSubtitle(srt: string, _toFormat: 'ass', style?: SubtitleStyle): Promise<string> {
+    await this.load();
+    const ffmpeg = this.ensureLoaded();
+    const inName = 'in.srt';
+    const outName = 'out.ass';
+    try {
+      await this.writeFile(inName, srt);
+      const args: string[] = ['-i', inName];
+      if (style) {
+        const forced = [
+          style.fontName ? `FontName=${style.fontName}` : '',
+          style.fontSize ? `Fontsize=${style.fontSize}` : '',
+          style.primaryColor ? `PrimaryColour=&H00${style.primaryColor.replace('#', '').toUpperCase()}` : '',
+          style.outlineColor ? `OutlineColour=&H00${style.outlineColor.replace('#', '').toUpperCase()}` : '',
+          style.outlineWidth ? `Outline=${style.outlineWidth}` : '',
+        ].filter(Boolean).join(',');
+        if (forced) args.push('-force_style', forced);
+      }
+      args.push(outName);
+      await ffmpeg.exec(args);
+      const blob = await this.readFile(outName);
+      const text = await new Blob([new Uint8Array(await blob.arrayBuffer())]).text();
+      return text;
+    } finally {
+      await this.safeDelete(inName);
+      await this.safeDelete(outName);
+    }
+  }
+
   async changeSpeed(video: Blob, speed: number): Promise<Blob> {
     await this.load();
     const ffmpeg = this.ensureLoaded();

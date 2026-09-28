@@ -368,6 +368,7 @@ export const subtitleService = new SubtitleService(
   defaultLogger.child({ service: 'SubtitleService' }),
   costMeter, // P1-21：成本计量
   modelRegistry, // M3.3: 注入模型注册表
+  ffmpegAdapter, // SU-3: 字幕格式转换（SRT→ASS）
 );
 
 // ========================================

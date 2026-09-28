@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Download, Trash2, Film, Filter, RefreshCw, FilmIcon, Scissors, Copy, Send, RotateCcw, ShieldCheck, GitBranch } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { complianceService, ffmpegAdapter, finalCutRepo, qcService } from '../../dependencies';
+import { complianceService, ffmpegAdapter, finalCutRepo, qcService, subtitleService } from '../../dependencies';
 import { useSpaceScopedStories, useSpaceScopedFinalCuts } from '../hooks/useSpaceScopedQuery';
 import { useToast } from '../contexts/ToastContext';
 import { useConfirm } from '../contexts/ConfirmContext';
@@ -67,6 +67,8 @@ const [reworkCut, setReworkCut] = useState<FinalCut | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   // 每张卡片的导出预设选择（B4）
   const [presetFor, setPresetFor] = useState<Record<string, ExportPreset>>({});
+  // SU-3: 每张卡片的字幕格式选择（SRT / ASS）
+  const [subtitleFormatFor, setSubtitleFormatFor] = useState<Record<string, 'srt' | 'ass'>>({});
 
   const stories = useSpaceScopedStories();
   // Phase 6 闭环修复：useSpaceScopedFinalCuts 已通过 spaceQueryPort.subscribe 订阅数据变更，
@@ -92,9 +94,20 @@ const [reworkCut, setReworkCut] = useState<FinalCut | null>(null);
         // 元数据写入失败不阻断下载（保持可用性，诚实降级）
       }
       downloadBlob(video, `${base}.mp4`);
-      // 含字幕的成片按渠道预设一并导出 SRT，便于二次剪辑/上传时复用
+      // 含字幕的成片按渠道预设一并导出字幕（SU-3: SRT/ASS 可选，便于二次剪辑/上传时复用）
       if (preset !== 'generic' && cut.srtContent) {
-        downloadBlob(new Blob([cut.srtContent], { type: 'text/plain;charset=utf-8' }), `${base}.srt`);
+        const subFormat = subtitleFormatFor[cut.id] ?? 'srt';
+        if (subFormat === 'ass') {
+          try {
+            const ass = await subtitleService.convertSrtToAss(cut.srtContent);
+            downloadBlob(new Blob([ass], { type: 'text/plain;charset=utf-8' }), `${base}.ass`);
+          } catch {
+            // ASS 转换失败不阻断主视频下载，降级为 SRT
+            downloadBlob(new Blob([cut.srtContent], { type: 'text/plain;charset=utf-8' }), `${base}.srt`);
+          }
+        } else {
+          downloadBlob(new Blob([cut.srtContent], { type: 'text/plain;charset=utf-8' }), `${base}.srt`);
+        }
       }
       showToast('success', metadataApplied ? t('export.downloadMetadataApplied') : t('export.downloadStarted'));
     } catch (e) {
@@ -353,6 +366,18 @@ const [reworkCut, setReworkCut] = useState<FinalCut | null>(null);
                     <option key={p.id} value={p.id}>{t(p.labelKey)}</option>
                   ))}
                 </select>
+                {cut.hasSubtitles && cut.srtContent && (
+                  <select
+                    className="btn btn-secondary btn-xs"
+                    style={{ flex: 1, fontSize: '0.72rem', padding: '0.2rem 0.3rem' }}
+                    value={subtitleFormatFor[cut.id] ?? 'srt'}
+                    onChange={(e) => setSubtitleFormatFor(prev => ({ ...prev, [cut.id]: e.target.value as 'srt' | 'ass' }))}
+                    aria-label={t('export.subtitleFormat.label')}
+                  >
+                    <option value="srt">{t('export.subtitleFormat.srt')}</option>
+                    <option value="ass">{t('export.subtitleFormat.ass')}</option>
+                  </select>
+                )}
                 <button
                   className="btn btn-primary btn-xs"
                   style={{ flex: 1 }}
