@@ -10,8 +10,24 @@ import React, { useState } from 'react';
 import { X, Download, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { RenderExportOptions, RenderProgress } from '../../../domain/ports/TimelineRenderPorts';
+import type { SubtitleStyle } from '../../../domain/ports/PostProcessPorts';
+import { SUBTITLE_PRESETS } from '../../../domain/data/subtitlePresets';
+import { SubtitleStyleEditor } from '../../components/SubtitleStyleEditor';
 import { useToast } from '../../contexts/ToastContext';
 import { getErrorMessage } from '../../utils/errorUtils';
+
+/** SU-2: 用户上次的字幕样式（localStorage 记忆，持久化用户偏好） */
+const STYLE_STORAGE_KEY = 'editor.subtitleStyle.v1';
+function loadStoredStyle(): SubtitleStyle {
+  try {
+    const raw = localStorage.getItem(STYLE_STORAGE_KEY);
+    if (raw) return JSON.parse(raw) as SubtitleStyle;
+  } catch { /* ignore */ }
+  return { ...SUBTITLE_PRESETS.douyin };
+}
+function storeStyle(style: SubtitleStyle): void {
+  try { localStorage.setItem(STYLE_STORAGE_KEY, JSON.stringify(style)); } catch { /* ignore */ }
+}
 
 interface ExportModalProps {
   open: boolean;
@@ -30,6 +46,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ open, onClose, onExpor
   const [format, setFormat] = useState<RenderExportOptions['format']>('mp4');
   const [quality, setQuality] = useState<RenderExportOptions['quality']>('medium');
   const [burnSubtitles, setBurnSubtitles] = useState(true);
+  const [subtitleStyle, setSubtitleStyle] = useState<SubtitleStyle>(loadStoredStyle);
   const [phase, setPhase] = useState<Phase>('idle');
   const [progress, setProgress] = useState<RenderProgress | null>(null);
   const [resultBlob, setResultBlob] = useState<Blob | null>(null);
@@ -51,6 +68,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ open, onClose, onExpor
         format,
         quality,
         burnSubtitles,
+        subtitleStyle,
       };
       const blob = await onExport(options, p => setProgress(p));
       setResultBlob(blob);
@@ -81,6 +99,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ open, onClose, onExpor
     setProgress(null);
     setResultBlob(null);
     setErrorMsg(null);
+    storeStyle(subtitleStyle);
     onClose();
   };
 
@@ -152,6 +171,16 @@ export const ExportModal: React.FC<ExportModalProps> = ({ open, onClose, onExpor
               <input type="checkbox" checked={burnSubtitles} onChange={e => setBurnSubtitles(e.target.checked)} />
               {t('editor.export.burnSubtitles', '烧录字幕轨')}
             </label>
+            {burnSubtitles && (
+              <details open style={{ margin: '0 0 0.75rem', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 8, padding: '0.6rem' }}>
+                <summary style={{ fontSize: '0.8rem', cursor: 'pointer', color: 'var(--text-muted)' }}>
+                  {t('editor.export.subtitleStyle', '字幕样式')}
+                </summary>
+                <div style={{ marginTop: '0.5rem' }}>
+                  <SubtitleStyleEditor value={subtitleStyle} onChange={setSubtitleStyle} />
+                </div>
+              </details>
+            )}
             <button className="btn btn-primary" style={{ width: '100%', marginTop: '0.5rem' }} onClick={handleExport}>
               <Download size={16} />
               {t('editor.export.start', '开始渲染')}

@@ -838,7 +838,8 @@
       "formatWebp": "WebP（アニメーション、Web 向け）",
       "formatMov": "MOV（高品質）",
       "formatWebm": "WebM（オープン、Web 向け）",
-      "gifLongWarn": "GIF が 30 秒を超えるとファイルサイズが大きくなる可能性があります"
+      "gifLongWarn": "GIF が 30 秒を超えるとファイルサイズが大きくなる可能性があります",
+      "subtitleStyle": "字幕スタイル"
     }
   },
   "network": {
@@ -1513,5 +1514,27 @@
     "withSubs": "字幕あり",
     "subtitle": "字幕",
     "downloadSrt": "SRT をダウンロード"
+  },
+  "subtitleStyleEditor": {
+    "presetLabel": "プリセット",
+    "custom": "カスタム",
+    "presetOption": {
+      "douyin": "抖音",
+      "bilibili": "B站",
+      "cinematic": "映画風"
+    },
+    "font": "フォント",
+    "fontSize": "文字サイズ",
+    "primaryColor": "文字色",
+    "outlineColor": "縁取り色",
+    "outlineWidth": "縁取り幅",
+    "position": "位置",
+    "positionTop": "上",
+    "positionCenter": "中央",
+    "positionBottom": "下",
+    "marginV": "下端余白",
+    "bold": "太字",
+    "preview": "プレビュー",
+    "previewText": "示例字幕 Preview"
   }
 }

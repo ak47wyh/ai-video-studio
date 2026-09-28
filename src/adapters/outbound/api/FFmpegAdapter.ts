@@ -202,15 +202,17 @@ export class FFmpegAdapter implements IFFmpegPort, IQcMediaPort {
       await this.writeFile(videoName, video);
       await this.writeFile(srtName, new Blob([srt], { type: 'text/plain' }));
 
-      const fontName = style?.fontName ?? 'PingFang SC';
+      const fontFamily = style?.fontFamily ?? 'PingFang SC';
       const fontSize = style?.fontSize ?? 24;
       const primaryColor = style?.primaryColor ?? '&HFFFFFF';
       const outlineColor = style?.outlineColor ?? '&H000000';
       const outlineWidth = style?.outlineWidth ?? 2;
       const position = style?.position ?? 'bottom';
-      const alignment = position === 'top' ? 6 : position === 'middle' ? 10 : 2;
+      const alignment = position === 'top' ? 6 : position === 'center' ? 10 : 2;
+      const marginV = style?.marginV ?? 40;
+      const bold = style?.bold ?? false;
 
-      const forceStyle = `FontName=${fontName},FontSize=${fontSize},PrimaryColour=${primaryColor},OutlineColour=${outlineColor},Outline=${outlineWidth},Alignment=${alignment}`;
+      const forceStyle = `FontName=${fontFamily},FontSize=${fontSize},PrimaryColour=${primaryColor},OutlineColour=${outlineColor},Outline=${outlineWidth},Alignment=${alignment},MarginV=${marginV},Bold=${bold ? -1 : 0}`;
 
       await ffmpeg.exec([
         '-i', videoName,
@@ -369,7 +371,7 @@ export class FFmpegAdapter implements IFFmpegPort, IQcMediaPort {
       const args: string[] = ['-i', inName];
       if (style) {
         const forced = [
-          style.fontName ? `FontName=${style.fontName}` : '',
+          style.fontFamily ? `FontName=${style.fontFamily}` : '',
           style.fontSize ? `Fontsize=${style.fontSize}` : '',
           style.primaryColor ? `PrimaryColour=&H00${style.primaryColor.replace('#', '').toUpperCase()}` : '',
           style.outlineColor ? `OutlineColour=&H00${style.outlineColor.replace('#', '').toUpperCase()}` : '',

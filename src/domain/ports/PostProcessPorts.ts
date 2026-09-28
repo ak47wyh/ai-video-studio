@@ -41,12 +41,15 @@ export interface MergeContext {
 }
 
 export interface SubtitleStyle {
-  fontName?: string;
+  fontFamily?: string;
   fontSize?: number;
   primaryColor?: string;
   outlineColor?: string;
   outlineWidth?: number;
-  position?: 'top' | 'middle' | 'bottom';
+  position?: 'top' | 'center' | 'bottom';
+  /** 距画面底边距（px，ASS MarginV 语义） */
+  marginV?: number;
+  bold?: boolean;
 }
 
 export interface VideoClip {

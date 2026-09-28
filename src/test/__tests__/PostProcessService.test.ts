@@ -70,11 +70,11 @@ describe('PostProcessService — 后处理编排（A3）', () => {
   it('burnSubtitles 透传 srt 与 style', async () => {
     const ff = makeFFmpeg();
     const svc = new PostProcessService(ff, makeWhisper());
-    await svc.burnSubtitles(new Blob(['v']), '1\n00:00:00,000 --> 00:00:01,000\n你好', { fontName: 'PingFang' });
+    await svc.burnSubtitles(new Blob(['v']), '1\n00:00:00,000 --> 00:00:01,000\n你好', { fontFamily: 'PingFang' });
     expect(ff.burnSubtitles).toHaveBeenCalledWith(
       expect.any(Blob),
       '1\n00:00:00,000 --> 00:00:01,000\n你好',
-      { fontName: 'PingFang' },
+      { fontFamily: 'PingFang' },
     );
   });
 

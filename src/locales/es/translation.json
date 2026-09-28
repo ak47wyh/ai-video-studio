@@ -1179,7 +1179,8 @@
       "formatWebp": "WebP (animated, for web)",
       "formatMov": "MOV (high quality)",
       "formatWebm": "WebM (open source, for web)",
-      "gifLongWarn": "GIF longer than 30s may produce a very large file"
+      "gifLongWarn": "GIF longer than 30s may produce a very large file",
+      "subtitleStyle": "Subtitle style"
     }
   },
   "imageLab": {
@@ -1205,5 +1206,27 @@
     "withSubs": "With subtitles",
     "subtitle": "Subtitles",
     "downloadSrt": "Download SRT"
+  },
+  "subtitleStyleEditor": {
+    "presetLabel": "Preset",
+    "custom": "Custom",
+    "presetOption": {
+      "douyin": "Douyin",
+      "bilibili": "Bilibili",
+      "cinematic": "Cinematic"
+    },
+    "font": "Font",
+    "fontSize": "Font size",
+    "primaryColor": "Text color",
+    "outlineColor": "Outline color",
+    "outlineWidth": "Outline width",
+    "position": "Position",
+    "positionTop": "Top",
+    "positionCenter": "Center",
+    "positionBottom": "Bottom",
+    "marginV": "Bottom margin",
+    "bold": "Bold",
+    "preview": "Live preview",
+    "previewText": "示例字幕 Preview"
   }
 }

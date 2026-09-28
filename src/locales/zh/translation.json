@@ -736,7 +736,8 @@
       "formatWebp": "WebP（动画，适合网页）",
       "formatMov": "MOV（高质量，适合剪辑）",
       "formatWebm": "WebM（开源，适合网页）",
-      "gifLongWarn": "GIF 时长超过 30 秒，文件体积可能过大"
+      "gifLongWarn": "GIF 时长超过 30 秒，文件体积可能过大",
+      "subtitleStyle": "字幕样式"
     }
   },
   "export": {
@@ -1510,5 +1511,27 @@
     "withSubs": "含字幕",
     "subtitle": "字幕",
     "downloadSrt": "下载 SRT"
+  },
+  "subtitleStyleEditor": {
+    "presetLabel": "预设",
+    "custom": "自定义",
+    "presetOption": {
+      "douyin": "抖音",
+      "bilibili": "B站",
+      "cinematic": "电影感"
+    },
+    "font": "字体",
+    "fontSize": "字号",
+    "primaryColor": "字体颜色",
+    "outlineColor": "描边颜色",
+    "outlineWidth": "描边粗细",
+    "position": "位置",
+    "positionTop": "顶部",
+    "positionCenter": "居中",
+    "positionBottom": "底部",
+    "marginV": "底部边距",
+    "bold": "加粗",
+    "preview": "实时预览",
+    "previewText": "示例字幕 Preview"
   }
 }
