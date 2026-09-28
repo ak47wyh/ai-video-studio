@@ -33,6 +33,33 @@ export function estimateRemainingSec(elapsedMs: number, stageIndex: number, tota
   return ((elapsedMs / (stageIndex + 1)) * remainingStages) / 1000;
 }
 
+export interface ThrottledProgressHandler {
+  (stage: PipelineStatus, percent: number, message: string): void;
+}
+
+/**
+ * P-4 进度回调节流：100ms 窗口内合并重复回调；
+ * 阶段切换（stage 变化）立即刷新，避免阶段过渡卡顿。
+ * nowFn 可注入用于确定性测试（默认 Date.now）。
+ */
+export function createThrottledProgress(
+  handler: (p: StoryFilmProgress) => void,
+  throttleMs = 100,
+  nowFn: () => number = Date.now,
+): ThrottledProgressHandler {
+  let lastCall = 0;
+  let lastStage: PipelineStatus | null = null;
+  return (stage: PipelineStatus, percent: number, message: string) => {
+    const now = nowFn();
+    const stageChanged = stage !== lastStage;
+    lastStage = stage;
+    if (stageChanged || now - lastCall >= throttleMs) {
+      handler({ stage, percent, message });
+      lastCall = now;
+    }
+  };
+}
+
 export interface UseStoryFilmResult {
   step: StoryFilmStep;
   progress: StoryFilmProgress | null;
@@ -85,13 +112,13 @@ export function useStoryFilm(): UseStoryFilmResult {
     try {
       const filmResult = await storyFilmService.createStoryFilm({
         ...options,
-        onProgress: (stage, percent, message) => {
+        onProgress: createThrottledProgress((p) => {
           if (cancelledRef.current) return;
-          setProgress({ stage, percent, message });
+          setProgress(p);
           // U-2：按阶段均值估算剩余时间（首 30s 内仅标记估算中）
           const now = Date.now();
           if (!startedAtRef.current) startedAtRef.current = now;
-          const idx = ESTIMATE_STAGE_ORDER.indexOf(stage as (typeof ESTIMATE_STAGE_ORDER)[number]);
+          const idx = ESTIMATE_STAGE_ORDER.indexOf(p.stage as (typeof ESTIMATE_STAGE_ORDER)[number]);
           const elapsed = now - startedAtRef.current;
           if (idx < 0) {
             setEstimatedRemainingSec(null);
@@ -105,7 +132,7 @@ export function useStoryFilm(): UseStoryFilmResult {
           }
           setIsEstimating(false);
           setEstimatedRemainingSec(estimateRemainingSec(elapsed, idx, ESTIMATE_STAGE_ORDER.length));
-        },
+        }),
       });
       if (!cancelledRef.current) {
         setResult(filmResult);
