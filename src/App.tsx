@@ -1,5 +1,6 @@
 import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { SharePage } from './ui/pages/SharePage';
 import { MainLayout } from './ui/layouts/MainLayout';
 import { SpaceProvider } from './ui/contexts/SpaceContext';
 import { ToastProvider } from './ui/contexts/ToastContext';
@@ -104,6 +105,8 @@ function App() {
                 <ConfirmProvider>
                   <Suspense fallback={<RouteLoadingFallback />}>
                     <Routes>
+                    <Route path="share/:token" element={<SharePage />} />
+                    <Route path="share" element={<SharePage />} />
                     <Route path="/" element={<MainLayout />}>
                       <Route index element={<Dashboard />} />
                       <Route path="characters" element={<CharacterManagement />} />

@@ -1494,5 +1494,24 @@
     "addToTimeline": "タイムラインに追加",
     "addToTimelineHint": "画像はビデオクリップに変換され編集タイムラインに追加されます",
     "durationSec": "長さ（秒、既定 3）"
+  },
+  "share": {
+    "title": "共有リンク",
+    "hint": "7 日間有効な公開リンクを生成します。視聴者はログイン不要で動画と字幕を視聴できます。",
+    "generate": "共有リンクを生成",
+    "copy": "リンクをコピー",
+    "copied": "コピーしました",
+    "copyFailed": "コピーに失敗",
+    "revoke": "リンクを取り消す",
+    "revoked": "リンクを取り消しました",
+    "revokeFailed": "取り消しに失敗",
+    "expiryNote": "リンクは 7 日後に自動失効し、取り消すと即時アクセス不可になります。",
+    "generatedFailed": "共有リンクの生成に失敗",
+    "expiredTitle": "共有リンクは期限切れです",
+    "expiredHint": "リンクが存在しないか、7 日間の有効期限を過ぎています。",
+    "backToApp": "アプリに戻る",
+    "withSubs": "字幕あり",
+    "subtitle": "字幕",
+    "downloadSrt": "SRT をダウンロード"
   }
 }

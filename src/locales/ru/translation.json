@@ -1186,5 +1186,24 @@
     "addToTimeline": "Add to timeline",
     "addToTimelineHint": "Image will be turned into a video clip on the edit timeline",
     "durationSec": "Duration (s, default 3)"
+  },
+  "share": {
+    "title": "Share link",
+    "hint": "Create a public link valid for 7 days. Viewers can watch the video and subtitles without signing in.",
+    "generate": "Generate share link",
+    "copy": "Copy link",
+    "copied": "Copied",
+    "copyFailed": "Copy failed",
+    "revoke": "Revoke link",
+    "revoked": "Link revoked",
+    "revokeFailed": "Revoke failed",
+    "expiryNote": "The link expires automatically after 7 days; revoking disables it immediately.",
+    "generatedFailed": "Failed to generate share link",
+    "expiredTitle": "Share link expired",
+    "expiredHint": "The link does not exist or has passed its 7-day validity.",
+    "backToApp": "Back to app",
+    "withSubs": "With subtitles",
+    "subtitle": "Subtitles",
+    "downloadSrt": "Download SRT"
   }
 }

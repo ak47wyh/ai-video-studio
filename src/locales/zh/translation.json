@@ -1491,5 +1491,24 @@
     "addToTimeline": "添加到时间线",
     "addToTimelineHint": "图片将转为视频片段加入剪辑时间线",
     "durationSec": "时长（秒，默认 3）"
+  },
+  "share": {
+    "title": "分享链接",
+    "hint": "生成一个 7 天内有效的公开访问链接，对方无需登录即可观看视频与字幕。",
+    "generate": "生成分享链接",
+    "copy": "复制链接",
+    "copied": "已复制",
+    "copyFailed": "复制失败",
+    "revoke": "撤销链接",
+    "revoked": "链接已撤销",
+    "revokeFailed": "撤销失败",
+    "expiryNote": "链接将在 7 天后自动失效，撤销后立即无法访问。",
+    "generatedFailed": "生成分享链接失败",
+    "expiredTitle": "分享链接已失效",
+    "expiredHint": "链接不存在或已超过 7 天有效期。",
+    "backToApp": "返回应用",
+    "withSubs": "含字幕",
+    "subtitle": "字幕",
+    "downloadSrt": "下载 SRT"
   }
 }

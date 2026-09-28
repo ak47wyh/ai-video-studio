@@ -196,6 +196,19 @@ export interface PipelineTask {
   pauseRequested?: boolean;
 }
 
+/** E-3 分享链接记录（一期：本地 Dexie 持久化，token 7 天有效） */
+export interface ShareLink {
+  token: string;
+  cutId: string;
+  videoBlob: Blob;
+  storyTitle: string;
+  duration: number;
+  hasSubtitles: boolean;
+  srtContent?: string;
+  createdAt: number;
+  expiresAt: number;
+}
+
 export interface FinalCut {
   id: string;
   storyId: string;

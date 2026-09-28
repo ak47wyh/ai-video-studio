@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Download, Trash2, Film, Filter, RefreshCw, FilmIcon, Scissors, Copy, Send, RotateCcw, ShieldCheck, GitBranch } from 'lucide-react';
+import { Download, Trash2, Film, Filter, RefreshCw, FilmIcon, Scissors, Copy, Send, RotateCcw, ShieldCheck, GitBranch, Link2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { complianceService, ffmpegAdapter, finalCutRepo, qcService, subtitleService } from '../../dependencies';
@@ -9,6 +9,7 @@ import { useConfirm } from '../contexts/ConfirmContext';
 import { getErrorMessage } from '../utils/errorUtils';
 import { useObjectUrl } from '../hooks/useObjectUrl';
 import { PublishPanel } from '../components/PublishPanel';
+import { ShareLinkDialog } from '../components/ShareLinkDialog';
 import { ReworkPanel } from '../components/ReworkPanel';
 import { PostProductionPanel } from '../components/PostProductionPanel';
 import type { FinalCut } from '../../domain/entities/models';
@@ -62,6 +63,7 @@ export const ExportCenter: React.FC = () => {
   const [previewCutId, setPreviewCutId] = useState<string | null>(null);
 const [publishCut, setPublishCut] = useState<FinalCut | null>(null);
 const [reworkCut, setReworkCut] = useState<FinalCut | null>(null);
+const [shareCut, setShareCut] = useState<FinalCut | null>(null);
   // P2-8 成片 QC：<cutId, report | 'running'>
   const [qcReports, setQcReports] = useState<Record<string, QcReport | 'running'>>({});
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
@@ -421,6 +423,14 @@ const [reworkCut, setReworkCut] = useState<FinalCut | null>(null);
                 <button
                   className="btn btn-secondary btn-xs"
                   style={{ padding: '0.3rem 0.5rem' }}
+                  onClick={() => setShareCut(cut)}
+                  title={t('share.title')}
+                >
+                  <Link2 size={14} />
+                </button>
+                <button
+                  className="btn btn-secondary btn-xs"
+                  style={{ padding: '0.3rem 0.5rem' }}
                   onClick={() => setPublishCut(cut)}
                   title={t('publish.title')}
                 >
@@ -438,6 +448,9 @@ const [reworkCut, setReworkCut] = useState<FinalCut | null>(null);
             </div>
           ))}
         </div>
+      )}
+      {shareCut && (
+        <ShareLinkDialog cutId={shareCut.id} onClose={() => setShareCut(null)} />
       )}
       {publishCut && (
         <PublishPanel finalCut={publishCut} storyTitle={getStoryTitle(publishCut.storyId)} onClose={() => setPublishCut(null)} />

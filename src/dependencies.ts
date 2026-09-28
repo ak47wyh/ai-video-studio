@@ -3,7 +3,7 @@
 // ========================================
 
 // ==================== 仓储层（数据持久化） ====================
-import { StorySpaceRepositoryAdapter, CharacterRepositoryAdapter, StoryRepositoryAdapter, StorySegmentRepositoryAdapter, BackgroundRepositoryAdapter, VideoTaskRepositoryAdapter, FinalCutRepositoryAdapter } from './adapters/outbound/repositories/IndexedDBAdapters';
+import { StorySpaceRepositoryAdapter, CharacterRepositoryAdapter, StoryRepositoryAdapter, StorySegmentRepositoryAdapter, BackgroundRepositoryAdapter, VideoTaskRepositoryAdapter, FinalCutRepositoryAdapter, ShareLinkRepositoryAdapter } from './adapters/outbound/repositories/IndexedDBAdapters';
 import { SnapshotRepositoryAdapter } from './adapters/outbound/repositories/SnapshotRepositoryAdapter';
 import { TimelineRepositoryAdapter } from './adapters/outbound/repositories/TimelineRepositoryAdapter';
 import { PipelineTaskRepositoryAdapter } from './adapters/outbound/repositories/PipelineTaskRepositoryAdapter';
@@ -52,6 +52,7 @@ import { ComplianceService } from './domain/services/ComplianceService';
 import { VersionCompareService } from './domain/services/VersionCompareService';
 import { PipelineService } from './domain/services/PipelineService';
 import { SubtitleService } from './domain/services/SubtitleService';
+import { ShareService } from './domain/services/ShareService';
 import { ImageGenerationService } from './domain/services/ImageGenerationService';
 import { VoiceService } from './domain/services/VoiceService';
 import { MusicService } from './domain/services/MusicService';
@@ -549,6 +550,10 @@ export const bgmPort: import('./domain/ports/DomainServicePorts').IBGMRecommenda
 export const cinematographyPort: import('./domain/ports/DomainServicePorts').ICinematographyPort = new CinematographyPortAdapter(cinematographyService);
 // Phase 5 ISP 清理：postProcessPort 删除（IPostProcessPort + PostProcessPortAdapter 为死代码）
 export const subtitlePort: import('./domain/ports/DomainServicePorts').ISubtitlePort = new SubtitlePortAdapter(subtitleService);
+
+// ==================== E-3 分享链接（发布能力一期） ====================
+export const shareLinkRepo = new ShareLinkRepositoryAdapter();
+export const shareService = new ShareService(shareLinkRepo, finalCutRepo);
 
 // ========================================
 // 时间线渲染 Port（供剪辑工作台 UI 注入）

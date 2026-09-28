@@ -1,5 +1,5 @@
 import { db } from './DexieDatabase';
-import type { Character, Background, Story, StorySegment, StorySpace, VideoTask, VideoTaskStatus, FinalCut } from '../../../domain/entities/models';
+import type { Character, Background, Story, StorySegment, StorySpace, VideoTask, VideoTaskStatus, FinalCut, ShareLink } from '../../../domain/entities/models';
 import type {
   ICharacterRepository,
   IBackgroundRepository,
@@ -9,6 +9,7 @@ import type {
   IStorySpaceRepository,
   IFinalCutRepository
 } from '../../../domain/ports/OutboundPorts';
+import type { IShareLinkRepository } from '../../../domain/ports/ShareLinkPorts';
 
 export class StorySpaceRepositoryAdapter implements IStorySpaceRepository {
   async save(space: StorySpace): Promise<void> {
@@ -131,6 +132,21 @@ export class VideoTaskRepositoryAdapter implements IVideoTaskRepository {
       // 任务不存在时静默（与原行为一致），但记日志便于排查
       // 注意：不可在此抛错，原行为即"task 不存在则 noop"
     }
+  }
+}
+
+export class ShareLinkRepositoryAdapter implements IShareLinkRepository {
+  async save(link: ShareLink): Promise<void> {
+    await db.shareLinks.put(link);
+  }
+  async findByToken(token: string): Promise<ShareLink | undefined> {
+    return db.shareLinks.get(token);
+  }
+  async delete(token: string): Promise<void> {
+    await db.shareLinks.delete(token);
+  }
+  async listAll(): Promise<ShareLink[]> {
+    return db.shareLinks.toArray();
   }
 }
 

@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-import type { Character, Background, Story, StorySegment, StorySpace, VideoTask, PipelineTask, FinalCut, SavedImage, SavedVoice, SavedPrompt, SavedVideo, SavedBgm, PublishTask, Project, ContentTemplate, GeneratedFile } from '../../../domain/entities/models';
+import type { Character, Background, Story, StorySegment, StorySpace, VideoTask, PipelineTask, FinalCut, SavedImage, SavedVoice, SavedPrompt, SavedVideo, SavedBgm, PublishTask, Project, ContentTemplate, GeneratedFile, ShareLink } from '../../../domain/entities/models';
 import type { SpaceSnapshot, Timeline } from '../../../domain/ports/PersistencePorts';
 
 export class AiVideoDatabase extends Dexie {
@@ -22,6 +22,7 @@ templates!: Table<ContentTemplate, string>;
   snapshots!: Table<SpaceSnapshot, string>;
   timelines!: Table<Timeline, string>;
   generatedFiles!: Table<GeneratedFile, string>;
+  shareLinks!: Table<ShareLink, string>;
 
   constructor() {
     super('AiVideoDatabase');
@@ -281,6 +282,12 @@ this.version(13).stores({
 // Version 18: Add sensitiveWords table (P3-2 合规治理：敏感词运营配置，按平台分离)
 this.version(18).stores({
       sensitiveWords: 'id, platform, enabled, createdAt'
+    });
+
+// Version 19: Add shareLinks table (E-3 发布能力一期：分享链接)
+this.version(19).stores({
+      sensitiveWords: 'id, platform, enabled, createdAt',
+      shareLinks: 'token, cutId, createdAt, expiresAt'
     });
   }
 }
